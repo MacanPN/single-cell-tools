@@ -37,7 +37,7 @@ def assign_time_clusters_using_clustering():
 		return
 	linkage = sc.cluster.hierarchy.linkage(PC_expression[cluster_on_pcs], method=method)
 	clusters_without_time = get_cluster_labels(linkage, number_of_clusters, PC_expression.index)
-	cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray"]
+	cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
 	print("Now plotting clusters")
 	change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
 	clusters = []

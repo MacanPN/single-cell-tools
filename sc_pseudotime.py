@@ -406,7 +406,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, hei
 		IPython.embed()
 	#print(annotation["shape"].apply(shape_matplotlib2plotly))
 	fig = dict(data=data, layout=layout)
-	url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False)
+	url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 	print(url)
 
 ## take linkage (from scipy.linkage) and generate n clusters
@@ -438,7 +438,7 @@ def get_cluster_labels(linkage, n_clusters, labels):
 def change_annotation_colors_to_clusters(clusters, annotation, colors):
 	for i,c in enumerate(clusters.values()):
 		annotation.loc[c, "color"] = colors[i]
-
+	print colors
 ## plot hierarchycal clustering
 # arguments are:
 # - pd.DataFrame with PCA transformed gene expression 
