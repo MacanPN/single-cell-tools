@@ -83,7 +83,7 @@ while True:
 		clusters = assign_time_clusters_using_clustering()
 		print("Time clusters were assigned according to hierarchycal clustering")
 	elif(action == "S"):
-		pseudotime = calcutale_pseudotime_using_cluster_times(PC_expression, annotation, clusters, sett)
+		pseudotime = calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters, sett)
 	elif(action == "O"):
 		print_clusters(clusters)
 	elif(action=="F"):

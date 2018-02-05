@@ -594,7 +594,7 @@ def list_from_ranges(s):
 #  pseudotime for each cell is calculated as weighted average of times assigned to clusters
 #  weight for each cluster is an inverse square distance of the cell to the cluster
 #  w = 1/(dist^2)
-def calcutale_pseudotime_using_cluster_times(PC_expression, annotation, clusters, settings):
+def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters, settings):
 	palette_size = int(raw_input("What palette size would you like to use (how many colors)? "))
 	calculate_on = list_from_ranges(raw_input("Which PCs would you like to use for calculating pseudotime? [type comma separated list, list can also include ranges 1-5,8] "))
 	used_PC_expression = PC_expression[calculate_on]
