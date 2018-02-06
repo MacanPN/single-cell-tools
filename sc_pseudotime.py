@@ -439,17 +439,15 @@ def change_annotation_colors_to_clusters(clusters, annotation, colors):
 	for i,c in enumerate(clusters.values()):
 		annotation.loc[c, "color"] = colors[i]
 	print colors
-## plot hierarchycal clustering
-# arguments are:
-# - pd.DataFrame with PCA transformed gene expression 
-# - annotation pd.DataFrame
-# - settings object
-# - filename for output picture
-def plot_hierarchycal_clusterings(transformed_expression, annotation, settings):
-	link_color = {}
-	def link_color_func(node):
-		return link_color[node]
-	
+
+## plot hierarchical clustering with a given linkage method
+#  used when assigning centroids based on clustering
+#  arguments are:
+# - pd.DataFrame with PCA transformed gene expression
+# - method of linkages (ward, complete, average, etc.)
+def plot_hierarchical_clustering(transformed_expression, annotation, method):
+	# color links on the basis of connection to same-group neighbor. 
+	# If neighbors in same group, color identically. If neighbors in different groups, color gray.
 	def colorize_links(linkage):
 		l_color = {}
 		n = transformed_expression.shape[0]
@@ -467,39 +465,51 @@ def plot_hierarchycal_clusterings(transformed_expression, annotation, settings):
 		#print l_color
 		return l_color
 	
-	scipy_linkage_methods = [ "complete", "average", "single", "centroid", "median", "ward"] #"single",weighted
+	def link_color_func(node):
+		return link_color[node]
+			
+	linkage = sc.cluster.hierarchy.linkage(transformed_expression, method=method)
+	link_color = colorize_links(linkage)
+	fig,ax = plt.subplots(figsize=(32,10))
+	dendro  = sc.cluster.hierarchy.dendrogram(
+		linkage,
+		#ax=ax[i/3,i%3],
+		ax=ax,
+		labels = transformed_expression.index,
+		link_color_func = link_color_func,
+		#color_threshold = 0,
+		#above_threshold_color = "black",
+		count_sort = "ascending") #, title=method
+	#ax[i/3,i%3].set_title(method)
+	ax.set_title(method)
+	#tick_labels = ax[i/3,i%3].get_xmajorticklabels()
+	tick_labels = ax.get_xmajorticklabels()
+	for lbl in tick_labels:
+		lbl.set_color(annotation.loc[lbl.get_text()]["color"])
+
+
+## plot hierarchical clustering for all methods of linkage
+# arguments are:
+# - pd.DataFrame with PCA transformed gene expression 
+# - annotation pd.DataFrame
+# - settings object
+# - filename for output picture
+def plot_all_hierarchical_clusterings(transformed_expression, annotation, settings):
+	link_color = {}
+	def link_color_func(node):
+		return link_color[node]
+	
+	scipy_linkage_methods = ["complete", "average", "single", "centroid", "median", "ward"] #"single",weighted
 	# plot clusterings on one magor figure
 	#fig,ax = plt.subplots(nrows=2, ncols=3, figsize=(50, 30))
 	i=0
 	pp = PdfPages(settings.result_filename+"-clustering.pdf")
 	for method in scipy_linkage_methods:
-		linkage = sc.cluster.hierarchy.linkage(transformed_expression, method=method)
-		link_color = colorize_links(linkage)
-		fig,ax = plt.subplots(figsize=(32,10))
-		dendro  = sc.cluster.hierarchy.dendrogram(
-			linkage,
-			#ax=ax[i/3,i%3],
-			ax=ax,
-			labels = transformed_expression.index,
-			link_color_func = link_color_func,
-			#color_threshold = 0,
-			#above_threshold_color = "black",
-			count_sort = "ascending") #, title=method
-		#ax[i/3,i%3].set_title(method)
-		ax.set_title(method)
-		#tick_labels = ax[i/3,i%3].get_xmajorticklabels()
-		tick_labels = ax.get_xmajorticklabels()
-		for lbl in tick_labels:
-			lbl.set_color(annotation.loc[lbl.get_text()]["color"])
+		plot_hierarchical_clustering(transformed_expression, annotation, method=method)
 		i += 1
 		pp.savefig()
-	
-	#plt.tight_layout()
-	
-	
 	pp.close()
-	#plt.savefig(settings.result_filename+"-clustering.png", dpi=200)
-	plt.show()
+	#~ plt.savefig(settings.result_filename+"-clustering.png", dpi=200)
 
 ## rotate transformed expression matrix by defined angle
 #  used internally in order to define pseudotime
@@ -772,7 +782,7 @@ def main():
 	elif(sett.run_mode=="3d-pca"):
 		plot_3d_pca(PC_expression, annotation, sett)
 	elif(sett.run_mode=="hierarchy"):
-		plot_hierarchycal_clusterings(PC_expression, annotation, sett)
+		plot_all_hierarchical_clusterings(PC_expression, annotation, sett)
 	elif(sett.run_mode=="pseudotime"):
 		#pseudotime = find_pseudotime(PC_expression, annotation, pca, sett)
 		#pseudotime.to_csv(sett.result_filename+"_pseudotime.csv", sep="\t")

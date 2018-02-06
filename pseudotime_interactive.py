@@ -9,12 +9,28 @@ import sklearn
 import seaborn as sns
 import math
 import IPython
+import argparse
+import os
 
 from sc_pseudotime import *
 
-expression_file = sys.argv[1]
-cellset_file    = sys.argv[2]
-settings_file   = sys.argv[3]
+parser = argparse.ArgumentParser(description="runs pseudotime_interactive")
+parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/single_cell_tools/example_input_files/transcripts.tpm_census_matrix-comma-delimited.csv", help="gene by cell matrix of expression values", metavar="EXPR")
+parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/single_cell_tools/example_input_files/cell_sets.csv", help="cell sets", metavar="CELL_SETS")
+parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/single_cell_tools/example_input_files/plot_settings.csv", help="plot settings", metavar="PLOT_SETTINGS")
+parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=True)
+
+
+try:
+    options = parser.parse_args()
+except SystemExit as err: 
+	if err.code == 2: 
+		parser.print_help()
+		sys.exit(0)
+ 
+expression_file = os.path.expanduser(options.expr_mat)
+cellset_file    = os.path.expanduser(options.cell_sets)
+settings_file   = os.path.expanduser(options.plot_settings)
 n_pca = 20
 # read settings and cell_set files
 sett = settings(settings_file, cellset_file)
@@ -47,6 +63,8 @@ def assign_time_clusters_using_clustering():
 		time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
 		clusters.append( (time,annotation.loc[annotation["color"]==cluster_colors[i]].index) )
 	clusters.sort(key=lambda by_first: by_first[0])
+	plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method)
+	plt.show()
 	return clusters
 
 def print_clusters(clusters):
@@ -60,6 +78,7 @@ def print_clusters(clusters):
 # main loop / choosing action
 while True:
 	question = """Choose from following:
+	[H]	Plot Hierarchical Clustering
 	[P]	Plot PCA
 	[L]	Assign time clusters according to time Labels (like day_4 ... )
 	[C]	Assign time clusters using hierarchical clustering
@@ -71,6 +90,11 @@ while True:
 	action = raw_input(question).upper()
 	if(action == "X"):
 		break
+	elif(action == "H"):
+		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+		sett.pcs = pcs
+		print("plotting...\n the plot will open as a .pdf shortly")
+		plot_all_hierarchical_clusterings(PC_expression, annotation, sett)
 	elif(action == "P"):
 		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 		sett.pcs = pcs
