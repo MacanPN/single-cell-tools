@@ -103,7 +103,7 @@ while True:
 		plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
 	elif(action == "L"):
 		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc) ")
-		colval = raw_input("What values used to subset the data? (ex. shCtrl, sh842, etc.) ")
+		colval = raw_input("What values used to subset the data? (ex. shCtrl, sh842, etc.) ").split(",")
 		clusters = time_clusters_from_annotations(annotation, colnm, colval)
 		print("Time clusters were assigned according to labels")
 	elif(action == "C"):
