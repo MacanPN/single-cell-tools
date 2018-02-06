@@ -741,11 +741,12 @@ def plot_3d_pca_colored_by_clustering(PC_expression, annotation, pca, settings):
 
 ## takes annotation dataframe and returns list of day clusters
 #  as list of toupples (day, index_of_cells)
-def time_clusters_from_annotations(annotation):
-	days = annotation["day"].sort_values().unique()
+def time_clusters_from_annotations(annotation, colnm, colval):
+	subset = annotation[annotation[colnm]==colval]
+	days = subset["day"].sort_values().unique()
 	clusters = []
 	for d in days:
-		clusters.append((d,annotation[annotation["day"]==d].index))
+		clusters.append((d,subset[subset["day"]==d].index))
 	return clusters
 
 ## takes PCA transformed expression and list of clusters [(time, index_of_cells), ...]

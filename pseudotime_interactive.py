@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -i
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -90,6 +90,7 @@ while True:
 	action = raw_input(question).upper()
 	if(action == "X"):
 		break
+		#~ exit()
 	elif(action == "H"):
 		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 		sett.pcs = pcs
@@ -101,7 +102,9 @@ while True:
 		print("plotting...\n the plot will open in your web browser shortly")
 		plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
 	elif(action == "L"):
-		clusters = time_clusters_from_annotations(annotation)
+		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc) ")
+		colval = raw_input("What values used to subset the data? (ex. shCtrl, sh842, etc.) ")
+		clusters = time_clusters_from_annotations(annotation, colnm, colval)
 		print("Time clusters were assigned according to labels")
 	elif(action == "C"):
 		clusters = assign_time_clusters_using_clustering()
