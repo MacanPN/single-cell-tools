@@ -1,4 +1,4 @@
-#!/usr/bin/python -i
+#!/usr/bin/python 
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -42,7 +42,7 @@ PC_expression,pca = run_PCA(expression_table, annotation, n_pca)
 clusters = None
 annotation["name"] = "day "+annotation["day"].astype(str)
 
-def assign_time_clusters_using_clustering():
+def assign_time_clusters_using_clustering(colnm, colval):
 	scipy_linkage_methods = [ "complete", "average", "single", "centroid", "median", "ward"]
 	question = "Which PCs would you like to use for clustering? [type comma separated list, list can also include ranges 1-5,8] "
 	cluster_on_pcs = list_from_ranges(raw_input(question))
@@ -51,21 +51,21 @@ def assign_time_clusters_using_clustering():
 	if method not in scipy_linkage_methods:
 		print("clustering method not supported (spelling error?)")
 		return
-	linkage = sc.cluster.hierarchy.linkage(PC_expression[cluster_on_pcs], method=method)
-	clusters_without_time = get_cluster_labels(linkage, number_of_clusters, PC_expression.index)
-	cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
-	print("Now plotting clusters")
-	change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
-	clusters = []
-	sett.pcs = cluster_on_pcs[:3]
-	plot_3d_pca(PC_expression, annotation, sett)
-	for i in range(0,number_of_clusters):
-		time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
-		clusters.append( (time,annotation.loc[annotation["color"]==cluster_colors[i]].index) )
-	clusters.sort(key=lambda by_first: by_first[0])
-	plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method)
-	plt.show()
-	return clusters
+	if colval:
+		linkage = sc.cluster.hierarchy.linkage(subset_PC_expression[cluster_on_pcs], method=method)
+		clusters_without_time = get_cluster_labels(linkage, number_of_clusters, subset_PC_expression.index)
+		cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+		print("Now plotting clusters")
+		change_annotation_colors_to_clusters(clusters_without_time, subset_annotation, cluster_colors)
+		clusters = []
+		sett.pcs = cluster_on_pcs[:3]
+		plot_3d_pca(subset_PC_expression, subset_annotation, sett)
+		for i in range(0,number_of_clusters):
+			time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
+			clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
+		clusters.sort(key=lambda by_first: by_first[0])
+		plot_hierarchical_clustering(subset_PC_expression[cluster_on_pcs], subset_annotation, method=method)
+		return clusters
 
 def print_clusters(clusters):
 	if(clusters == None):
@@ -92,25 +92,39 @@ while True:
 		break
 		#~ exit()
 	elif(action == "H"):
-		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
-		sett.pcs = pcs
-		print("plotting...\n the plot will open as a .pdf shortly")
+		print("plotting...\n dendrogram will be saved as a .pdf shortly")
 		plot_all_hierarchical_clusterings(PC_expression, annotation, sett)
 	elif(action == "P"):
+		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
+		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing none will prevent subsetting ")
 		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 		sett.pcs = pcs
 		print("plotting...\n the plot will open in your web browser shortly")
-		plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
+		if colval:
+			#~ subset_annotation = annotation[annotation[colnm]==colval]
+			#~ subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+			plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+		else:
+			plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
 	elif(action == "L"):
-		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc) ")
-		colval = raw_input("What values used to subset the data? (ex. shCtrl, sh842, etc.) ").split(",")
+		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
+		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing none will prevent subsetting ")
+		subset_annotation = annotation[annotation[colnm]==colval]
+		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
 		clusters = time_clusters_from_annotations(annotation, colnm, colval)
 		print("Time clusters were assigned according to labels")
 	elif(action == "C"):
-		clusters = assign_time_clusters_using_clustering()
+		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
+		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing none will prevent subsetting ")
+		subset_annotation = annotation[annotation[colnm]==colval]
+		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+		clusters = assign_time_clusters_using_clustering(colnm, colval)
 		print("Time clusters were assigned according to hierarchycal clustering")
+		plt.show()
 	elif(action == "S"):
-		pseudotime = calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters, sett)
+		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
+		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing none will prevent subsetting ")
+		pseudotime = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, clusters, sett)
 	elif(action == "O"):
 		print_clusters(clusters)
 	elif(action=="F"):
