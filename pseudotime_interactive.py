@@ -101,7 +101,7 @@ while True:
 		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 		sett.pcs = pcs
 		print("plotting...\n the plot will open in your web browser shortly")
-		if not any(colval):
+		if not all(colval):
 			plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
 		else:
 			try:
