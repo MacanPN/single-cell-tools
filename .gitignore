@@ -1,2 +1,3 @@
 example_input_files/transcripts.tpm_census_matrix-comma-delimited.csv
+*.html
 *.pyc
