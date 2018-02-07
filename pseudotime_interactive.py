@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -i
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -97,16 +97,23 @@ while True:
 	elif(action == "P"):
 		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
 		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
+		colval.append("none")
 		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 		sett.pcs = pcs
 		print("plotting...\n the plot will open in your web browser shortly")
-		if colval:
-			if not subset_PC_expression:
-				subset_annotation = annotation[annotation[colnm]==colval]
-				subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
-			plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
-		else:
+		if not any(colval):
 			plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
+		else:
+			try:
+				subset_PC_expression
+			except:
+				subset_annotation = annotation[annotation[colnm].isin(colval)]
+				subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+				plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+				del subset_annotation, subset_PC_expression
+			else:
+				plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+			
 	elif(action == "L"):
 		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
 		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
@@ -115,6 +122,7 @@ while True:
 		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
 		clusters = time_clusters_from_annotations(subset_annotation)
 		print("Time clusters were assigned according to labels")
+		
 	elif(action == "C"):
 		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
 		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
@@ -124,10 +132,12 @@ while True:
 		clusters = assign_time_clusters_using_clustering(colnm, colval)
 		print("Time clusters were assigned according to hierarchycal clustering")
 		plt.savefig("hierarch_clustering.pdf")
+		
 	elif(action == "S"):
 		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
 		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
 		pseudotime = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, clusters, sett)
+		
 	elif(action == "O"):
 		print_clusters(clusters)
 	elif(action=="F"):
