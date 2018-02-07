@@ -1,4 +1,4 @@
-#!/usr/bin/python -i
+#!/usr/bin/python
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -101,8 +101,9 @@ while True:
 		sett.pcs = pcs
 		print("plotting...\n the plot will open in your web browser shortly")
 		if colval:
-			#~ subset_annotation = annotation[annotation[colnm]==colval]
-			#~ subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+			if not subset_PC_expression:
+				subset_annotation = annotation[annotation[colnm]==colval]
+				subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
 			plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
 		else:
 			plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
@@ -112,7 +113,7 @@ while True:
 		colval.append("none")
 		subset_annotation = annotation[annotation[colnm].isin(colval)]
 		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
-		clusters = time_clusters_from_annotations(annotation, colnm, colval)
+		clusters = time_clusters_from_annotations(subset_annotation)
 		print("Time clusters were assigned according to labels")
 	elif(action == "C"):
 		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
@@ -133,7 +134,7 @@ while True:
 		if("pseudotime" not in globals()):
 			print("Pseudotime was not yet generated!")
 			continue
-		filename = raw_input("Enter file name you'd like to save pseudotime as (preferably ending with .csv)")
+		filename = raw_input("Enter file name you'd like to save pseudotime as (preferably ending with .csv) ")
 		pseudotime.to_csv(filename, sep="\t")
 	elif(action == "I"):
 		IPython.embed()

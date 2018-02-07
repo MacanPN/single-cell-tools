@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -i
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,26 +14,49 @@ import IPython
 sys.path.insert(0, "/home/hp/CHLA/single-cell-tools/")
 from sc_pseudotime import *
 from matplotlib.backends.backend_pdf import PdfPages
+import os
 
-expression_file = sys.argv[1]
-cellset_file    = sys.argv[2]
-settings_file   = sys.argv[3]
-pseudotime733_file = sys.argv[4]
-pseudotime737_file = sys.argv[5]
-pseudotimeCtrl_file = sys.argv[6]
-correlation_file = sys.argv[7]
-correlation_method = sys.argv[8]
-out_filename      = sys.argv[9]
+import argparse
+
+parser = argparse.ArgumentParser(description="runs genes_correlated_with_pseudotime")
+parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/single_cell_tools/example_input_files/transcripts.tpm_census_matrix-comma-delimited.csv", help="gene by cell matrix of expression values", metavar="EXPR")
+parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/single_cell_tools/example_input_files/cell_sets.csv", help="cell sets", metavar="CELL_SETS")
+parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/single_cell_tools/example_input_files/plot_settings.csv", help="plot settings", metavar="PLOT_SETTINGS")
+parser.add_argument("-r", "--corr-method", dest="corr_method", default="spearman", help="method of correlation (spearman or pearson)", metavar="CORR_METHOD")
+parser.add_argument("-o", "--outfile", dest="outfile", default="gene_corr_with_ptime", help="a name to give to the output file", metavar="OUTFILE")
+parser.add_argument("-pt", "--pseudotime", dest="pseudotime", help="a list of pseudotime values for a set of cells. Can accept multiple values", metavar="PTIME", nargs='+', required=True)
+
+
+try:
+    options = parser.parse_args()
+except SystemExit as err: 
+	if err.code == 2: 
+		parser.print_help()
+		sys.exit(0)
+ 
+expression_file = os.path.expanduser(options.expr_mat)
+cellset_file    = os.path.expanduser(options.cell_sets)
+settings_file   = os.path.expanduser(options.plot_settings)
+correlation_method = options.corr_method
+out_filename      = options.outfile
+
+pseudotime_files = options.pseudotime
+
+#~ correlation_file = sys.argv[7]
+
 
 sett = settings(settings_file, cellset_file)
 expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
-pt733 = read_pseudotime_from_file(pseudotime733_file)
-pt737 = read_pseudotime_from_file(pseudotime737_file)
-ptCtrl = read_pseudotime_from_file(pseudotimeCtrl_file)
 
 ## block of code to calculate correlations
+pt = map(read_pseudotime_from_file, pseudotime_files)
+exit()
+correlation = [get_correlation_with_pseudotime(x, expression_table, method=correlation_method) for x in pt]
+
+corr = pd.concat(correlation, axis=1)
+corr.columns = pseudotime_files
+corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
 '''
-correlation_method = "spearman"
 correlation_733 = get_correlation_with_pseudotime(expression_table, pt733, method=correlation_method)
 correlation_737 = get_correlation_with_pseudotime(expression_table, pt737, method=correlation_method)
 correlation_Ctrl = get_correlation_with_pseudotime(expression_table, ptCtrl, method=correlation_method)
@@ -52,13 +75,13 @@ correlation_method = "kendall"
 correlation_file = "pseudotime_wo_brC/kendall_correlation.csv"
 corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
 '''
-correlation_method = "spearman"
-correlation_file = "pseudotime_wo_brC/spearman_correlation.csv"
+#~ correlation_method = "spearman"
+correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
 corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
 
 
 ## function plots genes of interest (pd.Index) into pdf
-def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt733, pt737, ptCtrl):
+def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt):
 	pp = PdfPages(out_filename)
 	for i,t in enumerate(genes_of_interest):
 		fig, ax = plt.subplots(1,3, figsize=(15,5), sharey="row") #define common y axis for set of plots (treatments)
@@ -72,20 +95,16 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 		except:
 			pass
 		fig.suptitle(title)
-		
-		plot_gene_with_pseudotime(expression_table, pt733, t, annotation, ax=ax[0])
-		ax[0].set_title("733  "+correlation_method+"=%.2f" % corr.loc[t,"733"])
-		plot_gene_with_pseudotime(expression_table, pt737, t, annotation, ax=ax[1])
-		ax[1].set_title("737  "+correlation_method+"=%.2f" % corr.loc[t,"737"])
-		plot_gene_with_pseudotime(expression_table, ptCtrl, t, annotation, ax=ax[2])
-		ax[2].set_title("Ctrl  "+correlation_method+"=%.2f" % corr.loc[t,"Ctrl"])
-		
+		cntr = 0
+		for i in pt:
+			plot_gene_with_pseudotime(expression_table, i, t, annotation, ax=ax[0+cntr])
+			ax[0+cntr].set_title("733  "+str(cntr)+correlation_method+"=%.2f" % corr.loc[t,pseudotime_files[0+cntr]])
+			cntr += 1
 		plt.tight_layout()
 		plt.subplots_adjust(top=0.85)
 		pp.savefig()
-		plt.close()
+		plt.close('all')
 	pp.close()
-
 
 '''
 # 733 + 737 - Ctrl
@@ -95,10 +114,10 @@ out_filename = "pseudotime_wo_brC/"+correlation_method+"_733+737-Ctrl.pdf"
 plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt733, pt737, ptCtrl)
 '''
 # 733
-corr["order"] = corr["733"].abs()
+corr["order"] = corr[pseudotime_files[0]].abs()
 genes_of_interest = corr.sort_values(by="order", ascending=False).index[:200]
-out_filename = "pseudotime_wo_brC/"+correlation_method+"_733.pdf"
-plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt733, pt737, ptCtrl)
+out_filename = "pseudotime_wo_brC_"+correlation_method+"_test.pdf"
+plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
 '''
 # 737
 corr["order"] = corr["737"].abs()
@@ -135,4 +154,5 @@ plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annota
 #out_filename = "pseudotime_wo_brC/spearman_733.pdf"
 #gene_order = spearman_733["corr"]
 
-	
+if __name__ == "__main__":
+	main()

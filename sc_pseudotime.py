@@ -683,7 +683,7 @@ def read_pseudotime_from_file(filename):
 # - exp = pd.DataFrame with gene expression 
 # - pseudotime = pd.Series with pseudotime coordinates for each cell
 # - [optional] correlation_threshold = returns only genes with absolute value of correlation >= threshold
-def get_correlation_with_pseudotime(exp, pseudotime, correlation_threshold = 0, method = "spearman"):
+def get_correlation_with_pseudotime(pseudotime, exp, correlation_threshold = 0, method = "spearman"):
 	transcripts = exp.columns.copy()
 	spearman = pd.DataFrame(0, index=transcripts, columns=["corr", "abs"])
 	expc = exp.loc[pseudotime.index].copy()
@@ -741,21 +741,12 @@ def plot_3d_pca_colored_by_clustering(PC_expression, annotation, pca, settings):
 
 ## takes annotation dataframe and returns list of day clusters
 #  as list of toupples (day, index_of_cells)
-def time_clusters_from_annotations(annotation, colnm, colval):
-	if colval:
-		subset = annotation[annotation[colnm]==colval]
-		days = subset["day"].sort_values().unique()
-		clusters = []
-		for d in days:
-			clusters.append((d,subset[subset["day"]==d].index))
-		return clusters
-	else:
-		annotation = annotation[annotation[colnm]==colval]
-		days = annotation["day"].sort_values().unique()
-		clusters = []
-		for d in days:
-			clusters.append((d,annotation[annotation["day"]==d].index))
-		return clusters
+def time_clusters_from_annotations(annotation):
+	days = annotation["day"].sort_values().unique()
+	clusters = []
+	for d in days:
+		clusters.append((d,annotation[annotation["day"]==d].index))
+	return clusters
 
 ## takes PCA transformed expression and list of clusters [(time, index_of_cells), ...]
 #  and returns centroid for each cluster
