@@ -11,6 +11,7 @@ import math
 import IPython
 import argparse
 import os
+#~ import ipdb
 
 from sc_pseudotime import *
 
@@ -78,13 +79,18 @@ def print_clusters(clusters):
 def retrieve_subset_param():
 	colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
 	colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
-	colval.append("none")
 	return colnm, colval
 
 def subset_pc_expression(pc_expression, colnm, colval):
-	subset_annotation = annotation[annotation[colnm].isin(colval)]
-	subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
-	return subset_annotation, subset_PC_expression
+	#~ ipdb.set_trace()
+	if not all(colval):
+		return annotation, PC_expression
+	else:
+		subset_annotation = annotation[annotation[colnm].isin(colval)]
+		day0_annotation = annotation[annotation["day"]==0.0]
+		subset_annotation = subset_annotation.append(day0_annotation)
+		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+		return subset_annotation, subset_PC_expression
 
 # main loop / choosing action
 while True:
@@ -130,23 +136,23 @@ while True:
 	elif(action == "L"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
-		clusters = time_clusters_from_annotations(subset_annotation)
+		subset_clusters = time_clusters_from_annotations(subset_annotation)
 		print("Time clusters were assigned according to labels")
 		
 	elif(action == "C"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
-		clusters = assign_time_clusters_using_clustering(colnm, colval)
+		subset_clusters = assign_time_clusters_using_clustering(colnm, colval)
 		print("Time clusters were assigned according to hierarchycal clustering")
 		plt.savefig("hierarch_clustering.pdf")
 		
 	elif(action == "S"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
-		pseudotime = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, clusters, sett)
+		pseudotime = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, subset_clusters, sett)
 		
 	elif(action == "O"):
-		print_clusters(clusters)
+		print_clusters(subset_clusters)
 	elif(action=="F"):
 		if("pseudotime" not in globals()):
 			print("Pseudotime was not yet generated!")

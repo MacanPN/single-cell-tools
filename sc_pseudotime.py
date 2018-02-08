@@ -19,7 +19,7 @@ import mygene
 import statsmodels.api as sm
 import copy # needed to copy class settings
 from matplotlib.backends.backend_pdf import PdfPages
-
+#~ import ipdb
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
 default_shape = "o"
@@ -27,6 +27,7 @@ default_day = 0.0
 default_color = "gray"
 time_group_prefix = "day_"
 treatment_group_prefix = "sh"
+cluster_group_prefix= "cluster_"
 ## sets with parameter look like:
 # operation	set_name	parameter
 # for ex.: color	day_4	clue
@@ -151,6 +152,7 @@ def read_expression(expression_file, settings, min_expression = 0.1, min_cells =
 	annotation["day"]=default_day
 	annotation["shape"] = default_shape
 	annotation["treatment"]= "none"
+	annotation["cluster"]= "none"
 	
 	for s in accepted_sets_with_parameter: # iterating over dictionary operation->set
 		for i in settings.sets[s]: # iterating over set
@@ -161,15 +163,19 @@ def read_expression(expression_file, settings, min_expression = 0.1, min_cells =
 	# where outline color was not defined, set it to the color of the cell
 	annotation.loc[annotation["outline-color"]!=annotation["outline-color"], "outline-color"] = annotation["color"]
 	
-	# define day and treatment columns
+	# define day, treatment, and cluster columns
 	day_labels = [d for d in settings.cell_sets if d.startswith(time_group_prefix)]
 	treatment_labels = [t for t in settings.cell_sets if t.startswith(treatment_group_prefix)]
+	cluster_labels = [c for c in settings.cell_sets if c.startswith(cluster_group_prefix)]
 	for i in day_labels:
 		subset = set(settings.cell_sets[i]).intersection(annotation.index)
 		annotation.loc[subset,"day"]=int(i.split("_")[1])
 	for i in treatment_labels:
 		subset = set(settings.cell_sets[i]).intersection(annotation.index)
 		annotation.loc[subset,"treatment"]=i
+	for i in cluster_labels:
+		subset = set(settings.cell_sets[i]).intersection(annotation.index)
+		annotation.loc[subset,"cluster"]=i.split("_")[1]
 	
 	# crop annotation dataframe to only rows, that are in expression table
 	annotation = annotation.loc[expression_table.index]
@@ -445,10 +451,11 @@ def change_annotation_colors_to_clusters(clusters, annotation, colors):
 #  arguments are:
 # - pd.DataFrame with PCA transformed gene expression
 # - method of linkages (ward, complete, average, etc.)
-def plot_hierarchical_clustering(transformed_expression, annotation, method):
+def plot_hierarchical_clustering(transformed_expression, annotation, method, color_scheme="static"):
 	# color links on the basis of connection to same-group neighbor. 
 	# If neighbors in same group, color identically. If neighbors in different groups, color gray.
 	def colorize_links(linkage):
+		#~ ipdb.set_trace()
 		l_color = {}
 		n = transformed_expression.shape[0]
 		for i in range(0,n):
@@ -460,8 +467,10 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method):
 			#print clust1, clust2
 			if(l_color[clust1] == l_color[clust2]):
 				l_color[n+i] = l_color[clust1]
-			else:
+			elif (color_scheme == "dynamic"):
 				l_color[n+i] = "gray"
+			else:
+				l_color[n+i] = l_color[clust2]
 		#print l_color
 		return l_color
 	
