@@ -75,6 +75,17 @@ def print_clusters(clusters):
 	for cl in clusters:
 		print(str(cl[0])+"\t"+"\t".join(cl[1]))
 
+def retrieve_subset_param():
+	colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
+	colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
+	colval.append("none")
+	return colnm, colval
+
+def subset_pc_expression(pc_expression, colnm, colval):
+	subset_annotation = annotation[annotation[colnm].isin(colval)]
+	subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+	return subset_annotation, subset_PC_expression
+
 # main loop / choosing action
 while True:
 	question = """Choose from following:
@@ -95,47 +106,43 @@ while True:
 		print("plotting...\n dendrogram will be saved as a .pdf shortly")
 		plot_all_hierarchical_clusterings(PC_expression, annotation, sett)
 	elif(action == "P"):
-		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
-		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
-		colval.append("none")
+		colnm, colvalp = retrieve_subset_param()
 		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 		sett.pcs = pcs
 		print("plotting...\n the plot will open in your web browser shortly")
-		if not all(colval):
+		if not all(colvalp):
 			plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
 		else:
 			try:
 				subset_PC_expression
 			except:
-				subset_annotation = annotation[annotation[colnm].isin(colval)]
-				subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+				subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colvalp)
 				plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
 				del subset_annotation, subset_PC_expression
 			else:
-				plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+				if (colvalp == colval):
+					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+				else:
+					subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colvalp)
+					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+					del subset_annotation, subset_PC_expression
 			
 	elif(action == "L"):
-		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
-		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
-		colval.append("none")
-		subset_annotation = annotation[annotation[colnm].isin(colval)]
-		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+		colnm, colval = retrieve_subset_param()
+		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		clusters = time_clusters_from_annotations(subset_annotation)
 		print("Time clusters were assigned according to labels")
 		
 	elif(action == "C"):
-		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
-		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
-		colval.append("none")
-		subset_annotation = annotation[annotation[colnm].isin(colval)]
-		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+		colnm, colval = retrieve_subset_param()
+		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		clusters = assign_time_clusters_using_clustering(colnm, colval)
 		print("Time clusters were assigned according to hierarchycal clustering")
 		plt.savefig("hierarch_clustering.pdf")
 		
 	elif(action == "S"):
-		colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
-		colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
+		colnm, colval = retrieve_subset_param()
+		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		pseudotime = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, clusters, sett)
 		
 	elif(action == "O"):
@@ -149,6 +156,7 @@ while True:
 	elif(action == "I"):
 		IPython.embed()
 	
+
 
 
 #HTML_pal = ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']
