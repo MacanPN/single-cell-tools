@@ -19,7 +19,7 @@ import mygene
 import statsmodels.api as sm
 import copy # needed to copy class settings
 from matplotlib.backends.backend_pdf import PdfPages
-#~ import ipdb
+import ipdb
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
 default_shape = "o"
@@ -300,6 +300,7 @@ def plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, f
 # - annotation pd.DataFrame
 # - settings object
 def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, height = 1080, width = 1600, DEBUG=False):
+
 	def shape_matplotlib2plotly(s):
 		if(s=="o"):
 			return "circle"
@@ -383,7 +384,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, hei
 		data.append( trace )
 	
 	if(clusters != None):
-		
+		ipdb.set_trace()
 		centroids = pd.DataFrame(index=[], columns=["x","y","z","color","shape"])
 		for i,c in enumerate(clusters):
 			centroids.loc[i,["x","y","z"]] = comb.loc[c[1]][settings.pcs].mean().values

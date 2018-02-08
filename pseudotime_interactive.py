@@ -86,6 +86,9 @@ def subset_pc_expression(pc_expression, colnm, colval):
 	if not all(colval):
 		return annotation, PC_expression
 	else:
+		if colnm not in annotation.columns:
+			print("metadat not recognized (spelling error?)")
+			colnm, colval = retrieve_subset_param()
 		subset_annotation = annotation[annotation[colnm].isin(colval)]
 		day0_annotation = annotation[annotation["day"]==0.0]
 		subset_annotation = subset_annotation.append(day0_annotation)
@@ -127,7 +130,7 @@ while True:
 				del subset_annotation, subset_PC_expression
 			else:
 				if (colvalp == colval):
-					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
 				else:
 					subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colvalp)
 					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
