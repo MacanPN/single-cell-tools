@@ -1,4 +1,4 @@
-#!/usr/bin/python -i
+#!/usr/bin/python
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -83,7 +83,6 @@ def retrieve_subset_param():
 	return colnm, colval
 
 def subset_pc_expression(pc_expression, colnm, colval):
-	#~ ipdb.set_trace()
 	if not all(colval):
 		return annotation, PC_expression
 	else:
@@ -116,9 +115,9 @@ def normalize_centroids(subset_pc_expression):
 		cntrds = pd.DataFrame([])
 		coords = ["x", "y", "z"]
 		for i,j in zip(coords, sub_ctrl_cntrds.index):
-			trace[i] = trace[i] - sub_ctrl_cntrds.loc[j,]
+			trace[i] = trace[i] - (sub_ctrl_cntrds.loc[j,] - sub_ctrl_cntrds.loc[j,0])
 		fig["data"][-1] = trace
-	#~ ipdb.set_trace()
+	#~ IPython.embed()
 	return(fig)
 	#~ trace = record_centroids(clusters, comb, settings)
 	#~ centroids = pd.DataFrame([])
