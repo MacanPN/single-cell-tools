@@ -11,6 +11,7 @@ import math
 import IPython
 import argparse
 import os
+import plotly
 #~ import ipdb
 
 from sc_pseudotime import *
@@ -95,6 +96,38 @@ def subset_pc_expression(pc_expression, colnm, colval):
 		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
 		return subset_annotation, subset_PC_expression
 
+def normalize_centroids(subset_pc_expression):
+	print("provide control group: ")
+	colnm, colval = retrieve_subset_param()
+	pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+	sett.pcs = pcs
+	
+	ctrl_annotation, ctrl_pc_expression = subset_pc_expression(PC_expression, colnm, colval)
+	ctrl_clusters = time_clusters_from_annotations(ctrl_annotation)
+	ctrl_cntrds = get_cluster_centroids(ctrl_pc_expression, ctrl_clusters)
+	try:
+		subset_pc_expression
+	except:
+		print("error")
+	else:
+		fig = plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
+		trace = fig["data"][-1]
+		sub_ctrl_cntrds = ctrl_cntrds.iloc[sett.pcs,:]
+		cntrds = pd.DataFrame([])
+		coords = ["x", "y", "z"]
+		for i,j in zip(coords, sub_ctrl_cntrds.index):
+			trace[i] = trace[i] - sub_ctrl_cntrds.loc[j,]
+		fig["data"][-1] = trace
+	#~ ipdb.set_trace()
+	return(fig)
+	#~ trace = record_centroids(clusters, comb, settings)
+	#~ centroids = pd.DataFrame([])
+	#~ coords = ["x", "y", "z"]
+	#~ for i in coords:
+		#~ centroids = pd.append([trace[i])
+	
+	
+
 # main loop / choosing action
 while True:
 	question = """Choose from following:
@@ -102,6 +135,7 @@ while True:
 	[P]	Plot PCA
 	[L]	Assign time clusters according to time Labels (like day_4 ... )
 	[C]	Assign time clusters using hierarchical clustering
+	[N]	Normalize centroids
 	[S]	Calculate pseudotime for cells using times assigned to clusters
 	[O]	Output clusters (so they can be copied to a file)
 	[F]	Save generated pseudotime to file
@@ -149,6 +183,10 @@ while True:
 		print("Time clusters were assigned according to hierarchycal clustering")
 		plt.savefig("hierarch_clustering.pdf")
 		
+	elif(action == "N"):
+		test = normalize_centroids(subset_pc_expression)
+		url = plotly.offline.plot(test, filename="normalize_centroids.html", validate=False, auto_open=False)
+		print(url)
 	elif(action == "S"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)

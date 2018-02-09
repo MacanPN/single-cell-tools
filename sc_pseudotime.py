@@ -19,6 +19,9 @@ import mygene
 import statsmodels.api as sm
 import copy # needed to copy class settings
 from matplotlib.backends.backend_pdf import PdfPages
+import plotly.plotly as py
+import plotly
+import plotly.graph_objs as go
 #~ import ipdb
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
@@ -292,7 +295,38 @@ def plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, f
 #	IPython.embed()
 	plt.savefig(filename, dpi=200)
 	plt.show()
-	#plt.close()
+
+## record centroids
+# arguments are:
+# - clusters
+# - comb 
+# - settings object
+def record_trace(clusters, comb, settings):
+	centroids = pd.DataFrame(index=[], columns=["x","y","z","color","shape"])
+	for i,c in enumerate(clusters):
+		centroids.loc[i,["x","y","z"]] = comb.loc[c[1]][settings.pcs].mean().values
+		centroids.loc[i,"color"] = comb.loc[c[1][0],"color"]
+		centroids.loc[i,"shape"] = "x"
+	
+	trace = dict(
+		name = "centroids",
+		x=centroids["x"],
+		y=centroids["y"],
+		z=centroids["z"],
+		type = "scatter3d",
+		mode = 'lines+markers',
+		line = dict(
+			width = 6,
+			color = "black"
+		),
+		marker = dict(
+			size=[15],
+			color=centroids["color"],
+			symbol=["x"]*centroids.shape[0], #c[1]["shape"],
+			line=dict(width=1) )
+		)
+	#~ ipdb.set_trace()
+	return(trace)
 
 ## create 3d PCA plot using plotly library
 # arguments are:
@@ -320,9 +354,6 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, hei
 			return "star"
 		else:
 			return "circle"
-	import plotly.plotly as py
-	import plotly
-	import plotly.graph_objs as go
 	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
 	#print(used_pcs.max())
@@ -384,38 +415,18 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, hei
 		data.append( trace )
 	
 	if(clusters != None):
-		#~ ipdb.set_trace()
-		centroids = pd.DataFrame(index=[], columns=["x","y","z","color","shape"])
-		for i,c in enumerate(clusters):
-			centroids.loc[i,["x","y","z"]] = comb.loc[c[1]][settings.pcs].mean().values
-			centroids.loc[i,"color"] = comb.loc[c[1][0],"color"]
-			centroids.loc[i,"shape"] = "x"
+		trace = record_trace(clusters, comb, settings)
 		
-		trace = dict(
-			name = "centroids",
-			x=centroids["x"],
-			y=centroids["y"],
-			z=centroids["z"],
-			type = "scatter3d",
-			mode = 'lines+markers',
-			line = dict(
-				width = 6,
-				color = "black"
-			),
-			marker = dict(
-				size=[15],
-				color=centroids["color"],
-				symbol=["x"]*centroids.shape[0], #c[1]["shape"],
-				line=dict(width=1) )
-			)
+		#~ ipdb.set_trace()
 		data.append(trace)
+		#~ return(cntrds)
 	if(DEBUG):
 		IPython.embed()
 	#print(annotation["shape"].apply(shape_matplotlib2plotly))
 	fig = dict(data=data, layout=layout)
 	url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 	print(url)
-
+	return(fig)
 ## take linkage (from scipy.linkage) and generate n clusters
 #  takes as input:
 #  - linkage
@@ -764,6 +775,7 @@ def get_cluster_centroids(PC_expression, clusters):
 	centroids = []
 	for cl in clusters:
 		centroids.append(PC_expression.loc[cl[1],:].mean())
+	centroids = pd.concat(centroids, axis=1)
 	return centroids
 
 ## main function
