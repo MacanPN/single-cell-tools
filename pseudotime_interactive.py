@@ -44,7 +44,8 @@ PC_expression,pca = run_PCA(expression_table, annotation, n_pca)
 clusters = None
 annotation["name"] = "day "+annotation["day"].astype(str)
 
-def assign_time_clusters_using_clustering(colnm, colval):
+def assign_time_clusters_using_clustering(colnm=None, colval=None):
+	
 	scipy_linkage_methods = [ "complete", "average", "single", "centroid", "median", "ward"]
 	question = "Which PCs would you like to use for clustering? [type comma separated list, list can also include ranges 1-5,8] "
 	cluster_on_pcs = list_from_ranges(raw_input(question))
@@ -53,7 +54,7 @@ def assign_time_clusters_using_clustering(colnm, colval):
 	if method not in scipy_linkage_methods:
 		print("clustering method not supported (spelling error?)")
 		return
-	if colval:
+	if '' not in colval:
 		linkage = sc.cluster.hierarchy.linkage(subset_PC_expression[cluster_on_pcs], method=method)
 		clusters_without_time = get_cluster_labels(linkage, number_of_clusters, subset_PC_expression.index)
 		cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
@@ -67,7 +68,23 @@ def assign_time_clusters_using_clustering(colnm, colval):
 			clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
 		clusters.sort(key=lambda by_first: by_first[0])
 		plot_hierarchical_clustering(subset_PC_expression[cluster_on_pcs], subset_annotation, method=method)
-		return clusters
+	else:
+		linkage = sc.cluster.hierarchy.linkage(PC_expression[cluster_on_pcs], method=method)
+		clusters_without_time = get_cluster_labels(linkage, number_of_clusters, PC_expression.index)
+		cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+		print("Now plotting clusters")
+		change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
+		clusters = []
+		sett.pcs = cluster_on_pcs[:3]
+		plot_3d_pca(PC_expression, annotation, sett)
+		for i in range(0,number_of_clusters):
+			time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
+			clusters.append( (time,annotation.loc[annotation["color"]==cluster_colors[i]].index) )
+		clusters.sort(key=lambda by_first: by_first[0])
+		plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method)
+	
+	clusters_df.to_csv("clusters.csv")
+	return clusters
 
 def print_clusters(clusters):
 	if(clusters == None):
@@ -76,6 +93,12 @@ def print_clusters(clusters):
 	print("Follows list of clusters: (first column is the time assigned to the cluster)")
 	for cl in clusters:
 		print(str(cl[0])+"\t"+"\t".join(cl[1]))
+	# alternative cluster_print method
+	#~ clusters_df = pd.DataFrame()
+	#~ for i, (a, b) in enumerate(clusters):
+		#~ enum_df = pd.DataFrame(clusters[i][1])
+		#~ enum_df.columns = [str(a)]
+		#~ clusters_df = pd.concat([clusters_df, enum_df], axis=1)
 
 def retrieve_subset_param():
 	colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
@@ -91,13 +114,14 @@ def subset_pc_expression(pc_expression, colnm, colval):
 			colnm, colval = retrieve_subset_param()
 		subset_annotation = annotation[annotation[colnm].isin(colval)]
 		day0_annotation = annotation[annotation["day"]==0.0]
-		subset_annotation = subset_annotation.append(day0_annotation)
+		if not day0_annotation.empty:
+			subset_annotation = subset_annotation.append(day0_annotation)
 		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
 		return subset_annotation, subset_PC_expression
 
 def normalize_centroids(subset_pc_expression):
 	print("provide control group: ")
-	colnm, colval = retrieve_subset_param()
+	ctrl_colnm, ctrl_colval = retrieve_subset_param()
 	pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 	sett.pcs = pcs
 	
@@ -105,7 +129,7 @@ def normalize_centroids(subset_pc_expression):
 	ctrl_clusters = time_clusters_from_annotations(ctrl_annotation)
 	ctrl_cntrds = get_cluster_centroids(ctrl_pc_expression, ctrl_clusters)
 	try:
-		subset_pc_expression
+		subset_PC_expression
 	except:
 		print("error")
 	else:
@@ -173,19 +197,22 @@ while True:
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		subset_clusters = time_clusters_from_annotations(subset_annotation)
+		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+		find_pseudotime(subset_PC_expression, subset_annotation, pca, sett, pcs)
 		print("Time clusters were assigned according to labels")
 		
 	elif(action == "C"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		subset_clusters = assign_time_clusters_using_clustering(colnm, colval)
-		print("Time clusters were assigned according to hierarchycal clustering")
+		print("Time clusters were assigned according to hierarchical clustering")
 		plt.savefig("hierarch_clustering.pdf")
 		
 	elif(action == "N"):
 		test = normalize_centroids(subset_pc_expression)
 		url = plotly.offline.plot(test, filename="normalize_centroids.html", validate=False, auto_open=False)
 		print(url)
+		
 	elif(action == "S"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
@@ -193,6 +220,7 @@ while True:
 		
 	elif(action == "O"):
 		print_clusters(subset_clusters)
+		
 	elif(action=="F"):
 		if("pseudotime" not in globals()):
 			print("Pseudotime was not yet generated!")

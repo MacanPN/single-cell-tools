@@ -241,7 +241,7 @@ def plot_2d_pca_multiplot(transformed_expression, annotation, pca, settings):
 				legend=True,
 				alpha=0.8,
 				#edgecolor="black",
-				marker = m
+				marker = shape_plotly2matplotlib(m)
 			)
 		
 		explained_variance1 = "{0:.2f}".format(pca.explained_variance_ratio_[pc]*100)+"%"
@@ -276,7 +276,7 @@ def plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, f
 			legend=True,
 			alpha=0.8,
 			edgecolor=ann["outline-color"].values,
-			marker = m
+			marker = shape_plotly2matplotlib(m)
 		)
 	for cell in transformed_expression.index:
 		row = transformed_expression.loc[cell,[int(settings.pcs[0]),int(settings.pcs[1])]]
@@ -317,7 +317,8 @@ def record_trace(clusters, comb, settings):
 		mode = 'lines+markers',
 		line = dict(
 			width = 6,
-			color = "black"
+			color = "black", 
+			shape = "spline"
 		),
 		marker = dict(
 			size=[15],
@@ -325,17 +326,9 @@ def record_trace(clusters, comb, settings):
 			symbol=["x"]*centroids.shape[0], #c[1]["shape"],
 			line=dict(width=1) )
 		)
-	#~ ipdb.set_trace()
 	return(trace)
 
-## create 3d PCA plot using plotly library
-# arguments are:
-# - pd.DataFrame with PCA transformed gene expression 
-# - annotation pd.DataFrame
-# - settings object
-def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, height = 1080, width = 1600, DEBUG=False):
-
-	def shape_matplotlib2plotly(s):
+def shape_matplotlib2plotly(s):
 		if(s=="o"):
 			return "circle"
 		elif(s=="s"):
@@ -354,6 +347,34 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, hei
 			return "star"
 		else:
 			return "circle"
+			
+def shape_plotly2matplotlib(s):
+		if(s=="circle"):
+			return "o"
+		elif(s=="square"):
+			return "s"
+		elif(s=="triangle-up"):
+			return "^"
+		elif(s=="triangle-down"):
+			return "v"
+		elif(s=="triangle-left"):
+			return "<"
+		elif(s=="triangle-right"):
+			return ">"
+		elif(s=="hexagon"):
+			return "h"
+		elif(s=="star"):
+			return "*"
+		else:
+			return "o"
+
+## create 3d PCA plot using plotly library
+# arguments are:
+# - pd.DataFrame with PCA transformed gene expression 
+# - annotation pd.DataFrame
+# - settings object
+def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, height = 1080, width = 1600, DEBUG=False):
+
 	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
 	#print(used_pcs.max())
@@ -417,7 +438,6 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, hei
 	if(clusters != None):
 		trace = record_trace(clusters, comb, settings)
 		
-		#~ ipdb.set_trace()
 		data.append(trace)
 		#~ return(cntrds)
 	if(DEBUG):
@@ -467,7 +487,6 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
 	# color links on the basis of connection to same-group neighbor. 
 	# If neighbors in same group, color identically. If neighbors in different groups, color gray.
 	def colorize_links(linkage):
-		#~ ipdb.set_trace()
 		l_color = {}
 		n = transformed_expression.shape[0]
 		for i in range(0,n):
@@ -558,14 +577,15 @@ def rotate_expression(transformed_expression,x,y,angle):
 # - annotation pd.DataFrame
 # - pca sklearn.decomposition object
 # - settings object
-def find_pseudotime(transformed_expression, annotation, pca, settings):
+def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=None):
+	
 	n_pca = len(transformed_expression.columns)
 	transformed_expression["day"] = annotation["day"]
 	transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
 	print "Finding best rotation for Spearman correlation. Shape of used table:",transformed_expression_without_superimposed.shape
 	spearman = transformed_expression_without_superimposed.corr(method="spearman").loc["day",range(1,n_pca+1)].abs().sort_values(ascending=False)
 	#plot_spearman correlations and explained variation
-	searman_filename = settings.result_filename.replace(".png", "_spearman.png")
+	spearman_filename = settings.result_filename.replace(".png", "_spearman.png")
 	width=0.4
 	fig,ax = plt.subplots(figsize=(8,5))
 	ax2= ax.twinx()
@@ -577,8 +597,12 @@ def find_pseudotime(transformed_expression, annotation, pca, settings):
 	plt.tight_layout()
 	low,high = plt.xlim()
 	plt.xlim(low-0.5, high)
-	plt.savefig(searman_filename, dpi=200)
-	settings.pcs = spearman.iloc[0:2].index
+	plt.savefig(spearman_filename, dpi=200)
+	#~ ipdb.set_trace()
+	if user_pcs:
+		settings.pcs = user_pcs
+	else:
+		settings.pcs = spearman.iloc[0:2].index
 	
 	# find best rotation
 	best_angle = 0
@@ -594,6 +618,7 @@ def find_pseudotime(transformed_expression, annotation, pca, settings):
 	del(transformed_expression["day"])
 	print settings.pcs
 	print "Best rotation: ",best_angle
+	
 	rotated_expression = rotate_expression(transformed_expression, int(settings.pcs[0]), int(settings.pcs[1]), best_angle)
 	#IPython.embed()
 	# plot original PC plot
@@ -806,9 +831,9 @@ def main():
 	elif(sett.run_mode=="hierarchy"):
 		plot_all_hierarchical_clusterings(PC_expression, annotation, sett)
 	elif(sett.run_mode=="pseudotime"):
-		#pseudotime = find_pseudotime(PC_expression, annotation, pca, sett)
-		#pseudotime.to_csv(sett.result_filename+"_pseudotime.csv", sep="\t")
-		get_time_clusters_from_annotations(annotation)
+		pseudotime = find_pseudotime(subset_PC_expression, subset_annotation, pca, sett) #comment out
+		pseudotime.to_csv(sett.result_filename+"_pseudotime.csv", sep="\t") #comment out
+		time_clusters_from_annotations(annotation) #formerly get_time_clusters_from_annotations
 	elif(sett.run_mode == "3d-pca-colored-by-clustering"):
 		plot_3d_pca_colored_by_clustering(PC_expression, annotation, pca, sett)
 		
