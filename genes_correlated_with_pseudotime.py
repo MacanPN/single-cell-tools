@@ -1,4 +1,4 @@
-#!/usr/bin/python -i
+#!/usr/bin/python 
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -50,12 +50,13 @@ expression_table, annotation = read_expression(expression_file, sett, min_expres
 
 ## block of code to calculate correlations
 pt = map(read_pseudotime_from_file, pseudotime_files)
-exit()
+
 correlation = [get_correlation_with_pseudotime(x, expression_table, method=correlation_method) for x in pt]
 
 corr = pd.concat(correlation, axis=1)
 corr.columns = pseudotime_files
 corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
+
 '''
 correlation_733 = get_correlation_with_pseudotime(expression_table, pt733, method=correlation_method)
 correlation_737 = get_correlation_with_pseudotime(expression_table, pt737, method=correlation_method)
@@ -79,7 +80,7 @@ corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
 correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
 corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
 
-
+pt_titles = ["sh733", "sh737"]
 ## function plots genes of interest (pd.Index) into pdf
 def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt):
 	pp = PdfPages(out_filename)
@@ -98,8 +99,9 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 		cntr = 0
 		for i in pt:
 			plot_gene_with_pseudotime(expression_table, i, t, annotation, ax=ax[0+cntr])
-			ax[0+cntr].set_title("733  "+str(cntr)+correlation_method+"=%.2f" % corr.loc[t,pseudotime_files[0+cntr]])
+			ax[0+cntr].set_title(pseudotime_files[0+cntr]+correlation_method+"=%.2f" % corr.loc[t,pseudotime_files[0+cntr]])
 			cntr += 1
+			#~ plt.show()
 		plt.tight_layout()
 		plt.subplots_adjust(top=0.85)
 		pp.savefig()
@@ -113,18 +115,27 @@ genes_of_interest = corr.sort_values(by="order", ascending=False).index[:100]
 out_filename = "pseudotime_wo_brC/"+correlation_method+"_733+737-Ctrl.pdf"
 plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt733, pt737, ptCtrl)
 '''
+IPython.embed()
+
+#DEGS
+DEGS = pd.read_csv("FACS_0407_2017_SHL_input_files/DEGS_day_12.csv", index_col=0)
+corr["order"] = corr[pseudotime_files[0]].abs()
+cell_cycle_genes = corr[corr.index.isin(DEGS.index)].index
+out_filename = "pseudotime_wo_brC/"+correlation_method+"_733.pdf"
+plot_genes_of_interest(cell_cycle_genes, out_filename, expression_table, annotation, pt)
+
 # 733
 corr["order"] = corr[pseudotime_files[0]].abs()
 genes_of_interest = corr.sort_values(by="order", ascending=False).index[:200]
-out_filename = "pseudotime_wo_brC_"+correlation_method+"_test.pdf"
+out_filename = "pseudotime_wo_brC/"+correlation_method+"_733.pdf"
 plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
-'''
+
 # 737
-corr["order"] = corr["737"].abs()
+corr["order"] = corr[pseudotime_files[1]].abs()
 genes_of_interest = corr.sort_values(by="order", ascending=False).index[:200]
 out_filename = "pseudotime_wo_brC/"+correlation_method+"_737.pdf"
-plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt733, pt737, ptCtrl)
-
+plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
+'''
 # 733 + 737 where (Ctrl has opposite sign) or (abs(Ctrl)< threshold)
 threshold = 0.2
 corr["order"] = (corr["733"] + corr["737"]).abs()

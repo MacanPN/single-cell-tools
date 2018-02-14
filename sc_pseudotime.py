@@ -22,7 +22,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import plotly.plotly as py
 import plotly
 import plotly.graph_objs as go
-#~ import ipdb
+import ipdb
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
 default_shape = "o"
@@ -688,8 +688,8 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 # - degree of the polynomial to fit
 # - number of samples to return (they will be equally spaced over pseudotime)
 def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=None, degree=3, n_samples=20):
-	#expression_over_pseudotime = pd.DataFrame(pseudotime)
-	#expression_over_pseudotime["expression"] = exp[transcript_id]
+	#expr_over_ptime = pd.DataFrame(pseudotime)
+	#expr_over_ptime["expression"] = exp[transcript_id]
 	curve_coeff, res, _, _, _ = np.polyfit(x = pseudotime, y=exp[transcript_id], deg = degree, full=True, w=weights)
 	curve_func  = np.poly1d(curve_coeff)
 	samples = np.linspace(0,1,n_samples)
@@ -702,13 +702,20 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - pd.Series with pseudotime coordinates for each cell
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None):
-	expression_over_pseudotime = pd.DataFrame(pseudotime)
-	expression_over_pseudotime["expression"] = exp.loc[pseudotime.index, transcript_id]
-	ann = annotation.loc[pseudotime.index, :]
-	ax = expression_over_pseudotime.plot.scatter(x="pseudotime", y="expression", c=ann["color"], ax=ax)
+	#~ ipdb.set_trace()
+	expr_over_ptime = pd.DataFrame(pseudotime)
+	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
 	
+	shctrl_index = annotation.loc[annotation['treatment']=="shCtrl"].index
+	ctrl_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(shctrl_index)]
+
+	ann = annotation.loc[pseudotime.index, :]
+	ctrl_ann = annotation.loc[shctrl_index, :] 
+	#ax = expr_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ann["color"], ax=ax)
+	ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ctrl_ann["color"], ax=ax)
 	lowess = sm.nonparametric.lowess
-	z = lowess(expression_over_pseudotime["expression"], pseudotime)
+	#z = lowess(expr_over_ptime["expression"], pseudotime)
+	z = lowess(expr_over_ptime["expression"], pseudotime)
 	pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 	
 	ax.legend_.remove()
