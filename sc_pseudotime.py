@@ -711,11 +711,11 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 
 	ann = annotation.loc[pseudotime.index, :]
 	ctrl_ann = annotation.loc[shctrl_index, :] 
-	#ax = expr_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ann["color"], ax=ax)
-	ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ctrl_ann["color"], ax=ax)
+	ax = expr_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ann["color"], ax=ax)
+	#ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ctrl_ann["color"], ax=ax)
 	lowess = sm.nonparametric.lowess
-	#z = lowess(expr_over_ptime["expression"], pseudotime)
 	z = lowess(expr_over_ptime["expression"], pseudotime)
+	#z = lowess(expr_over_ptime["expression"], pseudotime)
 	pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 	
 	ax.legend_.remove()
