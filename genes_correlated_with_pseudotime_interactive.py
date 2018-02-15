@@ -51,19 +51,28 @@ expression_table, annotation = read_expression(expression_file, sett, min_expres
 #~ correlation_method = "spearman"
 
 
-correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
-corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
+
+#~ correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
+#~ corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
 pt = map(read_pseudotime_from_file, pseudotime_files)
 
-#~ correlation = [get_correlation_with_pseudotime(x, expression_table, method=correlation_method) for x in pt]
-#~ corr = pd.concat(correlation, axis=1)
+def set_pts(pseudotime_files):
+	pt = map(read_pseudotime_from_file, pseudotime_files)
+	correlation = [get_correlation_with_pseudotime(x, expression_table, method=correlation_method) for x in pt]
+	corr = pd.concat(correlation, axis=1)
+	corr.columns = pt.keys()
+	ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
+	pt = dict(zip(ptime_titles, pt))
+	corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
+	return corr, pt
 
-ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
-pt = dict(zip(ptime_titles, pt))
+IPython.embed()
 
-corr.columns = ptime_titles
-#~ corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
-user_ptimes = ' '.join(ptime_titles)
+corr, pt = set_pts(pseudotime_files)
+
+corr.columns = pt.keys()
+corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t", columns=)
+user_ptimes = ' '.join(pt.keys())
 
 pt_titles = ["sh733", "sh737"]
 ## function plots genes of interest (pd.Index) into pdf
@@ -81,7 +90,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 			title = t + "  "+ gene_info["symbol"]
 			title += "  ("+gene_info["name"]+")"
 			og.write(title+"\n")
-			print corr.loc[t,ptime_titles[0]]
+			print corr.loc[t,pt_dict.keys()[0]]
 		except:
 			pass
 		fig.suptitle(title)

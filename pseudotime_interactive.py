@@ -83,7 +83,6 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
 		clusters.sort(key=lambda by_first: by_first[0])
 		plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method)
 	
-	clusters_df.to_csv("clusters.csv")
 	return clusters
 
 def print_clusters(clusters):
