@@ -4,5 +4,8 @@ example_input_files/transcripts.tpm_census_matrix-comma-delimited.csv
 FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407.csv
 FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv
 **/*.html
+*.html
 **/*.pyc
+*.pyc
 **/*.pdf
+*.pdf
