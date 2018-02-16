@@ -302,19 +302,17 @@ def plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, f
 # - comb 
 # - settings object
 def record_trace(clusters, comb, settings, centroids=None):
-	#~ IPython.embed()
+	IPython.embed()
 	test_centroids = centroids #testthis
 	
-	used_centroids = test_centroids.transpose().iloc[:,settings.pcs]
+	used_centroids = test_centroids.transpose().iloc[:,[i - 1 for i in settings.pcs]]
 	used_centroids.columns = ["x","y","z"]
 	used_centroids["color"] = "black"
 	used_centroids["shape"] = "shape"
 	
-	#~ centroids = pd.DataFrame(columns=["x","y","z","color","shape"])
-	#~ for i,c in enumerate(clusters):
-		#~ centroids.loc[i,["x","y","z"]] = comb.loc[c[1]][settings.pcs].mean().values
-		#~ centroids.loc[i,"color"] = comb.loc[c[1][0],"color"]
-		#~ centroids.loc[i,"shape"] = "x"
+	colors = []
+	for i,c in enumerate(clusters):
+		colors += [comb.loc[c[1][0],"color"]]
 	
 	trace = dict(
 		name = "centroids",
