@@ -302,7 +302,7 @@ def plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, f
 # - comb 
 # - settings object
 def record_trace(clusters, comb, settings, centroids=None):
-	IPython.embed()
+	#~ IPython.embed()
 	test_centroids = centroids #testthis
 	
 	used_centroids = test_centroids.transpose().iloc[:,[i - 1 for i in settings.pcs]]
