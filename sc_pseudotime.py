@@ -670,9 +670,12 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 		sq_distances[i] = ((used_PC_expression-c)**2).sum(axis=1)**0.5
 		weights[i] = 1/sq_distances[i]
 	
+	cols = [1,-2]
+	weights.drop(weights.columns[cols], axis=1, inplace = True)
+	weights.columns = range(0,weights.shape[1])
+	
 #	print(weights[0])
 	pseudotime = pd.Series(0, index=used_PC_expression.index)
-	
 	# correct dimensions of clusters to account for first_cell and last_cell centroids
 	centroid_clusters = [(0.0, clusters[0][1])]
 	centroid_clusters.append((1.0, clusters[0][1]))
@@ -684,9 +687,9 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 	#~ IPython.embed()
 	
 	for w in weights:
-		print(centroid_clusters[w][0])
+		print(clusters[w][0])
 		print(w)
-		pseudotime += centroid_clusters[w][0]*weights[w]
+		pseudotime += clusters[w][0]*weights[w]
 	pseudotime /= weights.sum(axis=1)
 	# normalize
 	pseudotime -= pseudotime.min()
