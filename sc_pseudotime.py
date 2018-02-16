@@ -651,6 +651,7 @@ def list_from_ranges(s):
 #  weight for each cluster is an inverse square distance of the cell to the cluster
 #  w = 1/(dist^2)
 def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters, settings):
+	ipdb.set_trace()
 	palette_size = int(raw_input("What palette size would you like to use (how many colors)? "))
 	calculate_on = list_from_ranges(raw_input("Which PCs would you like to use for calculating pseudotime? [type comma separated list, list can also include ranges 1-5,8] "))
 	used_PC_expression = PC_expression[calculate_on]
@@ -702,15 +703,15 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - pd.Series with pseudotime coordinates for each cell
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None):
-	#~ ipdb.set_trace()
+	
 	expr_over_ptime = pd.DataFrame(pseudotime)
 	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
 	
-	shctrl_index = annotation.loc[annotation['treatment']=="shCtrl"].index
-	ctrl_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(shctrl_index)]
+	#shctrl_index = annotation.loc[annotation['treatment']=="shCtrl"].index
+	#ctrl_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(shctrl_index)]
 
 	ann = annotation.loc[pseudotime.index, :]
-	ctrl_ann = annotation.loc[shctrl_index, :] 
+	#ctrl_ann = annotation.loc[shctrl_index, :] 
 	ax = expr_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ann["color"], ax=ax)
 	#ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ctrl_ann["color"], ax=ax)
 	lowess = sm.nonparametric.lowess
@@ -804,9 +805,19 @@ def time_clusters_from_annotations(annotation):
 ## takes PCA transformed expression and list of clusters [(time, index_of_cells), ...]
 #  and returns centroid for each cluster
 def get_cluster_centroids(PC_expression, clusters):
+	#~ ipdb.set_trace()
 	centroids = []
 	for cl in clusters:
 		centroids.append(PC_expression.loc[cl[1],:].mean())
+	# append "first cell" and "last cell" to centroids to 
+	# based on extrapolation of trace from centroids 0 to 1 and n-1 to n respectively
+	trace_seg_1 = centroids[0] - centroids[1]
+	trace_seg_n = centroids[-1] - centroids[-2]
+	first_cell = centroids[0] + trace_seg_1
+	last_cell = centroids[-1] + trace_seg_n
+	centroids.insert(0, first_cell)
+	centroids.append(last_cell)
+	
 	centroids = pd.concat(centroids, axis=1)
 	return centroids
 

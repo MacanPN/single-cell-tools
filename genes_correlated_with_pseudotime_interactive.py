@@ -15,6 +15,7 @@ sys.path.insert(0, "/home/hp/CHLA/single-cell-tools/")
 from sc_pseudotime import *
 from matplotlib.backends.backend_pdf import PdfPages
 import os
+import ipdb 
 
 import argparse
 
@@ -40,7 +41,7 @@ settings_file   = os.path.expanduser(options.plot_settings)
 correlation_method = options.corr_method
 out_filename      = options.outfile
 
-pseudotime_files = options.pseudotime
+pseudotime_files = sorted(options.pseudotime)
 
 #~ correlation_file = sys.argv[7]
 
@@ -55,6 +56,11 @@ expression_table, annotation = read_expression(expression_file, sett, min_expres
 #~ correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
 #~ corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
 pt = map(read_pseudotime_from_file, pseudotime_files)
+ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
+pt = dict(zip(ptime_titles, pt))
+
+correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
+corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
 
 def set_pts(pseudotime_files):
 	pt = map(read_pseudotime_from_file, pseudotime_files)
@@ -66,15 +72,18 @@ def set_pts(pseudotime_files):
 	corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
 	return corr, pt
 
-IPython.embed()
 
-corr, pt = set_pts(pseudotime_files)
+if sorted(pt.keys()) == sorted(corr.columns):
+	pass
+else:
+	corr, pt = set_pts(pseudotime_files)
+	corr.columns = sorted(pt.keys())
+	corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
 
-corr.columns = pt.keys()
-corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t", columns=)
+#~ IPython.embed()
+
 user_ptimes = ' '.join(pt.keys())
 
-pt_titles = ["sh733", "sh737"]
 ## function plots genes of interest (pd.Index) into pdf
 def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt_dict):
 	out_genes = out_filename.replace(".pdf", "_genes.csv")
@@ -90,7 +99,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 			title = t + "  "+ gene_info["symbol"]
 			title += "  ("+gene_info["name"]+")"
 			og.write(title+"\n")
-			print corr.loc[t,pt_dict.keys()[0]]
+			#~ print corr.loc[t,pt_dict.keys()[0]]
 		except:
 			pass
 		fig.suptitle(title)
