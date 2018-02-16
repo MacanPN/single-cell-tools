@@ -301,18 +301,26 @@ def plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, f
 # - clusters
 # - comb 
 # - settings object
-def record_trace(clusters, comb, settings):
-	centroids = pd.DataFrame(index=[], columns=["x","y","z","color","shape"])
-	for i,c in enumerate(clusters):
-		centroids.loc[i,["x","y","z"]] = comb.loc[c[1]][settings.pcs].mean().values
-		centroids.loc[i,"color"] = comb.loc[c[1][0],"color"]
-		centroids.loc[i,"shape"] = "x"
+def record_trace(clusters, comb, settings, centroids=None):
+	#~ IPython.embed()
+	test_centroids = centroids #testthis
+	
+	used_centroids = test_centroids.transpose().iloc[:,settings.pcs]
+	used_centroids.columns = ["x","y","z"]
+	used_centroids["color"] = "black"
+	used_centroids["shape"] = "shape"
+	
+	#~ centroids = pd.DataFrame(columns=["x","y","z","color","shape"])
+	#~ for i,c in enumerate(clusters):
+		#~ centroids.loc[i,["x","y","z"]] = comb.loc[c[1]][settings.pcs].mean().values
+		#~ centroids.loc[i,"color"] = comb.loc[c[1][0],"color"]
+		#~ centroids.loc[i,"shape"] = "x"
 	
 	trace = dict(
 		name = "centroids",
-		x=centroids["x"],
-		y=centroids["y"],
-		z=centroids["z"],
+		x=used_centroids["x"],
+		y=used_centroids["y"],
+		z=used_centroids["z"],
 		type = "scatter3d",
 		mode = 'lines+markers',
 		line = dict(
@@ -322,8 +330,8 @@ def record_trace(clusters, comb, settings):
 		),
 		marker = dict(
 			size=[15],
-			color=centroids["color"],
-			symbol=["x"]*centroids.shape[0], #c[1]["shape"],
+			color=used_centroids["color"],
+			symbol=["x"]*used_centroids.shape[0], #c[1]["shape"],
 			line=dict(width=1) )
 		)
 	return(trace)
@@ -373,7 +381,7 @@ def shape_plotly2matplotlib(s):
 # - pd.DataFrame with PCA transformed gene expression 
 # - annotation pd.DataFrame
 # - settings object
-def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, height = 1080, width = 1600, DEBUG=False):
+def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, centroids=None, height = 1080, width = 1600, DEBUG=False):
 
 	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
@@ -436,7 +444,9 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, hei
 		data.append( trace )
 	
 	if(clusters != None):
-		trace = record_trace(clusters, comb, settings)
+		
+		centroids = get_cluster_centroids(transformed_expression, clusters)
+		trace = record_trace(clusters, comb, settings, centroids)
 		
 		data.append(trace)
 		#~ return(cntrds)
@@ -651,7 +661,7 @@ def list_from_ranges(s):
 #  weight for each cluster is an inverse square distance of the cell to the cluster
 #  w = 1/(dist^2)
 def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters, settings):
-	ipdb.set_trace()
+	
 	palette_size = int(raw_input("What palette size would you like to use (how many colors)? "))
 	calculate_on = list_from_ranges(raw_input("Which PCs would you like to use for calculating pseudotime? [type comma separated list, list can also include ranges 1-5,8] "))
 	used_PC_expression = PC_expression[calculate_on]
@@ -664,10 +674,21 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 	
 #	print(weights[0])
 	pseudotime = pd.Series(0, index=used_PC_expression.index)
+	
+	# correct dimensions of clusters to account for first_cell and last_cell centroids
+	centroid_clusters = [(0.0, clusters[0][1])]
+	centroid_clusters.append((1.0, clusters[0][1]))
+	for item in clusters[1:]:
+		centroid_clusters.append(item)
+	#centroid_clusters.append(clusters) # is this really necessary?
+	centroid_clusters.append(((clusters[-1][0]+1.0), clusters[-1][1]))
+	
+	#~ IPython.embed()
+	
 	for w in weights:
-#		print(clusters[w][0])
-#		print(w)
-		pseudotime += clusters[w][0]*weights[w]
+		print(centroid_clusters[w][0])
+		print(w)
+		pseudotime += centroid_clusters[w][0]*weights[w]
 	pseudotime /= weights.sum(axis=1)
 	# normalize
 	pseudotime -= pseudotime.min()
@@ -805,7 +826,6 @@ def time_clusters_from_annotations(annotation):
 ## takes PCA transformed expression and list of clusters [(time, index_of_cells), ...]
 #  and returns centroid for each cluster
 def get_cluster_centroids(PC_expression, clusters):
-	#~ ipdb.set_trace()
 	centroids = []
 	for cl in clusters:
 		centroids.append(PC_expression.loc[cl[1],:].mean())
