@@ -666,30 +666,29 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 	centroids = get_cluster_centroids(used_PC_expression, clusters)
 	sq_distances = pd.DataFrame(index=used_PC_expression.index, columns=[])
 	weights = pd.DataFrame(index=used_PC_expression.index, columns=[])
+	test = pd.DataFrame(index=used_PC_expression.index, columns=[])
 	for i,c in enumerate(centroids):
-		sq_distances[i] = ((used_PC_expression-c)**2).sum(axis=1)**0.5
+		#~ ipdb.set_trace()
+		print i 
+		print c
+		sq_distances[i] = ((used_PC_expression-centroids[c])**2).sum(axis=1)**0.5
 		weights[i] = 1/sq_distances[i]
+		test += sq_distances[i]
+	
+	#~ IPython.embed()
 	
 	cols = [1,-2]
 	weights.drop(weights.columns[cols], axis=1, inplace = True)
 	weights.columns = range(0,weights.shape[1])
-	
-#	print(weights[0])
+
 	pseudotime = pd.Series(0, index=used_PC_expression.index)
-	# correct dimensions of clusters to account for first_cell and last_cell centroids
-	centroid_clusters = [(0.0, clusters[0][1])]
-	centroid_clusters.append((1.0, clusters[0][1]))
-	for item in clusters[1:]:
-		centroid_clusters.append(item)
-	#centroid_clusters.append(clusters) # is this really necessary?
-	centroid_clusters.append(((clusters[-1][0]+1.0), clusters[-1][1]))
-	
-	#~ IPython.embed()
-	
 	for w in weights:
-		print(clusters[w][0])
+		print(clusters[w][0]+1)
 		print(w)
-		pseudotime += clusters[w][0]*weights[w]
+		pseudo_part = (clusters[w][0]+1)*weights[w]
+		print pseudo_part
+		pseudotime += pseudo_part
+		
 	pseudotime /= weights.sum(axis=1)
 	# normalize
 	pseudotime -= pseudotime.min()
@@ -700,7 +699,7 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 	pal = [(int(i[0]*256),int(i[1]*256),int(i[2]*256)) for i in pal]
 	color_indices = map(int,pseudotime*palette_size)
 	annotation["color"] = [RGBToHTMLColor(pal[i]) for i in color_indices]
-	return pseudotime
+	return pseudotime, centroids
 
 
 ## fits polynomial curve on gene expression data, and returns value of this curve in equal intervals over pseudotime

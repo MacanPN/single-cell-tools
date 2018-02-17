@@ -222,7 +222,7 @@ while True:
 	elif(action == "S"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
-		pseudotime = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, subset_clusters, sett)
+		pseudotime, centroids = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, subset_clusters, sett)
 		
 	elif(action == "O"):
 		print_clusters(subset_clusters)
