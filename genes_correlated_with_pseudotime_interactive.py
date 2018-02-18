@@ -66,10 +66,8 @@ def set_pts(pseudotime_files):
 	pt = map(read_pseudotime_from_file, pseudotime_files)
 	correlation = [get_correlation_with_pseudotime(x, expression_table, method=correlation_method) for x in pt]
 	corr = pd.concat(correlation, axis=1)
-	corr.columns = pt.keys()
 	ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
 	pt = dict(zip(ptime_titles, pt))
-	corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
 	return corr, pt
 
 
@@ -85,12 +83,14 @@ else:
 user_ptimes = ' '.join(pt.keys())
 
 ## function plots genes of interest (pd.Index) into pdf
-def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt_dict):
+def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, ctrl_pseudotime=None):
+	
+	plot_id = ["Ctrl_w_RBKD", "Ctrl_wo_RBKD", "Ctrl_alone"]
 	out_genes = out_filename.replace(".pdf", "_genes.csv")
 	og = open(out_genes, 'w')
 	pp = PdfPages(out_filename)
 	for i,t in enumerate(genes_of_interest):
-		fig, ax = plt.subplots(1,len(pt_dict), figsize=(15,5), sharey="row") #define common y axis for set of plots (treatments)
+		fig, ax = plt.subplots(1,3, figsize=(15,5), sharey="row") #define common y axis for set of plots (treatments)
 		print i,t
 		title = t
 		try:
@@ -104,11 +104,16 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 			pass
 		fig.suptitle(title)
 		cntr = 0
-		for k,v in pt_dict.iteritems():
-			plot_gene_with_pseudotime(expression_table, v, t, annotation, ax=ax[0+cntr])
-			ax[0+cntr].set_title(k+correlation_method+"=%.2f" % corr.loc[t,k])
+		#~ for k,v in pt_dict.iteritems():
+		while cntr < 3:
+			plot_gene_with_pseudotime(expression_table, pt, t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr], ctrl_pseudotime=ctrl_pseudotime)
+			ax[0+cntr].set_title(ptime+correlation_method+"=%.2f" % corr.loc[t,ptime])
 			cntr += 1
 			#~ plt.show()
+		ax[0].set_title(plot_id[0]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime])
+		ax[1].set_title(plot_id[1]+"_"+correlation_method)
+		ax[2].set_title(plot_id[2]+"_w_Ctrl_pseudotime_"+correlation_method+"=%.2f" % corr.loc[t,ctrl_ptime])
+		
 		plt.tight_layout()
 		plt.subplots_adjust(top=0.85)
 		pp.savefig()
@@ -165,11 +170,12 @@ while True:
 	elif(action == "T"):
 		top_n = int(raw_input("How many genes would you like to plot? "))
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
+		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+user_ptimes+ ") ")
 		# 733
 		corr["order"] = corr[ptime].abs()
 		genes_of_interest = corr.sort_values(by="order", ascending=False).index[:top_n]
 		out_filename = "pseudotime_wo_brC/"+correlation_method+"_"+ptime+".pdf"
-		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
+		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], pt[ctrl_ptime])
 		print genes_of_interest
 	elif(action == "I"):
 		IPython.embed()

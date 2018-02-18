@@ -669,26 +669,30 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 	test = pd.DataFrame(index=used_PC_expression.index, columns=[])
 	for i,c in enumerate(centroids):
 		#~ ipdb.set_trace()
-		print i 
-		print c
 		sq_distances[i] = ((used_PC_expression-centroids[c])**2).sum(axis=1)**0.5
 		weights[i] = 1/sq_distances[i]
 		test += sq_distances[i]
 	
 	#~ IPython.embed()
 	
-	cols = [1,-2]
-	weights.drop(weights.columns[cols], axis=1, inplace = True)
-	weights.columns = range(0,weights.shape[1])
+	pseudotime_clusters = [clusters[0]]
+	pseudotime_clusters.extend(clusters)
+	pseudotime_clusters.append(clusters[-1])
+	#~ cols = [1,-2]
+	#~ weights.drop(weights.columns[cols], axis=1, inplace = True)
+	#~ weights.columns = range(0,weights.shape[1])
 
 	pseudotime = pd.Series(0, index=used_PC_expression.index)
+		
 	for w in weights:
-		print(clusters[w][0]+1)
+		print(pseudotime_clusters[w][0]+1)
 		print(w)
-		pseudo_part = (clusters[w][0]+1)*weights[w]
+		pseudo_part = (pseudotime_clusters[w][0]+1)*weights[w]
 		print pseudo_part
 		pseudotime += pseudo_part
-		
+	
+	#~ IPython.embed()
+	
 	pseudotime /= weights.sum(axis=1)
 	# normalize
 	pseudotime -= pseudotime.min()
@@ -723,22 +727,62 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - pd.DataFrame with gene expression 
 # - pd.Series with pseudotime coordinates for each cell
 # - Ensamble transcript ID
-def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None):
-	
+def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None, plot_id=None, ctrl_pseudotime=None):
+	#~ IPython.embed()
 	expr_over_ptime = pd.DataFrame(pseudotime)
 	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
-	
-	#shctrl_index = annotation.loc[annotation['treatment']=="shCtrl"].index
-	#ctrl_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(shctrl_index)]
 
-	ann = annotation.loc[pseudotime.index, :]
-	#ctrl_ann = annotation.loc[shctrl_index, :] 
-	ax = expr_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ann["color"], ax=ax)
-	#ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ctrl_ann["color"], ax=ax)
-	lowess = sm.nonparametric.lowess
-	z = lowess(expr_over_ptime["expression"], pseudotime)
-	#z = lowess(expr_over_ptime["expression"], pseudotime)
-	pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
+	ctrl_over_ptime = pd.DataFrame(ctrl_pseudotime)
+	ctrl_over_ptime["expression"] = exp.loc[ctrl_pseudotime.index, transcript_id]
+	
+	def day_to_color(row):
+		if row['day'] ==4.0:
+			return "blue"
+		elif row['day'] ==6.0:
+			return "green"
+		elif row['day'] ==8.0:
+			return "yellow"
+		elif row['day'] ==12.0:
+			return "red"
+		else:
+			return "gray"
+		
+	if plot_id == "Ctrl_w_RBKD":
+	
+		ann = annotation.loc[pseudotime.index, :]
+		ax = expr_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ann["color"], ax=ax)
+		lowess = sm.nonparametric.lowess
+		z = lowess(expr_over_ptime["expression"], pseudotime)
+		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
+			
+	elif plot_id == "Ctrl_wo_RBKD":
+		#~ IPython.embed()
+		shctrl_index = annotation.loc[annotation['treatment']=="shCtrl"].index
+		ctrl_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(shctrl_index)]
+
+		ctrl_ann = annotation.loc[shctrl_index, :] 
+		
+		# convert ctrl cells from gray to colored for plotting 
+		translate_colors = ctrl_ann.apply(day_to_color, axis=1)
+
+		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
+		lowess = sm.nonparametric.lowess
+		z = lowess(expr_over_ptime["expression"], pseudotime)
+		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
+	elif plot_id == "Ctrl_alone":
+		shctrl_index = annotation.loc[annotation['treatment']=="shCtrl"].index
+		ctrl_over_ptime = ctrl_over_ptime[ctrl_over_ptime.index.isin(shctrl_index)]
+
+		ctrl_ann = annotation.loc[shctrl_index, :] 
+		
+		# convert ctrl cells from gray to colored for plotting 
+		translate_colors = ctrl_ann.apply(day_to_color, axis=1)
+		
+		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
+		lowess = sm.nonparametric.lowess
+		z = lowess(ctrl_over_ptime["expression"], ctrl_pseudotime)
+		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
+
 	
 	ax.legend_.remove()
 	#plt.tight_layout()
@@ -747,7 +791,10 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		pass
 	else:
 		plt.savefig(filename)
-		plt.close()
+		plt.close('all')
+	
+	
+	
 
 ## read pseudotime from tab delimited csv file
 def read_pseudotime_from_file(filename):
