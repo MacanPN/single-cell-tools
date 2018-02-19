@@ -112,9 +112,11 @@ def subset_pc_expression(pc_expression, colnm, colval):
 			print("metadat not recognized (spelling error?)")
 			colnm, colval = retrieve_subset_param()
 		subset_annotation = annotation[annotation[colnm].isin(colval)]
+		# add day0 cells to all subset_annotations
 		day0_annotation = annotation[annotation["day"]==0.0]
-		if not day0_annotation.empty:
-			subset_annotation = subset_annotation.append(day0_annotation)
+		excluded_day0 = day0_annotation[-day0_annotation.isin(subset_annotation)].dropna()
+		if (not day0_annotation.empty):
+			subset_annotation = subset_annotation.append(excluded_day0)
 		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
 		return subset_annotation, subset_PC_expression
 
@@ -212,7 +214,7 @@ while True:
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		subset_clusters = assign_time_clusters_using_clustering(colnm, colval)
 		print("Time clusters were assigned according to hierarchical clustering")
-		plt.savefig("hierarch_clustering.pdf")
+		plt.savefig("hierarchical_clustering.pdf")
 		
 	elif(action == "N"):
 		test = normalize_centroids(subset_pc_expression)

@@ -494,6 +494,7 @@ def change_annotation_colors_to_clusters(clusters, annotation, colors):
 def plot_hierarchical_clustering(transformed_expression, annotation, method, color_scheme="static"):
 	# color links on the basis of connection to same-group neighbor. 
 	# If neighbors in same group, color identically. If neighbors in different groups, color gray.
+	#~ IPython.embed()
 	def colorize_links(linkage):
 		l_color = {}
 		n = transformed_expression.shape[0]
