@@ -747,20 +747,24 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		else:
 			return "gray"
 		
-	if plot_id == "Ctrl_w_RBKD":
-	
-		ann = annotation.loc[pseudotime.index, :]
-		ax = expr_over_ptime.plot.scatter(x="pseudotime", y="expression", c=ann["color"], ax=ax)
+	if plot_id == "RBKD":
+		#~ ipdb.set_trace()
+		exp_index = annotation.loc[annotation['treatment']!="shCtrl"].index
+		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(exp_index)]
+
+		exp_ann = annotation.loc[expr_over_ptime.index.isin(exp_index), :] 
+		#~ IPython.embed()
+
+		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=exp_ann["color"], ax=ax)
 		lowess = sm.nonparametric.lowess
 		z = lowess(expr_over_ptime["expression"], pseudotime)
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
-			
 	elif plot_id == "Ctrl_wo_RBKD":
 		#~ IPython.embed()
 		shctrl_index = annotation.loc[annotation['treatment']=="shCtrl"].index
 		ctrl_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(shctrl_index)]
 
-		ctrl_ann = annotation.loc[shctrl_index, :] 
+		ctrl_ann = annotation.loc[expr_over_ptime.index.isin(shctrl_index), :] 
 		
 		# convert ctrl cells from gray to colored for plotting 
 		translate_colors = ctrl_ann.apply(day_to_color, axis=1)
@@ -805,22 +809,37 @@ def read_pseudotime_from_file(filename):
 # - exp = pd.DataFrame with gene expression 
 # - pseudotime = pd.Series with pseudotime coordinates for each cell
 # - [optional] correlation_threshold = returns only genes with absolute value of correlation >= threshold
-def get_correlation_with_pseudotime(pseudotime, exp, correlation_threshold = 0, method = "spearman"):
-	transcripts = exp.columns.copy()
-	spearman = pd.DataFrame(0, index=transcripts, columns=["corr", "abs"])
-	expc = exp.loc[pseudotime.index].copy()
-	expc["pseudotime"] = pseudotime
-	for i,transcript in enumerate(transcripts):
-		if i%1000 == 0:
-			print "Genes processed:",i
-		corr = expc.loc[ : , [transcript,"pseudotime"]].corr(method=method).iloc[0,1]
-		if corr != corr: # if NaN (no data to calculate on)
-			corr = 0	 # then correlation is zero
-		spearman.loc[transcript,"corr"] = corr
-	spearman["abs"] = spearman["corr"].abs()
+def get_correlation_with_pseudotime(pseudotime, exp, annotation, correlation_threshold = 0, method = "spearman"):
+	
+	exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
+	shctrl_index = annotation.loc[annotation["treatment"]=="shCtrl"].index
+	subset_indices = [exp_index, shctrl_index]
+	cell_set_flags = ["RBKD", "shCtrl"]
+		
+	def return_subset_correlation(subset_index):
+		subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
+		transcripts = exp.columns.copy()
+		spearman = pd.DataFrame(0, index=transcripts, columns=["corr"])
+	
+		subsetc = exp.loc[subset_index]
+		subsetc["pseudotime"] = pseudotime[subset_index]
+		for i,transcript in enumerate(transcripts):
+			if i%1000 == 0:
+				print "Genes processed:",i
+			corr = subsetc.loc[ : , [transcript,"pseudotime"]].corr(method=method).iloc[0,1]
+			if corr != corr: # if NaN (no data to calculate on)
+				corr = 0 # then correlation is zero
+			spearman.loc[transcript,"corr"] = corr
+		return(spearman)
+	
+	spearman = map(return_subset_correlation, subset_indices)
+	spearman = pd.concat(spearman, axis=1)
+	spearman.columns = cell_set_flags
+	spearman["abs"] = spearman[cell_set_flags[0]].abs()
 	spearman.sort_values(by="abs", inplace=True, ascending=False)
-	return spearman["corr"]
-
+	spearman.drop(['abs'], axis=1, inplace=True)
+	
+	return spearman
 
 def plot_3d_pca_colored_by_clustering(PC_expression, annotation, pca, settings):
 	link_color = {}

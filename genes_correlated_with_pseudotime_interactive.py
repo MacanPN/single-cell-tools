@@ -64,18 +64,29 @@ corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
 
 def set_pts(pseudotime_files):
 	pt = map(read_pseudotime_from_file, pseudotime_files)
-	correlation = [get_correlation_with_pseudotime(x, expression_table, method=correlation_method) for x in pt]
+	correlation = [get_correlation_with_pseudotime(x, expression_table, annotation, method=correlation_method) for x in pt]
 	corr = pd.concat(correlation, axis=1)
+	IPython.embed()
 	ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
 	pt = dict(zip(ptime_titles, pt))
 	return corr, pt
 
 
-if sorted(pt.keys()) == sorted(corr.columns):
+corr_columns = []
+for i in sorted(pt.keys()):
+	corr_columns += [i+"_exp_corr"]
+	corr_columns += [i+"_ctrl_corr"]
+
+if corr_columns == list(corr.columns):
 	pass
 else:
 	corr, pt = set_pts(pseudotime_files)
-	corr.columns = sorted(pt.keys())
+	corr_columns = []
+	for i in sorted(pt.keys()):
+		corr_columns += [i+"_exp_corr"]
+		corr_columns += [i+"_ctrl_corr"]
+	corr.columns = corr_columns
+	
 	corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
 
 #~ IPython.embed()
@@ -84,8 +95,8 @@ user_ptimes = ' '.join(pt.keys())
 
 ## function plots genes of interest (pd.Index) into pdf
 def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, ctrl_pseudotime=None):
-	
-	plot_id = ["Ctrl_w_RBKD", "Ctrl_wo_RBKD", "Ctrl_alone"]
+	#~ IPython.embed()
+	plot_id = ["RBKD", "Ctrl_wo_RBKD", "Ctrl_wo_RBKD"]
 	out_genes = out_filename.replace(".pdf", "_genes.csv")
 	og = open(out_genes, 'w')
 	pp = PdfPages(out_filename)
@@ -107,12 +118,12 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 		#~ for k,v in pt_dict.iteritems():
 		while cntr < 3:
 			plot_gene_with_pseudotime(expression_table, pt, t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr], ctrl_pseudotime=ctrl_pseudotime)
-			ax[0+cntr].set_title(ptime+correlation_method+"=%.2f" % corr.loc[t,ptime])
+			#~ ax[0+cntr].set_title(ptime+correlation_method+"=%.2f" % corr.loc[t,ptime])
 			cntr += 1
 			#~ plt.show()
-		ax[0].set_title(plot_id[0]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime])
-		ax[1].set_title(plot_id[1]+"_"+correlation_method)
-		ax[2].set_title(plot_id[2]+"_w_Ctrl_pseudotime_"+correlation_method+"=%.2f" % corr.loc[t,ctrl_ptime])
+		ax[0].set_title(plot_id[0]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_exp_corr"])
+		ax[1].set_title(plot_id[1]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_ctrl_corr"])
+		ax[2].set_title(plot_id[2]+"_w_Ctrl_pseudotime_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_exp_corr"])
 		
 		plt.tight_layout()
 		plt.subplots_adjust(top=0.85)
@@ -163,16 +174,18 @@ while True:
 		DEG_path = raw_input("provide path to differentially expressed genes ")
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
 		DEGS = pd.read_csv(DEG_path, index_col=0)
-		corr["order"] = corr[ptime].abs()
+		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		DEGS = corr[corr.index.isin(DEGS.index)].index
 		out_filename = "pseudotime_wo_brC/"+correlation_method+"_"+ptime+"_DEGS.pdf"
-		plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, pt)
+		plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, pt[ptime], pt[ctrl_ptime])
+		
 	elif(action == "T"):
 		top_n = int(raw_input("How many genes would you like to plot? "))
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+user_ptimes+ ") ")
+		
 		# 733
-		corr["order"] = corr[ptime].abs()
+		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		genes_of_interest = corr.sort_values(by="order", ascending=False).index[:top_n]
 		out_filename = "pseudotime_wo_brC/"+correlation_method+"_"+ptime+".pdf"
 		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], pt[ctrl_ptime])
