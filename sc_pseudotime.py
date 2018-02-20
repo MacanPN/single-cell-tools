@@ -732,20 +732,24 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 	ctrl_over_ptime = pd.DataFrame(ctrl_pseudotime)
 	ctrl_over_ptime["expression"] = exp.loc[ctrl_pseudotime.index, transcript_id]
 	
-	def day_to_color(row):
-		if row['day'] ==4.0:
-			return "blue"
-		elif row['day'] ==6.0:
-			return "green"
-		elif row['day'] ==8.0:
-			return "yellow"
-		elif row['day'] ==12.0:
-			return "red"
-		else:
-			return "gray"
+	# translast colors by day (in ctrl cells)
+	color_by_day = dict(zip(annotation.day.unique(),annotation.color.unique()[1:]))
+	def day_to_color(row, color_day_dict):
+		return(color_day_dict[row['day']])
+
+	#~ def day_to_color(row):
+		#~ if row['day'] ==4.0:
+			#~ return "blue"
+		#~ elif row['day'] ==6.0:
+			#~ return "green"
+		#~ elif row['day'] ==8.0:
+			#~ return "yellow"
+		#~ elif row['day'] ==12.0:
+			#~ return "red"
+		#~ else:
+			#~ return "gray"
 		
 	if plot_id == "RBKD":
-		#~ ipdb.set_trace()
 		exp = annotation.loc[(annotation['treatment'] != "shCtrl"),:]
 		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(exp.index)]
 
@@ -753,7 +757,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 
 		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=exp_ann["color"], ax=ax)
 		lowess = sm.nonparametric.lowess
-		z = lowess(expr_over_ptime["expression"], pseudotime)
+		z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 	elif plot_id == "Ctrl_wo_RBKD":
 		shctrl = annotation.loc[(annotation['treatment']=="shCtrl"), :]
@@ -762,12 +766,13 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		ctrl_ann = annotation.loc[ctrl_over_ptime.index, :] 
 		
 		# convert ctrl cells from gray to colored for plotting 
-		translate_colors = ctrl_ann.apply(day_to_color, axis=1)
-
+		translate_colors = ctrl_ann.apply(day_to_color, args=(color_by_day,), axis=1)
 		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
 		lowess = sm.nonparametric.lowess
-		z = lowess(expr_over_ptime["expression"], pseudotime)
-		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
+		z = lowess(ctrl_over_ptime["expression"], pseudotime[pseudotime.index.isin(ctrl_over_ptime.index)])
+		subplt = pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
+		# hardcode x-axis so that control is directly comparable to RBKD
+		subplt.set_xlim(0.0,1.0)
 	elif plot_id == "Ctrl_alone":
 		shctrl = annotation.loc[(annotation['treatment']=="shCtrl"), :]
 		ctrl_over_ptime = ctrl_over_ptime[ctrl_over_ptime.index.isin(shctrl.index)]
@@ -775,7 +780,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		ctrl_ann = annotation.loc[ctrl_over_ptime.index, :] 
 		
 		# convert ctrl cells from gray to colored for plotting 
-		translate_colors = ctrl_ann.apply(day_to_color, axis=1)
+		translate_colors = ctrl_ann.apply(day_to_color, args=(color_by_day,), axis=1)
 		
 		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
 		lowess = sm.nonparametric.lowess

@@ -57,6 +57,7 @@ cpt = map(read_pseudotime_from_file, ctrl_pseudotime_files)
 cptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ctrl_pseudotime_files]
 cpt = dict(zip(cptime_titles, cpt))
 
+#~ IPython.embed()
 correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
 control_correlation_file = "ctrl_pseudotime_wo_brC_spearman_correlation.csv"
 
@@ -188,7 +189,6 @@ while True:
 		DEG_path = raw_input("provide path to differentially expressed genes ")
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
-		#~ sort  = raw_input("which correlation would like to sort by? ("+user_ptimes+ ") ")
 		DEGS = pd.read_csv(DEG_path, index_col=0)
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		DEGS = corr[corr.index.isin(DEGS.index)].index
@@ -199,13 +199,10 @@ while True:
 		top_n = int(raw_input("How many genes would you like to plot? "))
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
-		#~ sort  = raw_input("which correlation would like to sort by? ("+user_ptimes+ ") ")
-		# 733
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		genes_of_interest = corr.sort_values(by="order", ascending=False).index[:top_n]
 		out_filename = "pseudotime_wo_brC/"+correlation_method+"_"+ptime+".pdf"
 		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
-		print genes_of_interest
 	elif(action == "I"):
 		IPython.embed()
 
