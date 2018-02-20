@@ -306,8 +306,7 @@ def record_trace(clusters, comb, settings, centroids=None):
 	used_centroids = test_centroids.transpose().iloc[:,[i - 1 for i in settings.pcs]]
 	used_centroids.columns = ["x","y","z"]
 	used_centroids["color"] = "black"
-	used_centroids["shape"] = "x"
-	#~ IPython.embed()
+	used_centroids["shape"] = "shape"
 	colors = []
 	for i,c in enumerate(clusters):
 		#~ ipdb.set_trace()
@@ -443,14 +442,27 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 	if(clusters != None):
 		
 		centroids = get_cluster_centroids(transformed_expression, clusters)
-		#~ IPython.embed()
 		trace = record_trace(clusters, comb, settings, centroids)
-		
 		data.append(trace)
-		#~ return(cntrds)
+		
 	if(DEBUG):
 		IPython.embed()
 	#print(annotation["shape"].apply(shape_matplotlib2plotly))
+	
+	# check if start/end centroids extend off the plot dimensions and reassign dimensions if so
+	def nested_set(dic, keys, value):                     
+		for key in keys[:-1]:
+			dic = dic.setdefault(key, {})
+		dic[keys[-1]] = value     
+	
+	axis_tuples = list(zip(["x", "y", "z"],["xaxis", "yaxis", "zaxis"]))
+	
+	for i,c in axis_tuples:
+		if (trace[i].min() < layout['scene'][c]['range'][0]):
+			nested_set(layout, ['scene', c, 'range'], [trace[i].min(),layout['scene'][c]['range'][1]])
+		if (trace[i].max() > layout['scene'][c]['range'][1]):
+			nested_set(layout, ['scene', c, 'range'], [layout['scene'][c]['range'][0],trace[i].max()])
+			
 	fig = dict(data=data, layout=layout)
 	url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 	print(url)
