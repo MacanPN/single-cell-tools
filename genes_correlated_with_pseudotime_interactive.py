@@ -25,7 +25,8 @@ parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/single_cel
 parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/single_cell_tools/example_input_files/plot_settings.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-r", "--corr-method", dest="corr_method", default="spearman", help="method of correlation (spearman or pearson)", metavar="CORR_METHOD")
 parser.add_argument("-o", "--outfile", dest="outfile", default="gene_corr_with_ptime", help="a name to give to the output file", metavar="OUTFILE")
-parser.add_argument("-pt", "--pseudotime", dest="pseudotime", help="a list of pseudotime values for a set of cells. Can accept multiple values", metavar="PTIME", nargs='+', required=True)
+parser.add_argument("-pt", "--pseudotime", dest="pseudotime", help="experimental cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=True)
+parser.add_argument("-cpt", "--control-pseudotime", dest="ctrl_pseudotime", help="control cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=True)
 
 
 try:
@@ -42,61 +43,74 @@ correlation_method = options.corr_method
 out_filename      = options.outfile
 
 pseudotime_files = sorted(options.pseudotime)
-
-#~ correlation_file = sys.argv[7]
-
+ctrl_pseudotime_files = sorted(options.ctrl_pseudotime) 
 
 sett = settings(settings_file, cellset_file)
 expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
 
-#~ correlation_method = "spearman"
-
-
-
-#~ correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
-#~ corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
+# read in pseudotime files
 pt = map(read_pseudotime_from_file, pseudotime_files)
 ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
 pt = dict(zip(ptime_titles, pt))
 
-correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
-corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
+cpt = map(read_pseudotime_from_file, ctrl_pseudotime_files)
+cptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ctrl_pseudotime_files]
+cpt = dict(zip(cptime_titles, cpt))
 
-def set_pts(pseudotime_files):
+correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
+control_correlation_file = "ctrl_pseudotime_wo_brC_spearman_correlation.csv"
+
+corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
+ctrl_corr = pd.read_csv(control_correlation_file, sep="\t", index_col=0)
+ 
+def set_pts(pseudotime_files, cell_set_flag):
 	pt = map(read_pseudotime_from_file, pseudotime_files)
-	correlation = [get_correlation_with_pseudotime(x, expression_table, annotation, method=correlation_method) for x in pt]
+	correlation = [get_correlation_with_pseudotime(x, expression_table, annotation, cell_set_flag, method=correlation_method) for x in pt]
 	corr = pd.concat(correlation, axis=1)
-	IPython.embed()
 	ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
 	pt = dict(zip(ptime_titles, pt))
 	return corr, pt
-
 
 corr_columns = []
 for i in sorted(pt.keys()):
 	corr_columns += [i+"_exp_corr"]
 	corr_columns += [i+"_ctrl_corr"]
 
+# check if experimental correlation files have already been read in
 if corr_columns == list(corr.columns):
 	pass
 else:
-	corr, pt = set_pts(pseudotime_files)
+	corr, pt = set_pts(pseudotime_files, cell_set_flag="exp")
 	corr_columns = []
 	for i in sorted(pt.keys()):
 		corr_columns += [i+"_exp_corr"]
 		corr_columns += [i+"_ctrl_corr"]
 	corr.columns = corr_columns
-	
 	corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
+
+# check if control correlation files have already been read in
+if sorted(cpt.keys()) == list(ctrl_corr.columns):
+	pass
+else:
+	ctrl_corr, cpt = set_pts(ctrl_pseudotime_files, cell_set_flag="ctrl")
+	ctrl_corr.columns = sorted(cpt.keys())
+
+	ctrl_corr.to_csv("ctrl_"+"pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
+
+def reorder_corr(corr, sort):
+	corr["abs"] = corr[sort].abs()
+	corr.sort_values(by="abs", inplace=True, ascending=False)
+	corr.drop(['abs'], axis=1, inplace=True)
 
 #~ IPython.embed()
 
 user_ptimes = ' '.join(pt.keys())
+ctrl_user_ptimes = ' '.join(cpt.keys())
 
 ## function plots genes of interest (pd.Index) into pdf
 def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, ctrl_pseudotime=None):
 	#~ IPython.embed()
-	plot_id = ["RBKD", "Ctrl_wo_RBKD", "Ctrl_wo_RBKD"]
+	plot_id = ["RBKD", "Ctrl_wo_RBKD", "Ctrl_alone"]
 	out_genes = out_filename.replace(".pdf", "_genes.csv")
 	og = open(out_genes, 'w')
 	pp = PdfPages(out_filename)
@@ -123,7 +137,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 			#~ plt.show()
 		ax[0].set_title(plot_id[0]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_exp_corr"])
 		ax[1].set_title(plot_id[1]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_ctrl_corr"])
-		ax[2].set_title(plot_id[2]+"_w_Ctrl_pseudotime_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_exp_corr"])
+		ax[2].set_title(plot_id[2]+"_w_Ctrl_pseudotime_"+correlation_method+"=%.2f" % ctrl_corr.loc[t,ctrl_ptime])
 		
 		plt.tight_layout()
 		plt.subplots_adjust(top=0.85)
@@ -173,6 +187,8 @@ while True:
 	elif(action == "D"):
 		DEG_path = raw_input("provide path to differentially expressed genes ")
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
+		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
+		#~ sort  = raw_input("which correlation would like to sort by? ("+user_ptimes+ ") ")
 		DEGS = pd.read_csv(DEG_path, index_col=0)
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		DEGS = corr[corr.index.isin(DEGS.index)].index
@@ -182,13 +198,13 @@ while True:
 	elif(action == "T"):
 		top_n = int(raw_input("How many genes would you like to plot? "))
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
-		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+user_ptimes+ ") ")
-		
+		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
+		#~ sort  = raw_input("which correlation would like to sort by? ("+user_ptimes+ ") ")
 		# 733
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		genes_of_interest = corr.sort_values(by="order", ascending=False).index[:top_n]
 		out_filename = "pseudotime_wo_brC/"+correlation_method+"_"+ptime+".pdf"
-		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], pt[ctrl_ptime])
+		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
 		print genes_of_interest
 	elif(action == "I"):
 		IPython.embed()

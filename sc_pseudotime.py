@@ -263,7 +263,6 @@ def plot_2d_pca_multiplot(transformed_expression, annotation, pca, settings):
 def plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, filename=None):
 	fig,ax = plt.subplots(figsize=(5,5))
 	markers = list(annotation["shape"].unique())
-	#IPython.embed()
 	for m in markers:
 		cells_with_this_shape = annotation["shape"]==m
 		ann = annotation.loc[cells_with_this_shape]
@@ -292,7 +291,6 @@ def plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, f
 	plt.subplots_adjust(right=0.94)
 	if(filename is None):
 		filename = settings.result_filename+"PC-"+str(settings.pcs[0])+"-"+str(settings.pcs[1])+".png"
-#	IPython.embed()
 	plt.savefig(filename, dpi=200)
 	plt.show()
 
@@ -302,16 +300,17 @@ def plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, f
 # - comb 
 # - settings object
 def record_trace(clusters, comb, settings, centroids=None):
-	#~ IPython.embed()
+
 	test_centroids = centroids #testthis
 	
 	used_centroids = test_centroids.transpose().iloc[:,[i - 1 for i in settings.pcs]]
 	used_centroids.columns = ["x","y","z"]
 	used_centroids["color"] = "black"
-	used_centroids["shape"] = "shape"
-	
+	used_centroids["shape"] = "x"
+	#~ IPython.embed()
 	colors = []
 	for i,c in enumerate(clusters):
+		#~ ipdb.set_trace()
 		colors += [comb.loc[c[1][0],"color"]]
 	
 	trace = dict(
@@ -444,6 +443,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 	if(clusters != None):
 		
 		centroids = get_cluster_centroids(transformed_expression, clusters)
+		#~ IPython.embed()
 		trace = record_trace(clusters, comb, settings, centroids)
 		
 		data.append(trace)
@@ -494,7 +494,6 @@ def change_annotation_colors_to_clusters(clusters, annotation, colors):
 def plot_hierarchical_clustering(transformed_expression, annotation, method, color_scheme="static"):
 	# color links on the basis of connection to same-group neighbor. 
 	# If neighbors in same group, color identically. If neighbors in different groups, color gray.
-	#~ IPython.embed()
 	def colorize_links(linkage):
 		l_color = {}
 		n = transformed_expression.shape[0]
@@ -629,7 +628,6 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
 	print "Best rotation: ",best_angle
 	
 	rotated_expression = rotate_expression(transformed_expression, int(settings.pcs[0]), int(settings.pcs[1]), best_angle)
-	#IPython.embed()
 	# plot original PC plot
 	plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, filename = settings.result_filename+"-original")
 	# plot rotated PC plot
@@ -674,7 +672,6 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 		weights[i] = 1/sq_distances[i]
 		test += sq_distances[i]
 	
-	#~ IPython.embed()
 	
 	pseudotime_clusters = [clusters[0]]
 	pseudotime_clusters.extend(clusters)
@@ -692,7 +689,6 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 		print pseudo_part
 		pseudotime += pseudo_part
 	
-	#~ IPython.embed()
 	
 	pseudotime /= weights.sum(axis=1)
 	# normalize
@@ -729,7 +725,7 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - pd.Series with pseudotime coordinates for each cell
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None, plot_id=None, ctrl_pseudotime=None):
-	#~ IPython.embed()
+	
 	expr_over_ptime = pd.DataFrame(pseudotime)
 	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
 
@@ -750,22 +746,20 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		
 	if plot_id == "RBKD":
 		#~ ipdb.set_trace()
-		exp_index = annotation.loc[annotation['treatment']!="shCtrl"].index
-		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(exp_index)]
+		exp = annotation.loc[(annotation['treatment'] != "shCtrl"),:]
+		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(exp.index)]
 
-		exp_ann = annotation.loc[expr_over_ptime.index.isin(exp_index), :] 
-		#~ IPython.embed()
+		exp_ann = annotation.loc[RBKD_over_ptime.index, :] 
 
 		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=exp_ann["color"], ax=ax)
 		lowess = sm.nonparametric.lowess
 		z = lowess(expr_over_ptime["expression"], pseudotime)
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 	elif plot_id == "Ctrl_wo_RBKD":
-		#~ IPython.embed()
-		shctrl_index = annotation.loc[annotation['treatment']=="shCtrl"].index
-		ctrl_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(shctrl_index)]
+		shctrl = annotation.loc[(annotation['treatment']=="shCtrl"), :]
+		ctrl_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(shctrl.index)]
 
-		ctrl_ann = annotation.loc[expr_over_ptime.index.isin(shctrl_index), :] 
+		ctrl_ann = annotation.loc[ctrl_over_ptime.index, :] 
 		
 		# convert ctrl cells from gray to colored for plotting 
 		translate_colors = ctrl_ann.apply(day_to_color, axis=1)
@@ -775,10 +769,10 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		z = lowess(expr_over_ptime["expression"], pseudotime)
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 	elif plot_id == "Ctrl_alone":
-		shctrl_index = annotation.loc[annotation['treatment']=="shCtrl"].index
-		ctrl_over_ptime = ctrl_over_ptime[ctrl_over_ptime.index.isin(shctrl_index)]
+		shctrl = annotation.loc[(annotation['treatment']=="shCtrl"), :]
+		ctrl_over_ptime = ctrl_over_ptime[ctrl_over_ptime.index.isin(shctrl.index)]
 
-		ctrl_ann = annotation.loc[shctrl_index, :] 
+		ctrl_ann = annotation.loc[ctrl_over_ptime.index, :] 
 		
 		# convert ctrl cells from gray to colored for plotting 
 		translate_colors = ctrl_ann.apply(day_to_color, axis=1)
@@ -810,37 +804,38 @@ def read_pseudotime_from_file(filename):
 # - exp = pd.DataFrame with gene expression 
 # - pseudotime = pd.Series with pseudotime coordinates for each cell
 # - [optional] correlation_threshold = returns only genes with absolute value of correlation >= threshold
-def get_correlation_with_pseudotime(pseudotime, exp, annotation, correlation_threshold = 0, method = "spearman"):
+def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=None, correlation_threshold = 0, method = "spearman"):
 	
-	exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
-	shctrl_index = annotation.loc[annotation["treatment"]=="shCtrl"].index
-	subset_indices = [exp_index, shctrl_index]
-	cell_set_flags = ["RBKD", "shCtrl"]
-		
 	def return_subset_correlation(subset_index):
-		subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
-		transcripts = exp.columns.copy()
-		spearman = pd.DataFrame(0, index=transcripts, columns=["corr"])
-	
-		subsetc = exp.loc[subset_index]
-		subsetc["pseudotime"] = pseudotime[subset_index]
-		for i,transcript in enumerate(transcripts):
-			if i%1000 == 0:
-				print "Genes processed:",i
-			corr = subsetc.loc[ : , [transcript,"pseudotime"]].corr(method=method).iloc[0,1]
-			if corr != corr: # if NaN (no data to calculate on)
-				corr = 0 # then correlation is zero
-			spearman.loc[transcript,"corr"] = corr
-		return(spearman)
-	
-	spearman = map(return_subset_correlation, subset_indices)
-	spearman = pd.concat(spearman, axis=1)
-	spearman.columns = cell_set_flags
-	spearman["abs"] = spearman[cell_set_flags[0]].abs()
-	spearman.sort_values(by="abs", inplace=True, ascending=False)
-	spearman.drop(['abs'], axis=1, inplace=True)
-	
+			subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
+			transcripts = exp.columns.copy()
+			spearman = pd.DataFrame(0, index=transcripts, columns=["corr"])
+		
+			subsetc = exp.loc[subset_index]
+			subsetc["pseudotime"] = pseudotime[subset_index]
+			for i,transcript in enumerate(transcripts):
+				if i%1000 == 0:
+					print "Genes processed:",i
+				corr = subsetc.loc[ : , [transcript,"pseudotime"]].corr(method=method).iloc[0,1]
+				if corr != corr: # if NaN (no data to calculate on)
+					corr = 0 # then correlation is zero
+				spearman.loc[transcript,"corr"] = corr
+			return(spearman)
+			
+	if cell_set_flag == "ctrl":
+		spearman = return_subset_correlation(pseudotime.index)
+	else:
+		exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
+		shctrl_index = annotation.loc[annotation["treatment"]=="shCtrl"].index
+		subset_indices = [exp_index, shctrl_index]
+		cell_set_flags = ["RBKD", "shCtrl"]
+				
+		spearman = map(return_subset_correlation, subset_indices)
+		spearman = pd.concat(spearman, axis=1)
+		spearman.columns = cell_set_flags
+			
 	return spearman
+	
 
 def plot_3d_pca_colored_by_clustering(PC_expression, annotation, pca, settings):
 	link_color = {}
@@ -975,12 +970,10 @@ def main():
 		color_indices = map(int,pseudotime*palette_size)
 		annotation["color"] = [RGBToHTMLColor(pal[i]) for i in color_indices]
 		#HTML_pal = ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']
-		#IPython.embed()
 		#annotation["color"] = [HTML_pal[i] for i in color_indices]
 		
 		plot_3d_pca(PC_expression, annotation, sett)
 	
-	IPython.embed()
 		#print pseudotime
 	
 	#plot_gene_with_pseudotime(expression_table, pseudotime.copy(), "ENST00000611179", annotation)
