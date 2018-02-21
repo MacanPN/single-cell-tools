@@ -57,12 +57,14 @@ cpt = map(read_pseudotime_from_file, ctrl_pseudotime_files)
 cptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ctrl_pseudotime_files]
 cpt = dict(zip(cptime_titles, cpt))
 
-#~ IPython.embed()
-correlation_file = "pseudotime_wo_brC_spearman_correlation.csv"
-control_correlation_file = "ctrl_pseudotime_wo_brC_spearman_correlation.csv"
+correlation_file = "_".join(ptime_titles)+correlation_method+"_correlation.csv"
+ctrl_correlation_file = "_".join(cptime_titles)+correlation_method+"_correlation.csv"
 
-corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
-ctrl_corr = pd.read_csv(control_correlation_file, sep="\t", index_col=0)
+# read correlation files from similarly named files
+if os.path.exists(correlation_file):
+	corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
+if os.path.exists(ctrl_correlation_file):
+	ctrl_corr = pd.read_csv(ctrl_correlation_file, sep="\t", index_col=0)
  
 def set_pts(pseudotime_files, cell_set_flag):
 	pt = map(read_pseudotime_from_file, pseudotime_files)
@@ -78,32 +80,35 @@ for i in sorted(pt.keys()):
 	corr_columns += [i+"_ctrl_corr"]
 
 # check if experimental correlation files have already been read in
-if corr_columns == list(corr.columns):
-	pass
-else:
+try:
+	corr
+except:
 	corr, pt = set_pts(pseudotime_files, cell_set_flag="exp")
 	corr_columns = []
 	for i in sorted(pt.keys()):
 		corr_columns += [i+"_exp_corr"]
 		corr_columns += [i+"_ctrl_corr"]
 	corr.columns = corr_columns
-	corr.to_csv("pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
+	corr.to_csv(correlation_file, sep="\t")
+else:
+	if corr_columns == list(corr.columns):
+		pass
+	else:
+		print "column names do not match!"
 
 # check if control correlation files have already been read in
-if sorted(cpt.keys()) == list(ctrl_corr.columns):
-	pass
-else:
+try:
+	ctrl_corr
+except:
 	ctrl_corr, cpt = set_pts(ctrl_pseudotime_files, cell_set_flag="ctrl")
 	ctrl_corr.columns = sorted(cpt.keys())
 
-	ctrl_corr.to_csv("ctrl_"+"pseudotime_wo_brC_"+correlation_method+"_correlation.csv", sep="\t")
-
-def reorder_corr(corr, sort):
-	corr["abs"] = corr[sort].abs()
-	corr.sort_values(by="abs", inplace=True, ascending=False)
-	corr.drop(['abs'], axis=1, inplace=True)
-
-#~ IPython.embed()
+	ctrl_corr.to_csv(ctrl_correlation_file, sep="\t")
+else:
+	if sorted(cpt.keys()) == list(ctrl_corr.columns):
+		pass
+	else:
+		print "column names do not match!"
 
 user_ptimes = ' '.join(pt.keys())
 ctrl_user_ptimes = ' '.join(cpt.keys())
