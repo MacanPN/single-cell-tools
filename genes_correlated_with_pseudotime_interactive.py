@@ -57,8 +57,8 @@ cpt = map(read_pseudotime_from_file, ctrl_pseudotime_files)
 cptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ctrl_pseudotime_files]
 cpt = dict(zip(cptime_titles, cpt))
 
-correlation_file = "_".join(ptime_titles)+correlation_method+"_correlation.csv"
-ctrl_correlation_file = "_".join(cptime_titles)+correlation_method+"_correlation.csv"
+correlation_file = "_".join(ptime_titles)+"_"+correlation_method+"_correlation.csv"
+ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_correlation.csv"
 
 # read correlation files from similarly named files
 if os.path.exists(correlation_file):
@@ -157,14 +157,13 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 		#~ plt.close('all')
 	#~ pp.close()
 
-'''
-# 733 + 737 - Ctrl
-corr["order"] = (corr["733"] + corr["737"] - corr["Ctrl"]).abs()
-genes_of_interest = corr.sort_values(by="order", ascending=False).index[:100]
-out_filename = "pseudotime_wo_brC/"+correlation_method+"_733+737-Ctrl.pdf"
-plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt733, pt737, ptCtrl)
-'''
-
+output_dir = "genes_corr_w_ptime"
+if not os.path.exists(output_dir):
+	os.makedirs(output_dir)
+	
+#~ if not os.path.exists(fastqc_output_dir):
+	#~ os.makedirs(fastqc_output_dir)
+		
 # main loop / choosing action
 while True:
 	question = """Choose from following:
@@ -197,7 +196,7 @@ while True:
 		DEGS = pd.read_csv(DEG_path, index_col=0)
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		DEGS = corr[corr.index.isin(DEGS.index)].index
-		out_filename = "pseudotime_wo_brC/"+correlation_method+"_"+ptime+"_DEGS.pdf"
+		out_filename = "genes_corr_w_ptime/"+correlation_method+"_"+ptime+"_DEGS.pdf"
 		plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, pt[ptime], pt[ctrl_ptime])
 		
 	elif(action == "T"):
@@ -206,59 +205,10 @@ while True:
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		genes_of_interest = corr.sort_values(by="order", ascending=False).index[:top_n]
-		out_filename = "pseudotime_wo_brC/"+correlation_method+"_"+ptime+".pdf"
+		out_filename = "genes_corr_w_ptime/"+correlation_method+"_"+ptime+".pdf"
 		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
 	elif(action == "I"):
 		IPython.embed()
-
-'''
-#DEGS
-DEGS = pd.read_csv("FACS_0407_2017_SHL_input_files/DEGS_day_12.csv", index_col=0)
-corr["order"] = corr[ptime_titles[0]].abs()
-DEGS = corr[corr.index.isin(DEGS.index)].index
-out_filename = "pseudotime_wo_brC/"+correlation_method+"_733.pdf"
-plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, pt)
-
-# 733
-corr["order"] = corr[ptime_titles[0]].abs()
-genes_of_interest = corr.sort_values(by="order", ascending=False).index[:200]
-out_filename = "pseudotime_wo_brC/"+correlation_method+"_733_20180214.pdf"
-plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
-
-# 737
-corr["order"] = corr[ptime_titles[1]].abs()
-genes_of_interest = corr.sort_values(by="order", ascending=False).index[:200]
-out_filename = "pseudotime_wo_brC/"+correlation_method+"_737.pdf"
-plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
-
-# 733 + 737 where (Ctrl has opposite sign) or (abs(Ctrl)< threshold)
-threshold = 0.2
-corr["order"] = (corr["733"] + corr["737"]).abs()
-opposite_sign = corr[ (corr["733"]*corr["Ctrl"] < 0) & (corr["737"]*corr["Ctrl"] < 0)].index
-small_abs     = corr[corr["Ctrl"].abs() < threshold].index
-genes_of_interest = corr.loc[opposite_sign.union(small_abs)]
-genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:200]
-out_filename = "pseudotime_wo_brC/"+correlation_method+"_733+737-where-Ctrl-below-%.2f.pdf" %threshold
-plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt733, pt737, ptCtrl)
-
-# 733 and 737 above ht and Ctrl below lt or opposite sign
-ht = 0.3
-lt = 0.2
-corr["order"] = (corr["733"] + corr["737"]).abs()
-opposite_sign = corr[ (corr["733"]*corr["Ctrl"] < 0) & (corr["737"]*corr["Ctrl"] < 0)].index
-small_abs     = corr[corr["Ctrl"].abs() < threshold].index
-good_corr_in_knockdown = corr[ (corr["733"].abs() >= ht) & (corr["737"].abs() >= ht) & (corr["733"]*corr["737"] > 0)].index
-genes_of_interest = corr.loc[opposite_sign.union(small_abs).intersection(good_corr_in_knockdown)]
-genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:200]
-out_filename = "pseudotime_wo_brC/"+correlation_method+"_733-and-737-above-%.2f_Ctrl-below-%.2f.pdf" %(ht,lt)
-plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt733, pt737, ptCtrl)
-'''
-#ut = 0.3
-#lt = 0.3
-#genes_of_interest = corr[(corr["733"]>=ut) & (corr["737"]>=ut) & (corr["Ctrl"]<=lt)]
-#genes_of_interest["order"] = genes_of_interest["733"] + genes_of_interest["737"] - genes_of_interest["Ctrl"]
-#out_filename = "pseudotime_wo_brC/spearman_733.pdf"
-#gene_order = spearman_733["corr"]
 
 #~ if __name__ == "__main__":
 	#~ main()
