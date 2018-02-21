@@ -112,7 +112,7 @@ def subset_pc_expression(pc_expression, colnm, colval):
 			print("metadat not recognized (spelling error?)")
 			colnm, colval = retrieve_subset_param()
 		subset_annotation = annotation[annotation[colnm].isin(colval)]
-		# add day0 cells to all subset_annotations
+		# add day0 cells to all subset_annotations if not removed in plot_settings
 		day0_annotation = annotation[annotation["day"]==0.0]
 		excluded_day0 = day0_annotation[-day0_annotation.isin(subset_annotation)].dropna()
 		if (not day0_annotation.empty):

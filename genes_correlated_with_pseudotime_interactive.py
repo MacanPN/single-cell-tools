@@ -190,7 +190,7 @@ while True:
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		DEGS = corr[corr.index.isin(DEGS.index)].index
 		out_filename = output_dir+correlation_method+"_"+ptime+"_DEGS.pdf"
-		plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, pt[ptime], pt[ctrl_ptime])
+		plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
 		
 	elif(action == "T"):
 		top_n = int(raw_input("How many genes would you like to plot? "))
