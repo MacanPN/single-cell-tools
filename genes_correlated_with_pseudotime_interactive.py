@@ -40,7 +40,7 @@ expression_file = os.path.expanduser(options.expr_mat)
 cellset_file    = os.path.expanduser(options.cell_sets)
 settings_file   = os.path.expanduser(options.plot_settings)
 correlation_method = options.corr_method
-out_filename      = options.outfile
+output_dir      = options.outfile+"/"
 
 pseudotime_files = sorted(options.pseudotime)
 ctrl_pseudotime_files = sorted(options.ctrl_pseudotime) 
@@ -157,12 +157,11 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 		#~ plt.close('all')
 	#~ pp.close()
 
-output_dir = "genes_corr_w_ptime"
+#~ default_output_dir = "genes_corr_w_ptime"
 if not os.path.exists(output_dir):
 	os.makedirs(output_dir)
 	
-#~ if not os.path.exists(fastqc_output_dir):
-	#~ os.makedirs(fastqc_output_dir)
+IPython.embed()
 		
 # main loop / choosing action
 while True:
@@ -196,7 +195,7 @@ while True:
 		DEGS = pd.read_csv(DEG_path, index_col=0)
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		DEGS = corr[corr.index.isin(DEGS.index)].index
-		out_filename = "genes_corr_w_ptime/"+correlation_method+"_"+ptime+"_DEGS.pdf"
+		out_filename = output_dir+correlation_method+"_"+ptime+"_DEGS.pdf"
 		plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, pt[ptime], pt[ctrl_ptime])
 		
 	elif(action == "T"):
@@ -205,7 +204,7 @@ while True:
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		genes_of_interest = corr.sort_values(by="order", ascending=False).index[:top_n]
-		out_filename = "genes_corr_w_ptime/"+correlation_method+"_"+ptime+".pdf"
+		out_filename = output_dir+correlation_method+"_"+ptime+".pdf"
 		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
 	elif(action == "I"):
 		IPython.embed()
