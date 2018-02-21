@@ -745,29 +745,21 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 	ctrl_over_ptime["expression"] = exp.loc[ctrl_pseudotime.index, transcript_id]
 	
 	# translast colors by day (in ctrl cells)
-	color_by_day = dict(zip(annotation.day.unique(),annotation.color.unique()[1:]))
+	#~ IPython.embed()
+	day_list = list(annotation.day.unique())
+	color_list = list(annotation.color.unique())
+	if 'grey' in color_list:
+		color_list.remove('grey')
+	color_by_day = dict(zip(day_list,color_list))
 	def day_to_color(row, color_day_dict):
 		return(color_day_dict[row['day']])
 
-	#~ def day_to_color(row):
-		#~ if row['day'] ==4.0:
-			#~ return "blue"
-		#~ elif row['day'] ==6.0:
-			#~ return "green"
-		#~ elif row['day'] ==8.0:
-			#~ return "yellow"
-		#~ elif row['day'] ==12.0:
-			#~ return "red"
-		#~ else:
-			#~ return "gray"
-		
 	if plot_id == "RBKD":
-		exp = annotation.loc[(annotation['treatment'] != "shCtrl"),:]
-		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(exp.index)]
+		expr = annotation.loc[(annotation['treatment'] != "shCtrl"),:]
+		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(expr.index)]
 
-		exp_ann = annotation.loc[RBKD_over_ptime.index, :] 
-
-		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=exp_ann["color"], ax=ax)
+		expr_ann = annotation.loc[RBKD_over_ptime.index, :] 
+		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
 		lowess = sm.nonparametric.lowess
 		z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)

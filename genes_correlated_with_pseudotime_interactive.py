@@ -115,7 +115,6 @@ ctrl_user_ptimes = ' '.join(cpt.keys())
 
 ## function plots genes of interest (pd.Index) into pdf
 def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, ctrl_pseudotime=None):
-	#~ IPython.embed()
 	plot_id = ["RBKD", "Ctrl_wo_RBKD", "Ctrl_alone"]
 	out_genes = out_filename.replace(".pdf", "_genes.csv")
 	og = open(out_genes, 'w')
@@ -130,15 +129,12 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 			title = t + "  "+ gene_info["symbol"]
 			title += "  ("+gene_info["name"]+")"
 			og.write(title+"\n")
-			#~ print corr.loc[t,pt_dict.keys()[0]]
 		except:
 			pass
 		fig.suptitle(title)
 		cntr = 0
-		#~ for k,v in pt_dict.iteritems():
 		while cntr < 3:
 			plot_gene_with_pseudotime(expression_table, pt, t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr], ctrl_pseudotime=ctrl_pseudotime)
-			#~ ax[0+cntr].set_title(ptime+correlation_method+"=%.2f" % corr.loc[t,ptime])
 			cntr += 1
 			#~ plt.show()
 		ax[0].set_title(plot_id[0]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_exp_corr"])
@@ -161,8 +157,6 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 if not os.path.exists(output_dir):
 	os.makedirs(output_dir)
 	
-IPython.embed()
-		
 # main loop / choosing action
 while True:
 	question = """Choose from following:
