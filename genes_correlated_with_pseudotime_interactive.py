@@ -218,14 +218,11 @@ while True:
 			
 		if top_n > len(genes_of_interest):
 			print("error! number of genes requested exceeds number of genes matching filtering criteria ("+str(len(genes_of_interest))+")")
-			break
+			pass
 		else:
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
-				
-		#~ corr["order"] = corr[ptime+"_exp_corr"].abs()
-		#~ genes_of_interest = corr.sort_values(by="order", ascending=False).index[:top_n]
-		out_filename = output_dir+correlation_method+"_"+ptime+".pdf"
-		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
+			out_filename = output_dir+correlation_method+"_"+ptime+".pdf"
+			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
 	elif(action == "I"):
 		IPython.embed()
 
