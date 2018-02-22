@@ -194,18 +194,30 @@ while True:
 		
 	elif(action == "T"):
 		top_n = int(raw_input("How many genes would you like to plot? "))
-		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
+		ptime = raw_input("Which pseudotime would you like to order by? ("+user_ptimes+ ") ")
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
-		
-		ht = 0.3
-		lt = 0.2
+		ht = float(raw_input("set upper threshold (def. 0.3) "))
+		lt = float(raw_input("set lower threshold (def. 0.2) "))
+		threshold_set = raw_input("retain genes above upper threshold in ("+user_ptimes+ ") (split with , for mult. ").split(",")
+
 		corr["order"] = (corr[ptime+"_exp_corr"]).abs()
-		opposite_sign = corr[(corr[ptime+"_exp_corr"]*ctrl_corr[ctrl_ptime] < 0)].index
-		small_abs     = ctrl_corr[ctrl_corr[ctrl_ptime].abs() < lt].index
-		good_corr_in_knockdown = corr[(corr[ptime+"_exp_corr"].abs() >= ht)].index
-		genes_of_interest = corr.loc[opposite_sign.union(small_abs).intersection(good_corr_in_knockdown)]
+		
+		def genes_within_threshold(rbkd_thresh):
+			rbkd_thresh = rbkd_thresh+"_exp_corr"
+			opposite_sign = corr[(corr[rbkd_thresh]*ctrl_corr[ctrl_ptime] < 0)].index
+			small_abs     = ctrl_corr[ctrl_corr[ctrl_ptime].abs() < lt].index
+			good_corr_in_knockdown = corr[(corr[rbkd_thresh].abs() >= ht)].index
+			genes_of_interest = corr.loc[opposite_sign.union(small_abs).intersection(good_corr_in_knockdown)]
+			return(genes_of_interest)
+		
+		if len(threshold_set) > 1:
+			corrs = map(genes_within_threshold, threshold_set)
+			genes_of_interest = corr.loc[corrs[0].index.intersection(corrs[1].index)]
+		else:
+			genes_of_interest = genes_within_threshold(threshold_set[0])
+			
 		if top_n > len(genes_of_interest):
-			print("error. num. genes requested exceeds genes matching filtering criteria")
+			print("error! number of genes requested exceeds number of genes matching filtering criteria ("+str(len(genes_of_interest))+")")
 			break
 		else:
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
