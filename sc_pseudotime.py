@@ -683,26 +683,24 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 		weights[i] = 1/sq_distances[i]
 		test += sq_distances[i]
 	
-	#~ pseudotime_clusters = [(clusters[0][0]-1,clusters[0][1])]
-	#~ pseudotime_clusters.extend(clusters[1:-1])
-	#~ pseudotime_clusters.append(tuple((clusters[-1][0]+1, clusters[-1][1])))
+	pseudotime_clusters = [(clusters[0][0]-1,clusters[0][1])]
+	pseudotime_clusters.extend(clusters)
+	pseudotime_clusters.append(tuple((clusters[-1][0]+1, clusters[-1][1])))
 	
+	# fine tune weighting
 	#~ c_weights, c_clusts =  map(list, zip(*pseudotime_clusters))
-	
-	#~ new_weights = [(x+1)**1.5 for x in c_weights]
-	
+	#~ new_weights = [x for x in c_weights]
 	#~ pseudotime_clusters = zip(new_weights, c_clusts)
 	
-
-	cols = [1,-2]
-	weights.drop(weights.columns[cols], axis=1, inplace = True)
-	weights.columns = range(0,weights.shape[1])
+	# exclude first and last "real centroids"
+	#~ cols = [1,-2]
+	#~ weights.drop(weights.columns[cols], axis=1, inplace = True)
+	#~ weights.columns = range(0,weights.shape[1])
 
 	pseudotime = pd.Series(0, index=used_PC_expression.index)
-	
 	for w in weights:
 		print w
-		pseudo_part = (clusters[w][0]+1)*weights[w]
+		pseudo_part = (pseudotime_clusters[w][0]+1)*weights[w]
 		pseudotime += pseudo_part
 	pseudotime /= weights.sum(axis=1)
 	# normalize
