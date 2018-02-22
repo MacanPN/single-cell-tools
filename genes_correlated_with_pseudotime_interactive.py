@@ -198,7 +198,7 @@ while True:
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
 		ht = float(raw_input("set upper threshold (def. 0.3) "))
 		lt = float(raw_input("set lower threshold (def. 0.2) "))
-		threshold_set = raw_input("retain genes above upper threshold in ("+user_ptimes+ ") (split with , for mult. ").split(",")
+		threshold_set = raw_input("retain genes above upper threshold in ("+user_ptimes+ ") (split with , for mult.) ").split(",")
 
 		corr["order"] = (corr[ptime+"_exp_corr"]).abs()
 		
@@ -212,7 +212,7 @@ while True:
 		
 		if len(threshold_set) > 1:
 			corrs = map(genes_within_threshold, threshold_set)
-			genes_of_interest = corr.loc[corrs[0].index.intersection(corrs[1].index)]
+			genes_of_interest = corr.loc[pd.concat(corrs, axis=1, join='inner').index]
 		else:
 			genes_of_interest = genes_within_threshold(threshold_set[0])
 			
