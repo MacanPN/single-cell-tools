@@ -679,35 +679,35 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 	weights = pd.DataFrame(index=used_PC_expression.index, columns=[])
 	test = pd.DataFrame(index=used_PC_expression.index, columns=[])
 	for i,c in enumerate(centroids):
-		#~ ipdb.set_trace()
 		sq_distances[i] = ((used_PC_expression-centroids[c])**2).sum(axis=1)**0.5
 		weights[i] = 1/sq_distances[i]
 		test += sq_distances[i]
 	
+	#~ pseudotime_clusters = [(clusters[0][0]-1,clusters[0][1])]
+	#~ pseudotime_clusters.extend(clusters[1:-1])
+	#~ pseudotime_clusters.append(tuple((clusters[-1][0]+1, clusters[-1][1])))
 	
-	pseudotime_clusters = [clusters[0]]
-	pseudotime_clusters.extend(clusters)
-	pseudotime_clusters.append(clusters[-1])
-	#~ cols = [1,-2]
-	#~ weights.drop(weights.columns[cols], axis=1, inplace = True)
-	#~ weights.columns = range(0,weights.shape[1])
+	#~ c_weights, c_clusts =  map(list, zip(*pseudotime_clusters))
+	
+	#~ new_weights = [(x+1)**1.5 for x in c_weights]
+	
+	#~ pseudotime_clusters = zip(new_weights, c_clusts)
+	
+
+	cols = [1,-2]
+	weights.drop(weights.columns[cols], axis=1, inplace = True)
+	weights.columns = range(0,weights.shape[1])
 
 	pseudotime = pd.Series(0, index=used_PC_expression.index)
-		
+	
 	for w in weights:
-		print(pseudotime_clusters[w][0]+1)
-		print(w)
-		pseudo_part = (pseudotime_clusters[w][0]+1)*weights[w]
-		print pseudo_part
+		print w
+		pseudo_part = (clusters[w][0]+1)*weights[w]
 		pseudotime += pseudo_part
-	
-	
 	pseudotime /= weights.sum(axis=1)
 	# normalize
 	pseudotime -= pseudotime.min()
 	pseudotime /= pseudotime.max()
-#	print(pseudotime)
-	#plot_3d_pca(PC_expression, annotation, settings)
 	pal = sns.cubehelix_palette(palette_size+1, start=2, rot=0, dark=0, light=0.85)
 	pal = [(int(i[0]*256),int(i[1]*256),int(i[2]*256)) for i in pal]
 	color_indices = map(int,pseudotime*palette_size)

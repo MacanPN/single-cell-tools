@@ -196,8 +196,22 @@ while True:
 		top_n = int(raw_input("How many genes would you like to plot? "))
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
-		corr["order"] = corr[ptime+"_exp_corr"].abs()
-		genes_of_interest = corr.sort_values(by="order", ascending=False).index[:top_n]
+		
+		ht = 0.3
+		lt = 0.2
+		corr["order"] = (corr[ptime+"_exp_corr"]).abs()
+		opposite_sign = corr[(corr[ptime+"_exp_corr"]*ctrl_corr[ctrl_ptime] < 0)].index
+		small_abs     = ctrl_corr[ctrl_corr[ctrl_ptime].abs() < lt].index
+		good_corr_in_knockdown = corr[(corr[ptime+"_exp_corr"].abs() >= ht)].index
+		genes_of_interest = corr.loc[opposite_sign.union(small_abs).intersection(good_corr_in_knockdown)]
+		if top_n > len(genes_of_interest):
+			print("error. num. genes requested exceeds genes matching filtering criteria")
+			break
+		else:
+			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
+				
+		#~ corr["order"] = corr[ptime+"_exp_corr"].abs()
+		#~ genes_of_interest = corr.sort_values(by="order", ascending=False).index[:top_n]
 		out_filename = output_dir+correlation_method+"_"+ptime+".pdf"
 		plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
 	elif(action == "I"):
