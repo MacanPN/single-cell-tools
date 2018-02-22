@@ -902,10 +902,10 @@ def get_cluster_centroids(PC_expression, clusters):
 		centroids.append(PC_expression.loc[cl[1],:].mean())
 	# append "first cell" and "last cell" to centroids to 
 	# based on extrapolation of trace from centroids 0 to 1 and n-1 to n respectively
-	trace_seg_1 = centroids[0] - centroids[1]
-	trace_seg_n = centroids[-1] - centroids[-2]
-	first_cell = centroids[0] + trace_seg_1
-	last_cell = centroids[-1] + trace_seg_n
+	half_trace_seg_1 = (centroids[0] - centroids[1])/2
+	half_trace_seg_n = (centroids[-1] - centroids[-2])/2
+	first_cell = centroids[0] + half_trace_seg_1
+	last_cell = centroids[-1] + half_trace_seg_n
 	centroids.insert(0, first_cell)
 	centroids.append(last_cell)
 	
