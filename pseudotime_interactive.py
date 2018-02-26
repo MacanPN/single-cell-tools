@@ -67,7 +67,7 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
 			time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
 			clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
 		clusters.sort(key=lambda by_first: by_first[0])
-		plot_hierarchical_clustering(subset_PC_expression[cluster_on_pcs], subset_annotation, method=method)
+		dendro = plot_hierarchical_clustering(subset_PC_expression[cluster_on_pcs], subset_annotation, method=method)
 	else:
 		linkage = sc.cluster.hierarchy.linkage(PC_expression[cluster_on_pcs], method=method)
 		clusters_without_time = get_cluster_labels(linkage, number_of_clusters, PC_expression.index)
@@ -81,9 +81,9 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
 			time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
 			clusters.append( (time,annotation.loc[annotation["color"]==cluster_colors[i]].index) )
 		clusters.sort(key=lambda by_first: by_first[0])
-		plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method)
+		dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method)
 	
-	return clusters
+	return clusters, dendro
 
 def print_clusters(clusters):
 	if(clusters == None):
@@ -164,6 +164,7 @@ while True:
 	[S]	Calculate pseudotime for cells using times assigned to clusters
 	[O]	Output clusters (so they can be copied to a file)
 	[F]	Save generated pseudotime to file
+	[M]	Make Heatmap
 	[X]	Exit
 	"""
 	action = raw_input(question).upper()
@@ -188,13 +189,22 @@ while True:
 				plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
 				del subset_annotation, subset_PC_expression
 			else:
+				
 				if (colvalp == colval):
 					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
+				elif set(colvalp).issubset(colval):
+					#~ ipdb.set_trace()
+					old_colors = subset_annotation["color"]
+					subset_annotation, subset_PC_expression = subset_pc_expression(subset_PC_expression, colnm, colvalp)
+					subset_annotation.loc[:,"color"] = old_colors[old_colors.index.isin(subset_annotation.index)]
+					#~ IPython.embed()
+					new_clusters = [(i, c[c.isin(subset_annotation.index)]) for i,c in subset_clusters]
+					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = new_clusters)
+					del subset_annotation, subset_PC_expression
 				else:
 					subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colvalp)
 					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
 					del subset_annotation, subset_PC_expression
-			
 	elif(action == "L"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
@@ -212,7 +222,7 @@ while True:
 	elif(action == "C"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
-		subset_clusters = assign_time_clusters_using_clustering(colnm, colval)
+		subset_clusters, dendro = assign_time_clusters_using_clustering(colnm, colval)
 		print("Time clusters were assigned according to hierarchical clustering")
 		plt.savefig("hierarchical_clustering.pdf")
 		
@@ -235,9 +245,16 @@ while True:
 			continue
 		filename = raw_input("Enter file name you'd like to save pseudotime as (preferably ending with .csv) ")
 		pseudotime.to_csv(filename, sep="\t")
+		
+	elif(action=="M"):
+		cluster_dir = raw_input("Enter location of diffex csvs ")
+		diffex_csvs = read_in_diffex(cluster_dir)
+		plot_heatmap(expression_table, annotation, dendro)
+		
 	elif(action == "I"):
 		IPython.embed()
 	
+
 
 
 

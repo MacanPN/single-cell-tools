@@ -21,8 +21,14 @@ import copy # needed to copy class settings
 from matplotlib.backends.backend_pdf import PdfPages
 import plotly.plotly as py
 import plotly
-import plotly.graph_objs as go
+#~ import plotly.graph_objs as go
+#modules for heatmap plotting 
+from plotly.graph_objs import *
+import plotly.figure_factory as FF
+from scipy.spatial.distance import pdist, squareform
+
 import ipdb
+import os
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
 default_shape = "o"
@@ -546,7 +552,7 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
 	tick_labels = ax.get_xmajorticklabels()
 	for lbl in tick_labels:
 		lbl.set_color(annotation.loc[lbl.get_text()]["color"])
-
+	return(dendro)
 
 ## plot hierarchical clustering for all methods of linkage
 # arguments are:
@@ -910,6 +916,143 @@ def get_cluster_centroids(PC_expression, clusters):
 	centroids = pd.concat(centroids, axis=1)
 	return centroids
 
+def plot_heatmap(expression_table, annotation, cell_dendro):
+	# get data
+	data = np.genfromtxt("http://files.figshare.com/2133304/ExpRawData_E_TABM_84_A_AFFY_44.tab",
+						 names=True,usecols=tuple(range(1,30)),dtype=float, delimiter="\t")
+	data_array = data.view((np.float, len(data.dtype.names)))
+	data_array = data_array.transpose()
+	labels = data.dtype.names
+	
+	expression_table = expression_table.loc[cell_dendro["ivl"]]
+	data_array0 = expression_table.as_matrix()
+	data_array0 = data_array0.transpose()
+	labels0 = expression_table.index
+	
+	
+	#~ # Initialize figure by creating side dendrogram
+	#~ figure = FF.create_dendrogram(data_array0, orientation='right')
+	#~ for i in range(len(figure['data'])):
+		#~ figure['data'][i]['xaxis'] = 'x2'
+	
+	# Create Upper Dendrogram
+	figure = FF.create_dendrogram(data_array, orientation='top', labels=labels)
+	for i in range(len(figure['data'])):
+		figure['data'][i]['yaxis'] = 'y2'
+	
+	#~ dendro_top = FF.create_dendrogram(data_array, orientation='top', labels=labels)
+	#~ for i in range(len(dendro_top['data'])):      
+		#~ dendro_top['data'][i]['yaxis'] = 'y2'
+	
+	# Add Top Dendrogram Data to Figure
+	#~ figure['data'].extend(dendro_top['data'])
+
+	#convert scipy dend to plotly
+	
+	cell_dendro_k, cell_dendro_v = cell_dendro.keys(), cell_dendro.values()
+	
+	cell_ids = cell_dendro_v[0]
+	
+	ptl_dend = dict(zip(cell_ids, zip(cell_dendro_v[1], cell_dendro_v[2], cell_dendro_v[3], cell_dendro_v[4])))
+	
+	new_dend = {}
+	for key,value in ptl_dend.iteritems():
+		layout = dict(
+			hoverinfo = 'text',
+			marker =  dict(color = value[2]),
+			mode = 'lines',
+			text = None,
+			type = 'scatter',
+			x = value[3],
+			xaxis = 'x2',
+			y = value[0],
+			yaxis = 'y')
+		new_dend[key] = layout
+
+	def without_keys(d, keys):       
+		return {x: d[x] for x in d if x not in keys}
+		
+	new_top = without_keys(figure, "data")
+	
+	new_top["layout"]["xaxis"]["ticktext"] = ptl_dend.keys()
+
+	new_tickvals = [5.0 + 10*idx for idx,val in enumerate(ptl_dend.keys())]
+	
+	new_top["layout"]["xaxis"]["tickvals"] = new_tickvals
+
+	new_top["data"] = new_dend
+
+	# Add Side Dendrogram Data to Figure
+	#~ figure['data'].extend(new_top)
+	
+	# Create Heatmap
+	dendro_leaves = new_top['layout']['xaxis']['ticktext']
+	dendro_leaves = [i for i,v in enumerate(dendro_leaves)]
+
+	heat_data = pdist(data_array0)
+	heat_data = squareform(data_dist)
+	
+	#~ heat_data = heat_data[dendro_leaves,:]
+	#~ heat_data = heat_data[:,dendro_leaves]
+
+	IPython.embed()
+
+	heatmap = Data([
+		Heatmap(
+			z = heat_data,
+			x = dendro_leaves,
+			y = expression_table.index,
+			colorscale = 'YIGnBu'
+		)
+	])
+	
+	IPython.embed()
+	
+	heatmap[0]['x'] = figure['layout']['xaxis']['tickvals']
+	#~ heatmap[0]['y'] = dendro_side['layout']['yaxis']['tickvals']
+
+	# Add Heatmap Data to Figure
+	figure['data'].extend(Data(heatmap))
+
+	# Edit Layout
+	figure['layout'].update({'width':800, 'height':800,
+							 'showlegend':False, 'hovermode': 'closest',
+							 })
+	# Edit xaxis
+	figure['layout']['xaxis'].update({'domain': [.15, 1],
+									  'mirror': False,
+									  'showgrid': False,
+									  'showline': False,
+									  'zeroline': False,
+									  'ticks':""})
+	# Edit xaxis2
+	figure['layout'].update({'xaxis2': {'domain': [0, .15],
+									   'mirror': False,
+									   'showgrid': False,
+									   'showline': False,
+									   'zeroline': False,
+									   'showticklabels': False,
+									   'ticks':""}})
+
+	# Edit yaxis
+	figure['layout']['yaxis'].update({'domain': [0, .85],
+									  'mirror': False,
+									  'showgrid': False,
+									  'showline': False,
+									  'zeroline': False,
+									  'showticklabels': False,
+									  'ticks': ""})
+	# Edit yaxis2
+	figure['layout'].update({'yaxis2':{'domain':[.825, .975],
+									   'mirror': False,
+									   'showgrid': False,
+									   'showline': False,
+									   'zeroline': False,
+									   'showticklabels': False,
+									   'ticks':""}})
+	url = plotly.offline.plot(figure, filename='dendrogram_with_heatmap', validate=False, auto_open=False)
+	print(url)
+
 ## main function
 #  when run separately, program expects following arguments:
 # - argv[1] = comma separated file with expression values
@@ -989,7 +1132,39 @@ def main():
 	#	plot_gene_with_pseudotime(expression_table, pseudotime.copy(), tr, annotation, filename="gene_pt_plots_733/"+tr+".png")
 	
 	#plot_gene_with_pseudotime(expression_table, pseudotime.copy(), "ENST00000611179")
-	
+
+#~ cluster_dir = "/home/skevin/single_cell_pipeline/scde_input/diffex_by_trs_clusters_1_4"
+def read_in_diffex(cluster_dir):
+
+	def absoluteFilePaths(directory):
+		for dirpath,_,filenames in os.walk(directory):
+			for f in filenames:
+				yield os.path.abspath(os.path.join(dirpath, f))
+
+	csv_files = [x for x in absoluteFilePaths(cluster_dir) if x.endswith("_expression_values.csv")] 
+
+	csvs = [pd.read_csv(x, delim_whitespace=True) for x in csv_files]
+
+	csvs0 = map(lambda df: df[df.p_val < 0.05], csvs)
+
+	itx_csvs = pd.concat(csvs0, axis=1, join="inner")
+	union_csvs = pd.concat(csvs0, axis=0)
+
+	#union_csvs.to_csv("diffex_genes_union.csv")
+
+	csv_names = map(os.path.basename, csv_files)
+
+	csv_names = [i.replace("_stringtie_expression_values", "") for i in csv_names]
+
+	diffex_csvs = dict(zip(csv_names, csvs0))
+
+	#~ for key,value in diffex_csvs.iteritems():
+		#~ value.to_csv(key) 
+	return diffex_csvs
+
+
+
+
 
 if __name__ == "__main__":
 	main()
