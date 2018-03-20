@@ -26,13 +26,14 @@ import plotly
 from plotly.graph_objs import *
 import plotly.figure_factory as FF
 from scipy.spatial.distance import pdist, squareform
+import re
 
 import ipdb
 import os
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
 default_shape = "o"
-default_day = 0.0
+default_day = 1.0
 default_color = "gray"
 time_group_prefix = "day_"
 treatment_group_prefix = "sh"
@@ -759,7 +760,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		return(color_day_dict[row['day']])
 
 	if plot_id == "RBKD":
-		expr = annotation.loc[(annotation['treatment'] != "shCtrl"),:]
+		expr = annotation.loc[(~annotation.treatment.str.contains('shCtrl')),:]
 		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(expr.index)]
 
 		expr_ann = annotation.loc[RBKD_over_ptime.index, :] 
@@ -768,7 +769,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 	elif plot_id == "Ctrl_wo_RBKD":
-		shctrl = annotation.loc[(annotation['treatment']=="shCtrl"), :]
+		shctrl = annotation.loc[(annotation.treatment.str.contains('shCtrl')),:]
 		ctrl_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(shctrl.index)]
 
 		ctrl_ann = annotation.loc[ctrl_over_ptime.index, :] 

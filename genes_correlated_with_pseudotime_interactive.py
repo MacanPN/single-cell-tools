@@ -221,7 +221,7 @@ while True:
 			pass
 		else:
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
-			out_filename = output_dir+correlation_method+"_"+ptime+".pdf"
+			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
 			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
 	elif(action == "I"):
 		IPython.embed()
