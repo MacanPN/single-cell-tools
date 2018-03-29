@@ -26,7 +26,7 @@ parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/si
 parser.add_argument("-r", "--corr-method", dest="corr_method", default="spearman", help="method of correlation (spearman or pearson)", metavar="CORR_METHOD")
 parser.add_argument("-o", "--outfile", dest="outfile", default="gene_corr_with_ptime", help="a name to give to the output file", metavar="OUTFILE")
 parser.add_argument("-pt", "--pseudotime", dest="pseudotime", help="experimental cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=True)
-parser.add_argument("-cpt", "--control-pseudotime", dest="ctrl_pseudotime", help="control cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=True)
+parser.add_argument("-cpt", "--control-pseudotime", dest="ctrl_pseudotime", help="control cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+')
 
 
 try:
@@ -43,29 +43,60 @@ correlation_method = options.corr_method
 output_dir      = options.outfile+"/"
 
 pseudotime_files = sorted(options.pseudotime)
-ctrl_pseudotime_files = sorted(options.ctrl_pseudotime) 
+
+if options.ctrl_pseudotime:
+	ctrl_pseudotime_files = sorted(options.ctrl_pseudotime) 
 
 sett = settings(settings_file, cellset_file)
 expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
+
+#load ctrl pseudotime objects if control files supplied
+try:
+	ctrl_pseudotime_files
+except:
+	print("no ctrl pseudotime files supplied!")
+	ctrl_user_ptimes = "none"
+	cpt = "none"
+else:
+	# read in control pseudotime files
+	cpt = map(read_pseudotime_from_file, ctrl_pseudotime_files)
+	cptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ctrl_pseudotime_files]
+	cpt = dict(zip(cptime_titles, cpt))
+	ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_correlation.csv"
+	
+	# read correlation files from similarly named files
+	if os.path.exists(ctrl_correlation_file):
+		ctrl_corr = pd.read_csv(ctrl_correlation_file, sep="\t", index_col=0)
+	
+	# check if control correlation files have already been read in
+	try:
+		ctrl_corr
+	except:
+		ctrl_corr, cpt = set_pts(ctrl_pseudotime_files, cell_set_flag="ctrl")
+		ctrl_corr.columns = sorted(cpt.keys())
+
+		ctrl_corr.to_csv(ctrl_correlation_file, sep="\t")
+	else:
+		if sorted(cpt.keys()) == list(ctrl_corr.columns):
+			pass
+		else:
+			print "column names do not match!"
+			
+	ctrl_user_ptimes = ' '.join(cpt.keys())
+
+
+#load experimental pseudotime objects (required)
 
 # read in pseudotime files
 pt = map(read_pseudotime_from_file, pseudotime_files)
 ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
 pt = dict(zip(ptime_titles, pt))
-
-cpt = map(read_pseudotime_from_file, ctrl_pseudotime_files)
-cptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ctrl_pseudotime_files]
-cpt = dict(zip(cptime_titles, cpt))
-
 correlation_file = "_".join(ptime_titles)+"_"+correlation_method+"_correlation.csv"
-ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_correlation.csv"
 
 # read correlation files from similarly named files
 if os.path.exists(correlation_file):
 	corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
-if os.path.exists(ctrl_correlation_file):
-	ctrl_corr = pd.read_csv(ctrl_correlation_file, sep="\t", index_col=0)
- 
+
 def set_pts(pseudotime_files, cell_set_flag):
 	pt = map(read_pseudotime_from_file, pseudotime_files)
 	correlation = [get_correlation_with_pseudotime(x, expression_table, annotation, cell_set_flag, method=correlation_method) for x in pt]
@@ -83,44 +114,43 @@ for i in sorted(pt.keys()):
 try:
 	corr
 except:
-	corr, pt = set_pts(pseudotime_files, cell_set_flag="exp")
-	corr_columns = []
-	for i in sorted(pt.keys()):
-		corr_columns += [i+"_exp_corr"]
-		corr_columns += [i+"_ctrl_corr"]
-	corr.columns = corr_columns
-	corr.to_csv(correlation_file, sep="\t")
+	if cpt == "none":
+		corr, pt = set_pts(pseudotime_files, cell_set_flag="exp")
+		corr_columns = []
+		for i in sorted(pt.keys()):
+			corr_columns += [i+"_exp_corr"]
+		corr.columns = corr_columns
+		corr.to_csv(correlation_file, sep="\t")
+	else:
+		corr, pt = set_pts(pseudotime_files, cell_set_flag="mix")
+		corr_columns = []
+		for i in sorted(pt.keys()):
+			corr_columns += [i+"_exp_corr"]
+			corr_columns += [i+"_ctrl_corr"]
+		corr.columns = corr_columns
+		corr.to_csv(correlation_file, sep="\t")
 else:
 	if corr_columns == list(corr.columns):
 		pass
 	else:
 		print "column names do not match!"
 
-# check if control correlation files have already been read in
-try:
-	ctrl_corr
-except:
-	ctrl_corr, cpt = set_pts(ctrl_pseudotime_files, cell_set_flag="ctrl")
-	ctrl_corr.columns = sorted(cpt.keys())
-
-	ctrl_corr.to_csv(ctrl_correlation_file, sep="\t")
-else:
-	if sorted(cpt.keys()) == list(ctrl_corr.columns):
-		pass
-	else:
-		print "column names do not match!"
-
 user_ptimes = ' '.join(pt.keys())
-ctrl_user_ptimes = ' '.join(cpt.keys())
+
+
 
 ## function plots genes of interest (pd.Index) into pdf
 def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, ctrl_pseudotime=None):
-	plot_id = ["RBKD", "Ctrl_wo_RBKD", "Ctrl_alone"]
-	out_genes = out_filename.replace(".pdf", "_genes.csv")
+	if not ctrl_pseudotime:
+		plot_id = ["exp"]*len(pt.keys())
+	else:
+		plot_id = ["exp", "Ctrl_wo_RBKD", "Ctrl_alone"]
+	out_genes = out_filename.replace(".pdf", ".csv")
 	og = open(out_genes, 'w')
+	og.write("gene"+"\t"+"\t".join(pt.keys()))
 	pp = PdfPages(out_filename)
 	for i,t in enumerate(genes_of_interest):
-		fig, ax = plt.subplots(1,3, figsize=(15,5), sharey="row") #define common y axis for set of plots (treatments)
+		fig, ax = plt.subplots(1,len(plot_id), figsize=(15,5), sharey="row") #define common y axis for set of plots (treatments)
 		print i,t
 		title = t
 		try:
@@ -128,18 +158,34 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 			gene_info = mg.querymany(t, scopes='ensembl.transcript')[0]
 			title = t + "  "+ gene_info["symbol"]
 			title += "  ("+gene_info["name"]+")"
-			og.write(title+"\n")
+			# ~ ipdb.set_trace()
+			correlations = [corr.loc[t,i+"_exp_corr"] for i in pt.keys()]
+			correlations = "\t".join(map(str, correlations))
+			# ~ correlations = [corr.loc[t,pt.keys()[i]] for i in len(pt.keys())]
+			og.write(title+"\t"+correlations+"\n")
 		except:
 			pass
 		fig.suptitle(title)
 		cntr = 0
-		while cntr < 3:
-			plot_gene_with_pseudotime(expression_table, pt, t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr], ctrl_pseudotime=ctrl_pseudotime)
-			cntr += 1
-			#~ plt.show()
-		ax[0].set_title(plot_id[0]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_exp_corr"])
-		ax[1].set_title(plot_id[1]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_ctrl_corr"])
-		ax[2].set_title(plot_id[2]+"_w_Ctrl_pseudotime_"+correlation_method+"=%.2f" % ctrl_corr.loc[t,ctrl_ptime])
+		
+		if not ctrl_pseudotime:
+			while cntr < len(plot_id):
+				
+				plot_gene_with_pseudotime(expression_table, pt[pt.keys()[cntr]], t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr])
+				cntr += 1
+			# ~ for i in pt.names
+			
+			for key in pt:
+				ax[pt.keys().index(key)].set_title(key+"_"+correlation_method+"=%.2f" % corr.loc[t,key+"_exp_corr"])
+
+		else: 
+			while cntr < len(plot_id):
+				plot_gene_with_pseudotime(expression_table, pt, t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr], ctrl_pseudotime=ctrl_pseudotime)
+				cntr += 1
+				#~ plt.show()
+			ax[0].set_title(plot_id[0]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_exp_corr"])
+			ax[1].set_title(plot_id[1]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_ctrl_corr"])
+			ax[2].set_title(plot_id[2]+"_w_Ctrl_pseudotime_"+correlation_method+"=%.2f" % ctrl_corr.loc[t,ctrl_ptime])
 		
 		plt.tight_layout()
 		plt.subplots_adjust(top=0.85)
@@ -195,21 +241,28 @@ while True:
 	elif(action == "T"):
 		top_n = int(raw_input("How many genes would you like to plot? "))
 		ptime = raw_input("Which pseudotime would you like to order by? ("+user_ptimes+ ") ")
-		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
+		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? Leave blank if no control present. ("+ctrl_user_ptimes+ ") ")
 		ht = float(raw_input("set upper threshold (def. 0.3) "))
-		lt = float(raw_input("set lower threshold (def. 0.2) "))
+		lt = float(raw_input("set lower threshold (def. 0.2) Leave blank if no control present. ") or 0)
 		threshold_set = raw_input("retain genes above upper threshold in ("+user_ptimes+ ") (split with , for mult.) ").split(",")
 
 		corr["order"] = (corr[ptime+"_exp_corr"]).abs()
 		
-		def genes_within_threshold(rbkd_thresh):
-			rbkd_thresh = rbkd_thresh+"_exp_corr"
-			opposite_sign = corr[(corr[rbkd_thresh]*ctrl_corr[ctrl_ptime] < 0)].index
-			small_abs     = ctrl_corr[ctrl_corr[ctrl_ptime].abs() < lt].index
-			good_corr_in_knockdown = corr[(corr[rbkd_thresh].abs() >= ht)].index
-			genes_of_interest = corr.loc[opposite_sign.union(small_abs).intersection(good_corr_in_knockdown)]
-			return(genes_of_interest)
+
 		
+		def genes_within_threshold(rbkd_thresh):
+			if ctrl_ptime: 
+				rbkd_thresh = rbkd_thresh+"_exp_corr"
+				opposite_sign = corr[(corr[rbkd_thresh]*ctrl_corr[ctrl_ptime] < 0)].index
+				small_abs     = ctrl_corr[ctrl_corr[ctrl_ptime].abs() < lt].index
+				good_corr_in_knockdown = corr[(corr[rbkd_thresh].abs() >= ht)].index
+				genes_of_interest = corr.loc[opposite_sign.union(small_abs).intersection(good_corr_in_knockdown)]
+			else: 
+				rbkd_thresh = rbkd_thresh+"_exp_corr"
+				good_corr_in_knockdown = corr[(corr[rbkd_thresh].abs() >= ht)].index
+				genes_of_interest = corr.loc[good_corr_in_knockdown]
+
+			return(genes_of_interest)
 		if len(threshold_set) > 1:
 			corrs = map(genes_within_threshold, threshold_set)
 			genes_of_interest = corr.loc[pd.concat(corrs, axis=1, join='inner').index]
@@ -219,6 +272,10 @@ while True:
 		if top_n > len(genes_of_interest):
 			print("error! number of genes requested exceeds number of genes matching filtering criteria ("+str(len(genes_of_interest))+")")
 			pass
+		elif cpt == "none":
+			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
+			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
+			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
 		else:
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"

@@ -206,12 +206,24 @@ def run_PCA(expression_table, annotation, n_components):
 	return transformed_expression, pca
 
 ## save genes correlated with a PC to file
-def get_isoforms_correlated_with_pc(expression_table, pc, n, filename):
-	pc = int(pc)
-	df = pd.Series(pca.components_[pc], index=expression_table.columns)
-	df = df.reindex(df.abs().sort_values(inplace=False, ascending=False).index).iloc[0:n]
-	csv_filename = settings.result_filename+"_PC"+str(pc)+".csv"
-	df.to_csv(csv_filename, sep="\t")
+# ~ def get_isoforms_correlated_with_pc(pc):
+	# ~ pc = int(pc)
+	# ~ df = pd.Series(pca.components_[pc], index=expression_table.columns)
+	# ~ df = df.reindex(df.abs().sort_values(inplace=False, ascending=False).index).iloc[0:n]
+	# ~ csv_filename = filename+"_PC"+str(pc)+".csv"
+	# ~ df.to_csv(csv_filename, sep="\t")
+	# ~ return df
+	
+# ~ def get_isoforms_correlated_pc_set(pca, expression_table, pcs, n, filename):
+	# ~ data = [get_isoforms_correlated_with_pc(i) for i in pcs]
+	# ~ pd.concat(data)
+	# ~ names = map(str, pcs)
+	# ~ data = pd.DataFrame.from_items(zip(names, pca.components_[pcs]))
+	# ~ data.index = expression_table.columns
+	# ~ data = data.reindex(data.abs().sort_values(inplace=False, ascending=False).index).iloc[0:n]
+	# ~ csv_filename = filename+"_PC"+".csv"
+	# ~ data.to_csv(csv_filename, sep="\t")
+	# ~ return data
 
 ## create annotation label for a point on axis if it's far enough from other points
 # used internally by plotting functions
@@ -742,15 +754,13 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - pd.Series with pseudotime coordinates for each cell
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None, plot_id=None, ctrl_pseudotime=None):
-	
 	expr_over_ptime = pd.DataFrame(pseudotime)
 	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
-
-	ctrl_over_ptime = pd.DataFrame(ctrl_pseudotime)
-	ctrl_over_ptime["expression"] = exp.loc[ctrl_pseudotime.index, transcript_id]
+	if ctrl_pseudotime:
+		ctrl_over_ptime = pd.DataFrame(ctrl_pseudotime)
+		ctrl_over_ptime["expression"] = exp.loc[ctrl_pseudotime.index, transcript_id]
 	
 	# translast colors by day (in ctrl cells)
-	#~ IPython.embed()
 	day_list = list(annotation.day.unique())
 	color_list = list(annotation.color.unique())
 	if 'grey' in color_list:
@@ -759,7 +769,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 	def day_to_color(row, color_day_dict):
 		return(color_day_dict[row['day']])
 
-	if plot_id == "RBKD":
+	if plot_id == "exp":
 		expr = annotation.loc[(~annotation.treatment.str.contains('shCtrl')),:]
 		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(expr.index)]
 
@@ -805,9 +815,6 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 	else:
 		plt.savefig(filename)
 		plt.close('all')
-	
-	
-	
 
 ## read pseudotime from tab delimited csv file
 def read_pseudotime_from_file(filename):
@@ -835,18 +842,30 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 					corr = 0 # then correlation is zero
 				spearman.loc[transcript,"corr"] = corr
 			return(spearman)
-			
+	
+	
 	if cell_set_flag == "ctrl":
+		spearman = return_subset_correlation(pseudotime.index)
+	elif cell_set_flag == "exp":
 		spearman = return_subset_correlation(pseudotime.index)
 	else:
 		exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
 		shctrl_index = annotation.loc[annotation["treatment"]=="shCtrl"].index
-		subset_indices = [exp_index, shctrl_index]
-		cell_set_flags = ["RBKD", "shCtrl"]
-				
-		spearman = map(return_subset_correlation, subset_indices)
-		spearman = pd.concat(spearman, axis=1)
-		spearman.columns = cell_set_flags
+		
+		if not shctrl_index[i]:
+			subset_indices = [exp_index]
+			cell_set_flags = ["exp"]
+					
+			spearman = map(return_subset_correlation, subset_indices)
+			spearman = pd.concat(spearman, axis=1)
+			spearman.columns = cell_set_flags
+		else:
+			subset_indices = [exp_index, shctrl_index]
+			cell_set_flags = ["RBKD", "shCtrl"]
+					
+			spearman = map(return_subset_correlation, subset_indices)
+			spearman = pd.concat(spearman, axis=1)
+			spearman.columns = cell_set_flags
 			
 	return spearman
 	

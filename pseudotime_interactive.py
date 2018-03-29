@@ -45,10 +45,9 @@ clusters = None
 annotation["name"] = "day "+annotation["day"].astype(str)
 
 def assign_time_clusters_using_clustering(colnm=None, colval=None):
-	
+	pc_set = "Which PCs would you like to use for clustering? [type comma separated list, list can also include ranges 1-5,8] "
 	scipy_linkage_methods = [ "complete", "average", "single", "centroid", "median", "ward"]
-	question = "Which PCs would you like to use for clustering? [type comma separated list, list can also include ranges 1-5,8] "
-	cluster_on_pcs = list_from_ranges(raw_input(question))
+	cluster_on_pcs = list_from_ranges(raw_input(pc_set))
 	number_of_clusters = int(raw_input("How many clusters would you like to generate? "))
 	method = raw_input("Which clustering would you like to use: "+", ".join(scipy_linkage_methods)+": ")
 	if method not in scipy_linkage_methods:
@@ -149,7 +148,21 @@ def normalize_centroids(subset_pc_expression):
 	#~ coords = ["x", "y", "z"]
 	#~ for i in coords:
 		#~ centroids = pd.append([trace[i])
+
+## save genes correlated with a PC to file
+def get_isoforms_correlated_with_pc(pc, n):
+	pc = int(pc)
+	df = pd.Series(pca.components_[pc], index=expression_table.columns)
+	# ~ df = pd.DataFrame(pca.components_[pc], pc, index=expression_table.columns)
+	df = df.reindex(df.abs().sort_values(inplace=False, ascending=False).index).iloc[0:n]
+	return df
 	
+def get_isoforms_correlated_pc_set(pca, expression_table, pcs, n, filename):
+	data = [get_isoforms_correlated_with_pc(i, n) for i in pcs]
+	data = pd.concat(data)
+	csv_filename = filename+"_pcs_"+"_".join(map(str, pcs))+".csv"
+	data.to_csv(csv_filename, sep=",")
+	return data
 	
 
 # main loop / choosing action
@@ -164,7 +177,7 @@ while True:
 	[S]	Calculate pseudotime for cells using times assigned to clusters
 	[O]	Output clusters (so they can be copied to a file)
 	[F]	Save generated pseudotime to file
-	[M]	Make Heatmap
+	[M]	Save features correlated with pc to file
 	[X]	Exit
 	"""
 	action = raw_input(question).upper()
@@ -224,7 +237,8 @@ while True:
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		subset_clusters, dendro = assign_time_clusters_using_clustering(colnm, colval)
 		print("Time clusters were assigned according to hierarchical clustering")
-		plt.savefig("hierarchical_clustering.pdf")
+		filename = raw_input("Enter file name you'd like to save clustering plot as (preferably ending with .pdf) ")
+		plt.savefig(filename)
 		
 	elif(action == "N"):
 		test = normalize_centroids(subset_pc_expression)
@@ -239,6 +253,12 @@ while True:
 	elif(action == "O"):
 		print_clusters(subset_clusters)
 		
+	elif(action == "M"):
+		filename = raw_input("Enter file name you'd like to save correlated features to: ")
+		top_n = int(raw_input("How many genes from each pc would you like to plot? "))
+		pcs = map(int,raw_input("Which PCs would you to correlate with? (type comma separated list, such as 1,3,4) ").split(","))
+		pc_corr_trs = get_isoforms_correlated_pc_set(pca, expression_table, pcs, top_n, filename)
+		
 	elif(action=="F"):
 		if("pseudotime" not in globals()):
 			print("Pseudotime was not yet generated!")
@@ -246,7 +266,7 @@ while True:
 		filename = raw_input("Enter file name you'd like to save pseudotime as (preferably ending with .csv) ")
 		pseudotime.to_csv(filename, sep="\t")
 		
-	elif(action=="M"):
+	elif(action=="Q"):
 		cluster_dir = raw_input("Enter location of diffex csvs ")
 		diffex_csvs = read_in_diffex(cluster_dir)
 		plot_heatmap(expression_table, annotation, dendro)
