@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg') #for handling display variable on mac (SHL!)
 import matplotlib.pyplot as plt
 import sys
 import numpy as np
@@ -119,6 +121,18 @@ def subset_pc_expression(pc_expression, colnm, colval):
 		subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
 		return subset_annotation, subset_PC_expression
 
+def find_discrim_pcs(subset_pc_expression, annotation):
+	
+	shRBKD_cells = annotation.loc[annotation['treatment'] != "shCtrl"].index
+	vals_shRBKD = PC_expression.loc[shRBKD_cells,:]
+	
+	shCtrl_cells = annotation.loc[annotation['treatment'] == "shCtrl"].index
+	vals_shCtrl = PC_expression.loc[shCtrl_cells,:]
+	
+	for i in range(1, 20):
+		test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
+		print(test)
+
 def normalize_centroids(subset_pc_expression):
 	print("provide control group: ")
 	ctrl_colnm, ctrl_colval = retrieve_subset_param()
@@ -172,7 +186,7 @@ while True:
 	[P]	Plot PCA
 	[L]	Assign time clusters according to time Labels (like day_4 ... )
 	[C]	Assign time clusters using hierarchical clustering
-	[D]	Find Most Correlated PCs
+	[D]	Find Most Correlated and Most Discriminating (treat v ctrl) PCs
 	[N]	Normalize centroids
 	[S]	Calculate pseudotime for cells using times assigned to clusters
 	[O]	Output clusters (so they can be copied to a file)
@@ -193,7 +207,7 @@ while True:
 		sett.pcs = pcs
 		print("plotting...\n the plot will open in your web browser shortly")
 		if not all(colvalp):
-			plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
+			fig = plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
 		else:
 			try:
 				subset_PC_expression
@@ -228,9 +242,9 @@ while True:
 	elif(action == "D"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
-		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
-		find_pseudotime(subset_PC_expression, subset_annotation, pca, sett, pcs)
-		print("Time clusters were assigned according to labels")
+		# ~ pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+		find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
+		print("Showing PCS most correlated with time")
 		
 	elif(action == "C"):
 		colnm, colval = retrieve_subset_param()

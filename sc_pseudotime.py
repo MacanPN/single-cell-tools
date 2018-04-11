@@ -638,6 +638,20 @@ def rotate_expression(transformed_expression,x,y,angle):
 # - settings object
 def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=None):
 	
+	shRBKD_cells = annotation.loc[annotation['treatment'] != "shCtrl"].index
+	vals_shRBKD = transformed_expression.loc[shRBKD_cells,:]
+	
+	shCtrl_cells = annotation.loc[annotation['treatment'] == "shCtrl"].index
+	vals_shCtrl = transformed_expression.loc[shCtrl_cells,:]
+	
+	# ~ t_val = pd.DataFrame(columns = ['distance'])
+	t_val = []
+	for i in transformed_expression:
+		test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
+		t_val.append(test) 
+	print(t_val)
+
+
 	n_pca = len(transformed_expression.columns)
 	transformed_expression["day"] = annotation["day"]
 	transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
@@ -645,14 +659,23 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
 	spearman = transformed_expression_without_superimposed.corr(method="spearman").loc["day",range(1,n_pca+1)].abs().sort_values(ascending=False)
 	#plot_spearman correlations and explained variation
 	spearman_filename = settings.result_filename.replace(".png", "_spearman.png")
-	width=0.4
+	width=0.2
+	
 	fig,ax = plt.subplots(figsize=(8,5))
+	
 	ax2= ax.twinx()
+	ax3= ax.twinx()
+	
 	spearman.plot.bar(ax=ax, width=width, position=1, color="blue")
 	pd.Series(pca.explained_variance_ratio_, index=range(1,n_pca+1)).loc[spearman.index].plot.bar(ax=ax2, width=width, position=0, color="red")
+	
+	ax3.spines['right'].set_position(('outward', 60))
+	pd.Series(t_val, index=range(1,n_pca+1)).loc[spearman.index].plot.bar(ax=ax3, width=width, position=2, color="green")
+	
 	ax.set_xlabel("PC component")
 	ax.set_ylabel("Spearman correlation\nto days [blue]")
 	ax2.set_ylabel("% variance explained [red]")
+	ax3.set_ylabel("distance between RBKD and Ctrl [green]")
 	plt.tight_layout()
 	low,high = plt.xlim()
 	plt.xlim(low-0.5, high)
@@ -687,6 +710,7 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
 	pt.name = "pseudotime"
 	# normalize to <0;1>
 	pt = (pt-pt.min())/(pt.max()-pt.min())
+	print("printing correlation plot to "+spearman_filename+".png")
 	return pt
 
 ## function reads list of integers and/or ranges
