@@ -69,7 +69,7 @@ class settings:
 	# cell_set_name <tab> cell <tab> cell ...
 	def read_cell_sets(self,cellset_file):
 		cell_sets = {}
-		with open(cellset_file) as f:
+		with open(cellset_file, 'rU') as f:
 			for line in f:
 				x = line.rstrip().split("\t")
 				cell_sets[x[0]] = x[1:]
@@ -92,6 +92,9 @@ class settings:
 			# second line defines analysis to run
 			mode_line = f.readline().rstrip()
 			self.run_mode = mode_line.split("\t")[0]
+			# third line defines dimensions of pca plot
+			dim_line = f.readline().rstrip()
+			self.plot_dim = map(int, dim_line.split(","))
 			if self.run_mode not in run_modes:
 				print "Unkown run mode (line 2 in settings file): ",self.run_mode
 				raise ValueError
@@ -131,7 +134,7 @@ class settings:
 # - pd.DataFrame with annotations for each cell. Expression table and annotation table have the same rows
 def read_expression(expression_file, settings, min_expression = 0.1, min_cells = 10, log_transform = True):
 	# read expression
-	expression_table = pd.read_csv(expression_file, sep=",").transpose()
+	expression_table = pd.read_csv(expression_file, sep=",", index_col = 0).transpose()
 	print "Read expression table with shape:",expression_table.shape
 	
 	# remove genes with less then min_cells expressing them
@@ -146,6 +149,7 @@ def read_expression(expression_file, settings, min_expression = 0.1, min_cells =
 		expression_table.drop(settings.cell_sets[s], inplace=True, errors="ignore")
 	
 	# log transform
+	# ~ IPython.embed()
 	if(log_transform):
 		expression_table += 1
 		expression_table = expression_table.apply(np.log2)
@@ -409,6 +413,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 		#title='Test',
 		scene=dict(
 			xaxis=dict(
+				# ~ range = [-settings.plot_dim[0], settings.plot_dim[0]],
 				range = [used_pcs.iloc[:,0].min()-1, used_pcs.iloc[:,0].min()+max_range+1],
 				title="PC "+str(settings.pcs[0]),
 				gridcolor='rgb(0, 0, 0)',
@@ -417,7 +422,8 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 				backgroundcolor='#bababa'
 			),
 			yaxis=dict(
-				range = [used_pcs.iloc[:,1].min()-1, used_pcs.iloc[:,1].min()+max_range+1],
+				range = [-settings.plot_dim[1], settings.plot_dim[1]],
+				# ~ range = [used_pcs.iloc[:,1].min()-1, used_pcs.iloc[:,1].min()+max_range+1],
 				title="PC "+str(settings.pcs[1]),
 				gridcolor='rgb(0, 0, 0)',
 				zerolinecolor='rgb(255, 0, 0)',
@@ -425,7 +431,8 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 				backgroundcolor='#bababa'
 			),
 			zaxis=dict(
-				range = [used_pcs.iloc[:,2].min()-1, used_pcs.iloc[:,2].min()+max_range+1],
+				range = [-settings.plot_dim[2], settings.plot_dim[2]],
+				# ~ range = [used_pcs.iloc[:,2].min()-1, used_pcs.iloc[:,2].min()+max_range+1],
 				title="PC "+str(settings.pcs[2]),
 				gridcolor='rgb(0, 0, 0)',
 				zerolinecolor='rgb(255, 0, 0)',
@@ -435,6 +442,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 			aspectmode = 'manual'
 		),
 	)
+	# ~ IPython.embed()
 	comb = pd.concat([transformed_expression, annotation], axis=1)
 	#comb["name"] = comb["shape"]
 	if "name" not in comb.columns:
@@ -475,7 +483,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 		dic[keys[-1]] = value     
 	
 	axis_tuples = list(zip(["x", "y", "z"],["xaxis", "yaxis", "zaxis"]))
-	
+	IPython.embed()
 	for i,c in axis_tuples:
 		if (trace[i].min() < layout['scene'][c]['range'][0]):
 			nested_set(layout, ['scene', c, 'range'], [trace[i].min(),layout['scene'][c]['range'][1]])
@@ -486,6 +494,17 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 	url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 	print(url)
 	return(fig)
+
+## set pca dimension in nested dictionary object
+#  takes as input:
+#  - dictionary object
+#  - list of nested keys ['scene', 'xaxis', 'range']
+#  - new value to be set layout['scene']['xaxis']['range'][0],0]	
+def nested_set(dic, keys, value):                     
+		for key in keys[:-1]:
+			dic = dic.setdefault(key, {})
+		dic[keys[-1]] = value 
+
 ## take linkage (from scipy.linkage) and generate n clusters
 #  takes as input:
 #  - linkage
@@ -565,7 +584,7 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
 	tick_labels = ax.get_xmajorticklabels()
 	for lbl in tick_labels:
 		lbl.set_color(annotation.loc[lbl.get_text()]["color"])
-	return(dendro)
+	#return(dendro)
 
 ## plot hierarchical clustering for all methods of linkage
 # arguments are:
@@ -588,7 +607,8 @@ def plot_all_hierarchical_clusterings(transformed_expression, annotation, settin
 		i += 1
 		pp.savefig()
 	pp.close()
-	#~ plt.savefig(settings.result_filename+"-clustering.png", dpi=200)
+	print(settings.result_filename+"-clustering.png")
+	plt.savefig(settings.result_filename+"-clustering.png", dpi=200)
 
 ## rotate transformed expression matrix by defined angle
 #  used internally in order to define pseudotime
