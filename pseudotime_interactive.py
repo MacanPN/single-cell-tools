@@ -188,6 +188,7 @@ while True:
 	[C]	Assign time clusters using hierarchical clustering
 	[D]	Find Most Correlated and Most Discriminating (treat v ctrl) PCs
 	[N]	Normalize centroids
+	[G]	Plot 2d PCA of Marker Genes Colored by Expression
 	[S]	Calculate pseudotime for cells using times assigned to clusters
 	[O]	Output clusters (so they can be copied to a file)
 	[F]	Save generated pseudotime to file
@@ -266,6 +267,14 @@ while True:
 		
 	elif(action == "O"):
 		print_clusters(subset_clusters)
+		
+	elif(action == "G"):
+		colnm, colval = retrieve_subset_param()
+		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
+		pcs = map(int,raw_input("Which PCs would you to correlate with? (type comma separated list, such as 1,3,4) ").split(","))
+		marker_genes = raw_input("Which marker genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
+		plot_marker_gene_quantile(expression_table, subset_PC_expression, subset_annotation, pcs, sett, marker_genes)
+		
 		
 	elif(action == "M"):
 		filename = raw_input("Enter file name you'd like to save correlated features to: ")

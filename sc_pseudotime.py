@@ -277,6 +277,50 @@ def plot_2d_pca_multiplot(transformed_expression, annotation, pca, settings):
 	plt.savefig(settings.result_filename+"-pca-multiplot.png", dpi=200)
 	plt.show()
 
+## create plot of 6  gene combinations
+# arguments are: 
+# - pd.DataFrame with PCA transformed gene expression 
+# - annotation pd.DataFrame
+# - pca sklearn.decomposition object
+# - settings object
+def plot_marker_gene_quantile(expression_table, transformed_expression, annotation, pca, settings, genes):
+	fig, ax = plt.subplots(2,(len(genes)/2), figsize=(15,10), squeeze=False)
+	markers = list(annotation["shape"].unique())
+	mg = mygene.MyGeneInfo()
+	IPython.embed()
+	for i in enumerate(genes): 
+		gene_info = mg.querymany(i[1], scopes='symbol', fields='ensembl.transcript')[0]
+		trx = gene_info['ensembl']['transcript']
+		sum_trx = expression_table.loc[:,trx].sum(axis=1)
+		# color by quantile
+		quant_trx = pd.qcut(sum_trx, 11, duplicates='drop', precision=3)
+		for m in markers:
+			cells_with_this_shape = annotation["shape"]==m
+			ann = annotation.loc[cells_with_this_shape]
+			#import pdb; pdb.set_trace()
+			transformed_expression.loc[cells_with_this_shape].plot.scatter(
+				x=pca[0],
+				y=pca[1],
+				ax=ax[i[0]/len(genes)][(i[0]/2)%(len(genes)/2)],
+				s=ann["size"].values,
+				c=ann["color"].values,
+				legend=True,
+				alpha=0.8,
+				#edgecolor="black",
+				marker = shape_plotly2matplotlib(m)
+			)
+		
+		# ~ explained_variance1 = "{0:.2f}".format(pc[0].explained_variance_ratio_[pc]*100)+"%"
+		# ~ explained_variance2 = "{0:.2f}".format(pc[1].explained_variance_ratio_[pc+1]*100)+"%"
+		ax[i[0]/len(genes)][(i[0]/2)%(len(genes)/2)].set_xlabel("PCA "+str(pca[0])+" ["+" of variance]")
+		ax[i[0]/len(genes)][(i[0]/2)%(len(genes)/2)].set_ylabel("PCA "+str(pca[1])+" ["+" of variance]")
+		ax[i[0]/len(genes)][(i[0]/2)%(len(genes)/2)].set_aspect("equal", adjustable="box")
+	plt.tight_layout()
+	plt.subplots_adjust(hspace=0.15, wspace=0.15, left=0.05, bottom=0.05)
+	plt.savefig(settings.result_filename+"-pca_quantile.png", dpi=200)
+	IPython.embed()
+	plt.show()
+
 ## plot cells of defined pair of PCs
 # arguments are:
 # - pd.DataFrame with PCA transformed gene expression 
