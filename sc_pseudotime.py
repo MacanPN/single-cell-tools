@@ -27,6 +27,7 @@ from plotly.graph_objs import *
 import plotly.figure_factory as FF
 from scipy.spatial.distance import pdist, squareform
 import re
+import matplotlib.cm as cm
 
 import ipdb
 import os
@@ -298,6 +299,7 @@ def plot_marker_gene_quantile(expression_table, transformed_expression, annotati
 			cells_with_this_shape = annotation["shape"]==m
 			ann = annotation.loc[cells_with_this_shape]
 			#import pdb; pdb.set_trace()
+			IPython.embed()
 			transformed_expression.loc[cells_with_this_shape].plot.scatter(
 				x=pca[0],
 				y=pca[1],
@@ -444,7 +446,7 @@ def shape_plotly2matplotlib(s):
 # - pd.DataFrame with PCA transformed gene expression 
 # - annotation pd.DataFrame
 # - settings object
-def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, centroids=None, height = 1080, width = 1600, DEBUG=False):
+def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, height = 1080, width = 1600, genes=None, DEBUG=False):
 
 	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
@@ -492,6 +494,24 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 	if "name" not in comb.columns:
 		comb["name"] = comb["color"]+"_"+comb["shape"]
 	traces = comb["name"].unique()
+	# allow coloring cells by quantile expression of supplied genes
+	if (genes is not None):
+		fig, ax = plt.subplots(2,(len(genes)/2), figsize=(15,10), squeeze=False)
+		markers = list(annotation["shape"].unique())
+		mg = mygene.MyGeneInfo()
+		for i in enumerate(genes): 
+			gene_info = mg.querymany(i[1], scopes='symbol', fields='ensembl.transcript')[0]
+			trx = gene_info['ensembl']['transcript']
+			sum_trx = expression_table.loc[:,trx].sum(axis=1)
+			# color by quantile
+			
+			trx_df = sum_trx.to_frame('trx_count')
+			quant_colors=["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+			bin_labels=quant_colors[0:10]
+			trx_df['color'] = pd.cut(trx_df.trx_count, 10, labels=bin_labels)
+			comb['color'] = trx_df['color']
+
+			
 	data = []
 	for t in traces:
 		trace = dict(
@@ -504,6 +524,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 			mode = 'markers',
 			marker = dict(
 				size=comb.loc[comb["name"]==t,"size"].values,
+				# ~ color=trx_df.color,
 				color=comb.loc[comb["name"]==t,"color"].values,
 				symbol=comb.loc[comb["name"]==t,"shape"].apply(shape_matplotlib2plotly).values,
 				line=dict(width=1) )
@@ -515,9 +536,10 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 		centroids = get_cluster_centroids(transformed_expression, clusters)
 		trace = record_trace(clusters, comb, settings, centroids)
 		data.append(trace)
-		
 	if(DEBUG):
 		IPython.embed()
+		
+		
 	#print(annotation["shape"].apply(shape_matplotlib2plotly))
 	
 	# check if start/end centroids extend off the plot dimensions and reassign dimensions if so
@@ -527,7 +549,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, clusters=None, cen
 		dic[keys[-1]] = value     
 	
 	axis_tuples = list(zip(["x", "y", "z"],["xaxis", "yaxis", "zaxis"]))
-	IPython.embed()
+
 	for i,c in axis_tuples:
 		if (trace[i].min() < layout['scene'][c]['range'][0]):
 			nested_set(layout, ['scene', c, 'range'], [trace[i].min(),layout['scene'][c]['range'][1]])
