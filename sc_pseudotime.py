@@ -21,6 +21,7 @@ import copy # needed to copy class settings
 from matplotlib.backends.backend_pdf import PdfPages
 import plotly.plotly as py
 import plotly
+import plotly.graph_objs as go
 #~ import plotly.graph_objs as go
 #modules for heatmap plotting 
 from plotly.graph_objs import *
@@ -506,14 +507,18 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 			# color by quantile
 			
 			trx_df = sum_trx.to_frame('trx_count')
-			quant_colors=["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
-			bin_labels=quant_colors[0:10]
-			trx_df['color'] = pd.cut(trx_df.trx_count, 10, labels=bin_labels)
+			quant_colors=["magenta", "lightpink", "red", "orange", "yellow", "lawngreen", "green", "blue", "purple", "indigo"]
+			bin_labels=list(range(0,10))
+			trx_df['bin'] = pd.cut(trx_df.trx_count, 10, labels=bin_labels)
+			bin_col_dict = dict(zip(bin_labels, quant_colors))
+			trx_df['color'] = trx_df['bin'].map(bin_col_dict)
 			comb['color'] = trx_df['color']
+			comb['name'] = trx_df['bin']
+			traces = comb["name"].unique().sort_values()
 
-			
 	data = []
 	for t in traces:
+
 		trace = dict(
 			name=t,
 			text = comb.loc[comb["name"]==t,:].index,# + " "+ transformed_expression["day"], #+ "\n" + transformed_expression["branch"],
@@ -556,7 +561,9 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 		if (trace[i].max() > layout['scene'][c]['range'][1]):
 			nested_set(layout, ['scene', c, 'range'], [layout['scene'][c]['range'][0],trace[i].max()])
 			
-	fig = dict(data=data, layout=layout)
+	# ~ fig = dict(data=data, layout=layout)
+	fig = go.Figure(data=data, layout=layout)
+
 	url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 	print(url)
 	return(fig)
