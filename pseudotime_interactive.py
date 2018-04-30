@@ -272,6 +272,7 @@ while True:
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		pcs = map(int,raw_input("Which PCs would you to correlate with? (type comma separated list, such as 1,3,4) ").split(","))
+		sett.pcs = pcs
 		marker_genes = raw_input("Which marker genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
 		plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, genes=marker_genes, expression_table=expression_table)
 		# ~ plot_marker_gene_quantile(expression_table, subset_PC_expression, subset_annotation, pcs, sett, marker_genes)

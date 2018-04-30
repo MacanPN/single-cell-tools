@@ -448,7 +448,6 @@ def shape_plotly2matplotlib(s):
 # - annotation pd.DataFrame
 # - settings object
 def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, height = 1080, width = 1600, genes=None, DEBUG=False):
-
 	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
 	#print(used_pcs.max())
