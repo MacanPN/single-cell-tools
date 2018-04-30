@@ -293,6 +293,7 @@ def plot_marker_gene_quantile(expression_table, transformed_expression, annotati
 	for i in enumerate(genes): 
 		gene_info = mg.querymany(i[1], scopes='symbol', fields='ensembl.transcript')[0]
 		trx = gene_info['ensembl']['transcript']
+		IPython.embed()
 		sum_trx = expression_table.loc[:,trx].sum(axis=1)
 		# color by quantile
 		quant_trx = pd.qcut(sum_trx, 11, duplicates='drop', precision=3)
@@ -447,7 +448,7 @@ def shape_plotly2matplotlib(s):
 # - pd.DataFrame with PCA transformed gene expression 
 # - annotation pd.DataFrame
 # - settings object
-def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, height = 1080, width = 1600, genes=None, DEBUG=False):
+def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, bin_col_dict=None, height = 1080, width = 1600, genes=None, DEBUG=False):
 	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
 	#print(used_pcs.max())
@@ -498,21 +499,20 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 	if (genes is not None):
 		markers = list(annotation["shape"].unique())
 		mg = mygene.MyGeneInfo()
-		for i in enumerate(genes): 
-			gene_info = mg.querymany(i[1], scopes='symbol', fields='ensembl.transcript')[0]
-			trx = gene_info['ensembl']['transcript']
-			sum_trx = expression_table.loc[:,trx].sum(axis=1)
-			# color by quantile
-			
-			trx_df = sum_trx.to_frame('trx_count')
-			quant_colors=["magenta", "lightpink", "red", "orange", "yellow", "lawngreen", "green", "blue", "purple", "indigo"]
-			bin_labels=list(range(0,10))
-			trx_df['bin'] = pd.cut(trx_df.trx_count, 10, labels=bin_labels)
-			bin_col_dict = dict(zip(bin_labels, quant_colors))
-			trx_df['color'] = trx_df['bin'].map(bin_col_dict)
-			comb['color'] = trx_df['color']
-			comb['name'] = trx_df['bin']
-			traces = comb["name"].unique().sort_values()
+		# ~ for i in enumerate(genes): 
+		gene_info = mg.querymany(genes, scopes='symbol', fields='ensembl.transcript')[0]
+		trx = gene_info['ensembl']['transcript']
+		sum_trx = expression_table.loc[:,trx].sum(axis=1)
+		# color by quantile
+		trx_df = sum_trx.to_frame('trx_count')
+		number_of_bins = len(bin_col_dict.keys())
+		bin_labels=bin_col_dict.keys()
+		
+		trx_df['bin'] = pd.cut(trx_df.trx_count, number_of_bins, labels=bin_labels)
+		trx_df['color'] = trx_df['bin'].map(bin_col_dict)
+		comb['color'] = trx_df['color']
+		comb['name'] = trx_df['bin']
+		traces = comb["name"].unique().sort_values()
 
 	data = []
 	for t in traces:
@@ -561,8 +561,13 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 			
 	# ~ fig = dict(data=data, layout=layout)
 	fig = go.Figure(data=data, layout=layout)
+	if (genes is not None):
+		url = plotly.offline.plot(fig, filename=settings.result_filename+"_"+genes+".html", validate=False, auto_open=False)
+	else:
+		url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 
-	url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
+
+	
 	print(url)
 	return(fig)
 
