@@ -496,7 +496,6 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 	traces = comb["name"].unique()
 	# allow coloring cells by quantile expression of supplied genes
 	if (genes is not None):
-		fig, ax = plt.subplots(2,(len(genes)/2), figsize=(15,10), squeeze=False)
 		markers = list(annotation["shape"].unique())
 		mg = mygene.MyGeneInfo()
 		for i in enumerate(genes): 
