@@ -50,6 +50,14 @@ if options.ctrl_pseudotime:
 sett = settings(settings_file, cellset_file)
 expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
 
+def set_pts(pseudotime_files, cell_set_flag):
+	pt = map(read_pseudotime_from_file, pseudotime_files)
+	correlation = [get_correlation_with_pseudotime(x, expression_table, annotation, cell_set_flag, method=correlation_method) for x in pt]
+	corr = pd.concat(correlation, axis=1)
+	ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
+	pt = dict(zip(ptime_titles, pt))
+	return corr, pt
+
 #load ctrl pseudotime objects if control files supplied
 try:
 	ctrl_pseudotime_files
@@ -97,14 +105,6 @@ correlation_file = "_".join(ptime_titles)+"_"+correlation_method+"_correlation.c
 if os.path.exists(correlation_file):
 	corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
 
-def set_pts(pseudotime_files, cell_set_flag):
-	pt = map(read_pseudotime_from_file, pseudotime_files)
-	correlation = [get_correlation_with_pseudotime(x, expression_table, annotation, cell_set_flag, method=correlation_method) for x in pt]
-	corr = pd.concat(correlation, axis=1)
-	ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
-	pt = dict(zip(ptime_titles, pt))
-	return corr, pt
-
 corr_columns = []
 for i in sorted(pt.keys()):
 	corr_columns += [i+"_exp_corr"]
@@ -150,7 +150,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 	og.write("gene"+"\t"+"\t".join(pt.keys()))
 	pp = PdfPages(out_filename)
 	for i,t in enumerate(genes_of_interest):
-		fig, ax = plt.subplots(1,len(plot_id), figsize=(15,5), sharey="row") #define common y axis for set of plots (treatments)
+		fig, ax = plt.subplots(1,len(plot_id), figsize=(15,5), sharey="row", squeeze=False) #define common y axis for set of plots (treatments)
 		print i,t
 		title = t
 		try:
@@ -170,13 +170,12 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 		
 		if not ctrl_pseudotime:
 			while cntr < len(plot_id):
-				
 				plot_gene_with_pseudotime(expression_table, pt[pt.keys()[cntr]], t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr])
 				cntr += 1
 			# ~ for i in pt.names
 			
 			for key in pt:
-				ax[pt.keys().index(key)].set_title(key+"_"+correlation_method+"=%.2f" % corr.loc[t,key+"_exp_corr"])
+				ax[0][pt.keys().index(key)].set_title(key+"_"+correlation_method+"=%.2f" % corr.loc[t,key+"_exp_corr"])
 
 		else: 
 			while cntr < len(plot_id):
