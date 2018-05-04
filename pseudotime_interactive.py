@@ -41,6 +41,7 @@ sett = settings(settings_file, cellset_file)
 # read expression table
 expression_table, annotation = read_expression(expression_file, sett)
 # calculate PCA
+
 PC_expression,pca = run_PCA(expression_table, annotation, n_pca)
 
 clusters = None
@@ -107,6 +108,11 @@ def retrieve_subset_param():
 
 def subset_pc_expression(pc_expression, colnm, colval):
 	if not all(colval):
+		# ~ IPython.embed()
+		# ~ clusters_without_time = get_cluster_labels(linkage, number_of_clusters, subset_PC_expression.index)
+		# ~ IPython.embed()
+		# ~ cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+		# ~ change_annotation_colors_to_clusters(clusters_without_time, subset_annotation, cluster_colors)
 		return annotation, PC_expression
 	else:
 		if colnm not in annotation.columns:
@@ -201,7 +207,12 @@ while True:
 		#~ exit()
 	elif(action == "H"):
 		print("plotting...\n dendrogram will be saved as a .pdf shortly")
-		plot_all_hierarchical_clusterings(PC_expression, annotation, sett)
+		try:
+			subset_annotation
+		except:
+			plot_all_hierarchical_clusterings(PC_expression, annotation, sett)
+		else:
+			plot_all_hierarchical_clusterings(PC_expression, subset_annotation, sett)
 	elif(action == "P"):
 		colnm, colvalp = retrieve_subset_param()
 		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
@@ -217,7 +228,6 @@ while True:
 				plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
 				del subset_annotation, subset_PC_expression
 			else:
-				
 				if (colvalp == colval):
 					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
 				elif set(colvalp).issubset(colval):

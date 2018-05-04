@@ -552,7 +552,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 		dic[keys[-1]] = value     
 	
 	axis_tuples = list(zip(["x", "y", "z"],["xaxis", "yaxis", "zaxis"]))
-
+	# ~ IPython.embed()
 	for i,c in axis_tuples:
 		if (trace[i].min() < layout['scene'][c]['range'][0]):
 			nested_set(layout, ['scene', c, 'range'], [trace[i].min(),layout['scene'][c]['range'][1]])
@@ -560,10 +560,12 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 			nested_set(layout, ['scene', c, 'range'], [layout['scene'][c]['range'][0],trace[i].max()])
 			
 	# ~ fig = dict(data=data, layout=layout)
-	fig = go.Figure(data=data, layout=layout)
+	
 	if (genes is not None):
-		url = plotly.offline.plot(fig, filename=settings.result_filename+"_"+genes+".html", validate=False, auto_open=False)
+		fig = go.Figure(data=data, layout=layout)
+		url = plotly.offline.plot(fig, filename=settings.result_filename+"_"+genes, validate=False, auto_open=False)
 	else:
+		fig = go.Figure(data=data, layout=layout)
 		url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 
 
@@ -617,7 +619,7 @@ def change_annotation_colors_to_clusters(clusters, annotation, colors):
 #  arguments are:
 # - pd.DataFrame with PCA transformed gene expression
 # - method of linkages (ward, complete, average, etc.)
-def plot_hierarchical_clustering(transformed_expression, annotation, method, color_scheme="static"):
+def plot_hierarchical_clustering(transformed_expression, annotation, method, color_scheme="static", clusters=None):
 	# color links on the basis of connection to same-group neighbor. 
 	# If neighbors in same group, color identically. If neighbors in different groups, color gray.
 	def colorize_links(linkage):
@@ -668,7 +670,8 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
 # - annotation pd.DataFrame
 # - settings object
 # - filename for output picture
-def plot_all_hierarchical_clusterings(transformed_expression, annotation, settings):
+def plot_all_hierarchical_clusterings(transformed_expression, annotation, settings, clusters=None):
+	
 	link_color = {}
 	def link_color_func(node):
 		return link_color[node]
@@ -679,7 +682,7 @@ def plot_all_hierarchical_clusterings(transformed_expression, annotation, settin
 	i=0
 	pp = PdfPages(settings.result_filename+"-clustering.pdf")
 	for method in scipy_linkage_methods:
-		plot_hierarchical_clustering(transformed_expression, annotation, method=method)
+		plot_hierarchical_clustering(transformed_expression, annotation, method=method, clusters=clusters)
 		i += 1
 		pp.savefig()
 	pp.close()
@@ -894,7 +897,10 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(expr.index)]
 
 		expr_ann = annotation.loc[RBKD_over_ptime.index, :] 
-		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
+		# ~ IPython.embed()
+		# ~ ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
+
+		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax[0])
 		lowess = sm.nonparametric.lowess
 		z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
@@ -951,7 +957,6 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 			subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
 			transcripts = exp.columns.copy()
 			spearman = pd.DataFrame(0, index=transcripts, columns=["corr"])
-		
 			subsetc = exp.loc[subset_index]
 			subsetc["pseudotime"] = pseudotime[subset_index]
 			for i,transcript in enumerate(transcripts):
@@ -969,9 +974,11 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 	elif cell_set_flag == "exp":
 		spearman = return_subset_correlation(pseudotime.index)
 	else:
+		# ~ IPython.embed()
 		exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
 		shctrl_index = annotation.loc[annotation["treatment"]=="shCtrl"].index
-		
+		print(cell_set_flag)
+		print(shctrl_index)
 		if not shctrl_index[i]:
 			subset_indices = [exp_index]
 			cell_set_flags = ["exp"]
