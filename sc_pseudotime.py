@@ -978,6 +978,7 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 		exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
 		shctrl_index = annotation.loc[annotation["treatment"]=="shCtrl"].index
 		print(cell_set_flag)
+		print(cell_set_flag)
 		print(shctrl_index)
 		if not shctrl_index[i]:
 			subset_indices = [exp_index]
