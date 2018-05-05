@@ -140,8 +140,8 @@ user_ptimes = ' '.join(pt.keys())
 
 
 ## function plots genes of interest (pd.Index) into pdf
-def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, ctrl_pseudotime=None):
-	if not ctrl_pseudotime:
+def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, ctrl_pseudotime=None, squeeze=True):
+	if ctrl_pseudotime is None:
 		plot_id = ["exp"]*len(pt.keys())
 	else:
 		plot_id = ["exp", "Ctrl_wo_RBKD", "Ctrl_alone"]
@@ -150,7 +150,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 	og.write("gene"+"\t"+"\t".join(pt.keys()))
 	pp = PdfPages(out_filename)
 	for i,t in enumerate(genes_of_interest):
-		fig, ax = plt.subplots(1,len(plot_id), figsize=(15,5), sharey="row", squeeze=False) #define common y axis for set of plots (treatments)
+		fig, ax = plt.subplots(1,len(plot_id), figsize=(15,5), sharey="row", squeeze=squeeze) #define common y axis for set of plots (treatments)
 		print i,t
 		title = t
 		try:
@@ -168,7 +168,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 		fig.suptitle(title)
 		cntr = 0
 		
-		if not ctrl_pseudotime:
+		if ctrl_pseudotime is None:
 			while cntr < len(plot_id):
 				plot_gene_with_pseudotime(expression_table, pt[pt.keys()[cntr]], t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr])
 				cntr += 1
@@ -274,10 +274,14 @@ while True:
 		elif cpt == "none":
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
-			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
+			if len(pt) == 1:
+				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, squeeze=False)
+			else:
+				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
 		else:
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
+			# ~ IPython.embed()
 			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
 	elif(action == "I"):
 		IPython.embed()

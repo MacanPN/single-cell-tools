@@ -289,11 +289,11 @@ def plot_marker_gene_quantile(expression_table, transformed_expression, annotati
 	fig, ax = plt.subplots(2,(len(genes)/2), figsize=(15,10), squeeze=False)
 	markers = list(annotation["shape"].unique())
 	mg = mygene.MyGeneInfo()
-	IPython.embed()
+	# ~ IPython.embed()
 	for i in enumerate(genes): 
 		gene_info = mg.querymany(i[1], scopes='symbol', fields='ensembl.transcript')[0]
 		trx = gene_info['ensembl']['transcript']
-		IPython.embed()
+		# ~ IPython.embed()
 		sum_trx = expression_table.loc[:,trx].sum(axis=1)
 		# color by quantile
 		quant_trx = pd.qcut(sum_trx, 11, duplicates='drop', precision=3)
@@ -301,7 +301,7 @@ def plot_marker_gene_quantile(expression_table, transformed_expression, annotati
 			cells_with_this_shape = annotation["shape"]==m
 			ann = annotation.loc[cells_with_this_shape]
 			#import pdb; pdb.set_trace()
-			IPython.embed()
+			# ~ IPython.embed()
 			transformed_expression.loc[cells_with_this_shape].plot.scatter(
 				x=pca[0],
 				y=pca[1],
@@ -322,7 +322,7 @@ def plot_marker_gene_quantile(expression_table, transformed_expression, annotati
 	plt.tight_layout()
 	plt.subplots_adjust(hspace=0.15, wspace=0.15, left=0.05, bottom=0.05)
 	plt.savefig(settings.result_filename+"-pca_quantile.png", dpi=200)
-	IPython.embed()
+	# ~ IPython.embed()
 	plt.show()
 
 ## plot cells of defined pair of PCs
@@ -879,7 +879,7 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None, plot_id=None, ctrl_pseudotime=None):
 	expr_over_ptime = pd.DataFrame(pseudotime)
 	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
-	if ctrl_pseudotime:
+	if ctrl_pseudotime is not None:
 		ctrl_over_ptime = pd.DataFrame(ctrl_pseudotime)
 		ctrl_over_ptime["expression"] = exp.loc[ctrl_pseudotime.index, transcript_id]
 	
@@ -899,8 +899,8 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		expr_ann = annotation.loc[RBKD_over_ptime.index, :] 
 		# ~ IPython.embed()
 		# ~ ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
-
-		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax[0])
+		IPython.embed()
+		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
 		lowess = sm.nonparametric.lowess
 		z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
@@ -933,7 +933,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 
 	
-	ax.legend_.remove()
+	# ~ ax.legend_.remove()
 	#plt.tight_layout()
 	if(filename==None):
 		#plt.show()
@@ -977,10 +977,9 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 		# ~ IPython.embed()
 		exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
 		shctrl_index = annotation.loc[annotation["treatment"]=="shCtrl"].index
-		print(cell_set_flag)
-		print(cell_set_flag)
-		print(shctrl_index)
-		if not shctrl_index[i]:
+		# ~ print(cell_set_flag)
+		# ~ print(shctrl_index)
+		if shctrl_index.empty:
 			subset_indices = [exp_index]
 			cell_set_flags = ["exp"]
 					
