@@ -899,7 +899,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		expr_ann = annotation.loc[RBKD_over_ptime.index, :] 
 		# ~ IPython.embed()
 		# ~ ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
-		IPython.embed()
+		# ~ IPython.embed()
 		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
 		lowess = sm.nonparametric.lowess
 		z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
