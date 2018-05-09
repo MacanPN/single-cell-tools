@@ -195,7 +195,7 @@ while True:
 	[C]	Assign time clusters using hierarchical clustering
 	[D]	Find Most Correlated and Most Discriminating (treat v ctrl) PCs
 	[N]	Normalize centroids
-	[G]	Plot 2d PCA of Marker Genes Colored by Expression
+	[G]	Plot PCA Colored by Quantile Expression of Marker Genes
 	[S]	Calculate pseudotime for cells using times assigned to clusters
 	[O]	Output clusters (so they can be copied to a file)
 	[F]	Save generated pseudotime to file

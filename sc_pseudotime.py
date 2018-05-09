@@ -627,8 +627,8 @@ def plot_all_hierarchical_clusterings(transformed_expression, annotation, settin
 	def link_color_func(node):
 		return link_color[node]
 	
-	# ~ scipy_linkage_methods = ["complete", "average", "single", "centroid", "median", "ward"]
-	scipy_linkage_methods = ["ward"]
+	scipy_linkage_methods = ["complete", "average", "single", "centroid", "median", "ward"]
+	# ~ scipy_linkage_methods = ["ward"]
 	# plot clusterings on one magor figure
 	#fig,ax = plt.subplots(nrows=2, ncols=3, figsize=(50, 30))
 	i=0
@@ -638,7 +638,7 @@ def plot_all_hierarchical_clusterings(transformed_expression, annotation, settin
 		i += 1
 		pp.savefig()
 	pp.close()
-	print(settings.result_filename+"-clustering.png")
+	print("save results to:\n"+settings.result_filename+"-clustering.png"+"\n"+settings.result_filename+"-clustering.pdf")
 	plt.savefig(settings.result_filename+"-clustering.png", dpi=200)
 
 
