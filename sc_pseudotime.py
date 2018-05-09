@@ -561,11 +561,11 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 			nested_set(layout, ['scene', c, 'range'], [layout['scene'][c]['range'][0],trace[i].max()])
 			
 	# ~ fig = dict(data=data, layout=layout)
-	
 	if (genes is not None):
 		fig = go.Figure(data=data, layout=layout)
 		url = plotly.offline.plot(fig, filename=settings.result_filename+"_"+genes, validate=False, auto_open=False)
 	else:
+		# ~ IPython.embed()
 		fig = dict(data=data, layout=layout)
 		url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 

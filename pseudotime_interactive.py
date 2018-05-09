@@ -53,6 +53,7 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
 	scipy_linkage_methods = [ "complete", "average", "single", "centroid", "median", "ward"]
 	cluster_on_pcs = list_from_ranges(raw_input(pc_set))
 	number_of_clusters = int(raw_input("How many clusters would you like to generate? "))
+	sett.num_clusters = number_of_clusters
 	method = raw_input("Which clustering would you like to use: "+", ".join(scipy_linkage_methods)+": ")
 	if method not in scipy_linkage_methods:
 		print("clustering method not supported (spelling error?)")
@@ -70,7 +71,7 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
 			time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
 			clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
 		clusters.sort(key=lambda by_first: by_first[0])
-		dendro = plot_hierarchical_clustering(subset_PC_expression[cluster_on_pcs], subset_annotation, method=method)
+		dendro = plot_hierarchical_clustering(subset_PC_expression[cluster_on_pcs], subset_annotation, method=method, sett=sett)
 	else:
 		linkage = sc.cluster.hierarchy.linkage(PC_expression[cluster_on_pcs], method=method)
 		clusters_without_time = get_cluster_labels(linkage, number_of_clusters, PC_expression.index)
@@ -84,7 +85,7 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
 			time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
 			clusters.append( (time,annotation.loc[annotation["color"]==cluster_colors[i]].index) )
 		clusters.sort(key=lambda by_first: by_first[0])
-		dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method)
+		dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method, sett=sett)
 	
 	return clusters, dendro
 
