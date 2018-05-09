@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import sys
 import numpy as np
 import scipy as sc
+import scipy.cluster.hierarchy as sch
 import sklearn
 import seaborn as sns
 import math
@@ -206,6 +207,8 @@ while True:
 		break
 		#~ exit()
 	elif(action == "H"):
+		number_of_clusters = int(raw_input("How many clusters would you like to generate? "))
+		sett.num_clusters = number_of_clusters
 		print("plotting...\n dendrogram will be saved as a .pdf shortly")
 		try:
 			subset_annotation

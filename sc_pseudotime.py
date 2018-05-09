@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import sys
 import numpy as np
 import scipy as sc
+import scipy.cluster.hierarchy as sch
 import sklearn
 from sklearn import decomposition
 from sklearn import cluster
@@ -614,12 +615,39 @@ def change_annotation_colors_to_clusters(clusters, annotation, colors):
 		annotation.loc[c, "color"] = colors[i]
 	print colors
 
+## plot hierarchical clustering for all methods of linkage
+# arguments are:
+# - pd.DataFrame with PCA transformed gene expression 
+# - annotation pd.DataFrame
+# - settings object
+# - filename for output picture
+def plot_all_hierarchical_clusterings(transformed_expression, annotation, settings, clusters=None):
+	
+	link_color = {}
+	def link_color_func(node):
+		return link_color[node]
+	
+	# ~ scipy_linkage_methods = ["complete", "average", "single", "centroid", "median", "ward"]
+	scipy_linkage_methods = ["ward"]
+	# plot clusterings on one magor figure
+	#fig,ax = plt.subplots(nrows=2, ncols=3, figsize=(50, 30))
+	i=0
+	pp = PdfPages(settings.result_filename+"-clustering.pdf")
+	for method in scipy_linkage_methods:
+		plot_hierarchical_clustering(transformed_expression, annotation, method=method, sett=settings, clusters=clusters)
+		i += 1
+		pp.savefig()
+	pp.close()
+	print(settings.result_filename+"-clustering.png")
+	plt.savefig(settings.result_filename+"-clustering.png", dpi=200)
+
+
 ## plot hierarchical clustering with a given linkage method
 #  used when assigning centroids based on clustering
 #  arguments are:
 # - pd.DataFrame with PCA transformed gene expression
 # - method of linkages (ward, complete, average, etc.)
-def plot_hierarchical_clustering(transformed_expression, annotation, method, color_scheme="static", clusters=None):
+def plot_hierarchical_clustering(transformed_expression, annotation, method, color_scheme="static", sett=settings, clusters=None):
 	# color links on the basis of connection to same-group neighbor. 
 	# If neighbors in same group, color identically. If neighbors in different groups, color gray.
 	def colorize_links(linkage):
@@ -628,6 +656,12 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
 		for i in range(0,n):
 			l_color[i] = annotation.iloc[i,]["color"]
 		#print l_color
+		
+		# ~ IPython.embed()
+		# ~ test = sch.fcluster(linkage, sett.num_clusters, criterion='maxclust')
+		# ~ cluster_col_dict = dict(zip(range(1,sett.num_clusters+1),["blue", "green", "red", "yellow"]))
+		# ~ test2 = pd.DataFrame(test)
+		# ~ test2['color'] = test2[0].map(cluster_col_dict)
 		for i in range(0,linkage.shape[0]):
 			clust1 = int(linkage[i,0])
 			clust2 = int(linkage[i,1])
@@ -645,6 +679,18 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
 		return link_color[node]
 			
 	linkage = sc.cluster.hierarchy.linkage(transformed_expression, method=method)
+	
+	
+	clusters_without_time = get_cluster_labels(linkage, sett.num_clusters, transformed_expression.index)
+	cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+	change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
+	clusters = []
+	
+	for i in range(0,sett.num_clusters):
+		time = i+1
+		clusters.append( (time,annotation.loc[annotation["color"]==cluster_colors[i]].index) )
+	clusters.sort(key=lambda by_first: by_first[0])
+	
 	link_color = colorize_links(linkage)
 	fig,ax = plt.subplots(figsize=(32,10))
 	dendro  = sc.cluster.hierarchy.dendrogram(
@@ -663,31 +709,6 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
 	for lbl in tick_labels:
 		lbl.set_color(annotation.loc[lbl.get_text()]["color"])
 	#return(dendro)
-
-## plot hierarchical clustering for all methods of linkage
-# arguments are:
-# - pd.DataFrame with PCA transformed gene expression 
-# - annotation pd.DataFrame
-# - settings object
-# - filename for output picture
-def plot_all_hierarchical_clusterings(transformed_expression, annotation, settings, clusters=None):
-	
-	link_color = {}
-	def link_color_func(node):
-		return link_color[node]
-	
-	scipy_linkage_methods = ["complete", "average", "single", "centroid", "median", "ward"] #"single",weighted
-	# plot clusterings on one magor figure
-	#fig,ax = plt.subplots(nrows=2, ncols=3, figsize=(50, 30))
-	i=0
-	pp = PdfPages(settings.result_filename+"-clustering.pdf")
-	for method in scipy_linkage_methods:
-		plot_hierarchical_clustering(transformed_expression, annotation, method=method, clusters=clusters)
-		i += 1
-		pp.savefig()
-	pp.close()
-	print(settings.result_filename+"-clustering.png")
-	plt.savefig(settings.result_filename+"-clustering.png", dpi=200)
 
 ## rotate transformed expression matrix by defined angle
 #  used internally in order to define pseudotime
