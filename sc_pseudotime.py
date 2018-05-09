@@ -566,7 +566,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 		fig = go.Figure(data=data, layout=layout)
 		url = plotly.offline.plot(fig, filename=settings.result_filename+"_"+genes, validate=False, auto_open=False)
 	else:
-		fig = go.Figure(data=data, layout=layout)
+		fig = dict(data=data, layout=layout)
 		url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 
 
