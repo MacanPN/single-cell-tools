@@ -152,7 +152,6 @@ def read_expression(expression_file, settings, min_expression = 0.1, min_cells =
 		expression_table.drop(settings.cell_sets[s], inplace=True, errors="ignore")
 	
 	# log transform
-	# ~ IPython.embed()
 	if(log_transform):
 		expression_table += 1
 		expression_table = expression_table.apply(np.log2)
@@ -290,11 +289,9 @@ def plot_marker_gene_quantile(expression_table, transformed_expression, annotati
 	fig, ax = plt.subplots(2,(len(genes)/2), figsize=(15,10), squeeze=False)
 	markers = list(annotation["shape"].unique())
 	mg = mygene.MyGeneInfo()
-	# ~ IPython.embed()
 	for i in enumerate(genes): 
 		gene_info = mg.querymany(i[1], scopes='symbol', fields='ensembl.transcript')[0]
 		trx = gene_info['ensembl']['transcript']
-		# ~ IPython.embed()
 		sum_trx = expression_table.loc[:,trx].sum(axis=1)
 		# color by quantile
 		quant_trx = pd.qcut(sum_trx, 11, duplicates='drop', precision=3)
@@ -302,7 +299,6 @@ def plot_marker_gene_quantile(expression_table, transformed_expression, annotati
 			cells_with_this_shape = annotation["shape"]==m
 			ann = annotation.loc[cells_with_this_shape]
 			#import pdb; pdb.set_trace()
-			# ~ IPython.embed()
 			transformed_expression.loc[cells_with_this_shape].plot.scatter(
 				x=pca[0],
 				y=pca[1],
@@ -323,7 +319,6 @@ def plot_marker_gene_quantile(expression_table, transformed_expression, annotati
 	plt.tight_layout()
 	plt.subplots_adjust(hspace=0.15, wspace=0.15, left=0.05, bottom=0.05)
 	plt.savefig(settings.result_filename+"-pca_quantile.png", dpi=200)
-	# ~ IPython.embed()
 	plt.show()
 
 ## plot cells of defined pair of PCs
@@ -490,7 +485,6 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 			aspectmode = 'manual'
 		),
 	)
-	# ~ IPython.embed()
 	comb = pd.concat([transformed_expression, annotation], axis=1)
 	#comb["name"] = comb["shape"]
 	if "name" not in comb.columns:
@@ -553,7 +547,6 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 		dic[keys[-1]] = value     
 	
 	axis_tuples = list(zip(["x", "y", "z"],["xaxis", "yaxis", "zaxis"]))
-	# ~ IPython.embed()
 	for i,c in axis_tuples:
 		if (trace[i].min() < layout['scene'][c]['range'][0]):
 			nested_set(layout, ['scene', c, 'range'], [trace[i].min(),layout['scene'][c]['range'][1]])
@@ -565,7 +558,6 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 		fig = go.Figure(data=data, layout=layout)
 		url = plotly.offline.plot(fig, filename=settings.result_filename+"_"+genes, validate=False, auto_open=False)
 	else:
-		# ~ IPython.embed()
 		fig = dict(data=data, layout=layout)
 		url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
 
@@ -657,7 +649,6 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
 			l_color[i] = annotation.iloc[i,]["color"]
 		#print l_color
 		
-		# ~ IPython.embed()
 		# ~ test = sch.fcluster(linkage, sett.num_clusters, criterion='maxclust')
 		# ~ cluster_col_dict = dict(zip(range(1,sett.num_clusters+1),["blue", "green", "red", "yellow"]))
 		# ~ test2 = pd.DataFrame(test)
@@ -918,9 +909,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		RBKD_over_ptime = expr_over_ptime[expr_over_ptime.index.isin(expr.index)]
 
 		expr_ann = annotation.loc[RBKD_over_ptime.index, :] 
-		# ~ IPython.embed()
 		# ~ ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
-		# ~ IPython.embed()
 		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
 		lowess = sm.nonparametric.lowess
 		z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
@@ -995,7 +984,6 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 	elif cell_set_flag == "exp":
 		spearman = return_subset_correlation(pseudotime.index)
 	else:
-		# ~ IPython.embed()
 		exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
 		shctrl_index = annotation.loc[annotation["treatment"]=="shCtrl"].index
 		# ~ print(cell_set_flag)

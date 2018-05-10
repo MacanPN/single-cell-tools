@@ -17,6 +17,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 import os
 import ipdb 
 
+from inspect import currentframe, getframeinfo
+
 import argparse
 
 parser = argparse.ArgumentParser(description="runs genes_correlated_with_pseudotime")
@@ -140,14 +142,14 @@ user_ptimes = ' '.join(pt.keys())
 
 
 ## function plots genes of interest (pd.Index) into pdf
-def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, ctrl_pseudotime=None, squeeze=True):
+def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, ctrl_pseudotime=None, squeeze=True):
 	if ctrl_pseudotime is None:
 		plot_id = ["exp"]*len(pt.keys())
 	else:
 		plot_id = ["exp", "Ctrl_wo_RBKD", "Ctrl_alone"]
 	out_genes = out_filename.replace(".pdf", ".csv")
 	og = open(out_genes, 'w')
-	og.write("gene"+"\t"+"\t".join(pt.keys()))
+	og.write("gene"+"\t"+"\t".join(pt.keys())+"\n")
 	pp = PdfPages(out_filename)
 	for i,t in enumerate(genes_of_interest):
 		fig, ax = plt.subplots(1,len(plot_id), figsize=(15,5), sharey="row", squeeze=squeeze) #define common y axis for set of plots (treatments)
@@ -158,10 +160,11 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 			gene_info = mg.querymany(t, scopes='ensembl.transcript')[0]
 			title = t + "  "+ gene_info["symbol"]
 			title += "  ("+gene_info["name"]+")"
-			# ~ ipdb.set_trace()
-			correlations = [corr.loc[t,i+"_exp_corr"] for i in pt.keys()]
+			correlations = [corr.loc[t,n+"_exp_corr"] for n in pt.keys()]
 			correlations = "\t".join(map(str, correlations))
+			
 			# ~ correlations = [corr.loc[t,pt.keys()[i]] for i in len(pt.keys())]
+			
 			og.write(title+"\t"+correlations+"\n")
 		except:
 			pass
@@ -170,7 +173,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 		
 		if ctrl_pseudotime is None:
 			while cntr < len(plot_id):
-				plot_gene_with_pseudotime(expression_table, pt[pt.keys()[cntr]], t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr])
+				plot_gene_with_pseudotime(expression_table, pt[pt.keys()[cntr]], t, annotation, ax=ax[0][0+cntr], plot_id=plot_id[cntr])
 				cntr += 1
 			# ~ for i in pt.names
 			
@@ -179,7 +182,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 
 		else: 
 			while cntr < len(plot_id):
-				plot_gene_with_pseudotime(expression_table, pt, t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr], ctrl_pseudotime=ctrl_pseudotime)
+				plot_gene_with_pseudotime(expression_table, pt[ptime], t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr], ctrl_pseudotime=ctrl_pseudotime)
 				cntr += 1
 				#~ plt.show()
 			ax[0].set_title(plot_id[0]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_exp_corr"])
@@ -244,8 +247,8 @@ while True:
 		ht = float(raw_input("set upper threshold (def. 0.3) "))
 		lt = float(raw_input("set lower threshold (def. 0.2) Leave blank if no control present. ") or 0)
 		threshold_set = raw_input("retain genes above upper threshold in ("+user_ptimes+ ") (split with , for mult.) ").split(",")
-
 		corr["order"] = (corr[ptime+"_exp_corr"]).abs()
+		# ~ corr["order"] = (corr[ptime]).abs()
 		
 
 		
@@ -271,18 +274,20 @@ while True:
 		if top_n > len(genes_of_interest):
 			print("error! number of genes requested exceeds number of genes matching filtering criteria ("+str(len(genes_of_interest))+")")
 			pass
-		elif cpt == "none":
+		elif ctrl_ptime == '':
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
 			if len(pt) == 1:
-				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt, squeeze=False)
+				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
 			else:
-				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt)
+				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt)
 		else:
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
-			# ~ IPython.embed()
-			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
+			frameinfo = getframeinfo(currentframe())
+			print frameinfo.filename, frameinfo.lineno
+			
+			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
 	elif(action == "I"):
 		IPython.embed()
 
