@@ -238,7 +238,14 @@ while True:
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		DEGS = corr[corr.index.isin(DEGS.index)].index
 		out_filename = output_dir+correlation_method+"_"+ptime+"_DEGS.pdf"
-		plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, pt[ptime], cpt[ctrl_ptime])
+		
+		if ctrl_ptime == '':
+			if len(pt) == 1:
+				plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
+			else:
+				plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt)
+		else:
+			plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
 		
 	elif(action == "T"):
 		top_n = int(raw_input("How many genes would you like to plot? "))
@@ -284,9 +291,6 @@ while True:
 		else:
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
-			frameinfo = getframeinfo(currentframe())
-			print frameinfo.filename, frameinfo.lineno
-			
 			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
 	elif(action == "I"):
 		IPython.embed()
