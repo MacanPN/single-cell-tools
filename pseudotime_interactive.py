@@ -201,6 +201,7 @@ while True:
 	[O]	Output clusters (so they can be copied to a file)
 	[F]	Save generated pseudotime to file
 	[M]	Save features correlated with pc to file
+	[T]	Run tSNE
 	[X]	Exit
 	"""
 	action = raw_input(question).upper()
@@ -290,10 +291,12 @@ while True:
 		bins = int(raw_input("How many bins would you like to quantile? "))
 		sett.bins = bins
 		marker_genes = raw_input("Which marker genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
-		bin_col_dict = {}
-		for i in range(0,bins):
-			color = raw_input("Assign color for bin "+str(i)+": ")
-			bin_col_dict.update({i:color})
+		bin_colors = ["grey", "sky-blue", "blue", "light green", "green", "orange", "red", "dark red"]
+		bin_col_dict = dict(zip(range(0,bins), bin_colors))
+		# ~ bin_col_dict = {}
+		# ~ for i in range(0,bins):
+			# ~ color = raw_input("Assign color for bin "+str(i)+": ")
+			# ~ bin_col_dict.update({i:color})
 		for i in marker_genes:
 			plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, genes=i, bin_col_dict=bin_col_dict, expression_table=expression_table)
 		# ~ plot_marker_gene_quantile(expression_table, subset_PC_expression, subset_annotation, pcs, sett, marker_genes)
@@ -311,6 +314,87 @@ while True:
 			continue
 		filename = raw_input("Enter file name you'd like to save pseudotime as (preferably ending with .csv) ")
 		pseudotime.to_csv(filename, sep="\t")
+	elif(action=="T"):
+		
+		# ~ for learning_rate in [10,50,100,200,400,1000]:
+			# ~ for perplexity in [5,8,10,20,30,50]:
+				# ~ print "fitting tSNE, step:",step
+				# ~ tsne = sklearn.manifold.TSNE(
+					# ~ n_components = 2,
+					# ~ learning_rate = learning_rate,
+					# ~ perplexity = perplexity,
+					# ~ n_iter = 10000,
+					# ~ n_iter_without_progress = 1000
+				# ~ )
+				# ~ tsne_transformed_expression_2d = pd.DataFrame(tsne.fit_transform(PC_expression.values), index=PC_expression.index, columns=["x","y"])
+				# ~ fig,ax = plt.subplots(figsize=(15, 10))
+				# ~ ax = tsne_transformed_expression_2d.plot.scatter(x="x", y="y", s = annotation["day"].values, c=annotation["treatment"].values, ax=ax)
+				# ~ ab=tsne_transformed_expression_2d.apply(annotate_df, axis=1)
+				# ~ fn = "PCA_tSNE_training_lr_per/tSNE_lr."+str(learning_rate)+"_perplexity."+str(perplexity)+".png"
+				# ~ plt.savefig(fn)
+				# ~ plt.close()
+
+		tsne3d = sklearn.manifold.TSNE(n_components=3, learning_rate=20, n_iter=10000, n_iter_without_progress=1000, perplexity = 10)
+		tsne_transformed_expression_3d = pd.DataFrame(tsne3d.fit_transform(PC_expression.values), index=PC_expression.index, columns=["x","y","z"])
+		IPython.embed()
+		comb = pd.concat([tsne_transformed_expression_3d, annotation], axis=1)
+		# plotly 3d plot
+		def plot_using_plotly(transformed_expression):
+			import plotly.plotly as py
+			import plotly.graph_objs as go
+			layout = dict(
+			width=1600,
+			height=1080,
+			autosize=False,
+			#title='Test',
+			scene=dict(
+				xaxis=dict(
+					gridcolor='rgb(0, 0, 0)',
+					zerolinecolor='rgb(255, 0, 0)',
+					showbackground=True,
+					backgroundcolor='#bababa'
+				),
+				yaxis=dict(
+					gridcolor='rgb(0, 0, 0)',
+					zerolinecolor='rgb(255, 0, 0)',
+					showbackground=True,
+					backgroundcolor='#bababa'
+				),
+				zaxis=dict(
+					#title="PC "+str(pc[2]+1),
+					gridcolor='rgb(0, 0, 0)',
+					zerolinecolor='rgb(255, 0, 0)',
+					showbackground=True,
+					backgroundcolor='#bababa'
+				),
+				#aspectratio = dict( x=1, y=1, z=0.7 ),
+				aspectmode = 'manual'        
+				),
+			)
+			data = []
+			traces = comb["name"].unique()
+			for t in traces:
+				trace = dict(
+					text = transformed_expression.index, #+ "\n" + transformed_expression["branch"],
+					x = transformed_expression["x"],
+					y = transformed_expression["y"],
+					z = transformed_expression["z"],
+					type = "scatter3d",    
+					mode = 'markers',
+					opacity = 0.80,
+					marker = dict(
+					size=comb.loc[comb["name"]==t,"size"].values,
+					# ~ color=trx_df.color,
+					color=comb.loc[comb["name"]==t,"color"].values,
+					symbol=comb.loc[comb["name"]==t,"shape"].apply(shape_matplotlib2plotly).values,
+					line=dict(width=1) )
+				)
+				
+				data.append( trace )
+			fig = dict(data=data, layout=layout)
+			url = plotly.offline.plot(fig, filename='single_cell-3d-tSNE', validate=False, auto_open=False)
+			IPython.embed()
+		plot_using_plotly(tsne_transformed_expression_3d)
 		
 	elif(action=="Q"):
 		cluster_dir = raw_input("Enter location of diffex csvs ")
