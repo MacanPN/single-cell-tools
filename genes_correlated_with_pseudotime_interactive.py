@@ -234,7 +234,7 @@ while True:
 		DEG_path = raw_input("provide path to differentially expressed genes ")
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
-		DEGS = pd.read_csv(DEG_path, index_col=0)
+		DEGS = pd.read_csv(DEG_path, index_col=0, header=None)
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
 		DEGS = corr[corr.index.isin(DEGS.index)].index
 		out_filename = output_dir+correlation_method+"_"+ptime+"_DEGS.pdf"

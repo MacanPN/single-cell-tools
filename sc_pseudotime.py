@@ -150,7 +150,7 @@ def read_expression(expression_file, settings, min_expression = 0.1, min_cells =
 	for s in settings.sets["remove"]:
 		print "Removed cells from set:",s,settings.cell_sets[s]
 		expression_table.drop(settings.cell_sets[s], inplace=True, errors="ignore")
-	
+
 	# log transform
 	if(log_transform):
 		expression_table += 1
@@ -170,8 +170,18 @@ def read_expression(expression_file, settings, min_expression = 0.1, min_cells =
 	annotation["treatment"]= "none"
 	annotation["cluster"]= "none"
 	
+	# annotate superimposed cells
+	for s in settings.sets["superimpose"]:
+		print "Superimposing cells from set:",s,settings.cell_sets[s]
+		#~ IPython.embed()
+		for i in settings.cell_sets[s]:
+			annotation.loc[i,"superimpose"] = "True"
+		
+
+	
 	for s in accepted_sets_with_parameter: # iterating over dictionary operation->set
 		for i in settings.sets[s]: # iterating over set
+			#~ IPython.embed()
 			subset = set(settings.cell_sets[i[0]]).intersection(annotation.index)
 			annotation.loc[subset,s] = i[1]
 	
@@ -208,6 +218,7 @@ def run_PCA(expression_table, annotation, n_components):
 	print "Explained variance: ", pca.explained_variance_
 	print "Explained variance ratio: ", pca.explained_variance_ratio_
 	# transform expression using PCA vectors
+	#~ IPython.embed()
 	transformed_expression = pd.DataFrame(pca.transform(expression_table), index=expression_table.index, columns = range(1,n_components+1))
 	return transformed_expression, pca
 
@@ -277,48 +288,6 @@ def plot_2d_pca_multiplot(transformed_expression, annotation, pca, settings):
 	plt.tight_layout()
 	plt.subplots_adjust(hspace=0.15, wspace=0.15, left=0.05, bottom=0.05)
 	plt.savefig(settings.result_filename+"-pca-multiplot.png", dpi=200)
-	plt.show()
-
-## create plot of 6  gene combinations
-# arguments are: 
-# - pd.DataFrame with PCA transformed gene expression 
-# - annotation pd.DataFrame
-# - pca sklearn.decomposition object
-# - settings object
-def plot_marker_gene_quantile(expression_table, transformed_expression, annotation, pca, settings, genes):
-	fig, ax = plt.subplots(2,(len(genes)/2), figsize=(15,10), squeeze=False)
-	markers = list(annotation["shape"].unique())
-	mg = mygene.MyGeneInfo()
-	for i in enumerate(genes): 
-		gene_info = mg.querymany(i[1], scopes='symbol', fields='ensembl.transcript')[0]
-		trx = gene_info['ensembl']['transcript']
-		sum_trx = expression_table.loc[:,trx].sum(axis=1)
-		# color by quantile
-		quant_trx = pd.qcut(sum_trx, 11, duplicates='drop', precision=3)
-		for m in markers:
-			cells_with_this_shape = annotation["shape"]==m
-			ann = annotation.loc[cells_with_this_shape]
-			#import pdb; pdb.set_trace()
-			transformed_expression.loc[cells_with_this_shape].plot.scatter(
-				x=pca[0],
-				y=pca[1],
-				ax=ax[i[0]/len(genes)][(i[0]/2)%(len(genes)/2)],
-				s=ann["size"].values,
-				c=ann["color"].values,
-				legend=True,
-				alpha=0.8,
-				#edgecolor="black",
-				marker = shape_plotly2matplotlib(m)
-			)
-		
-		# ~ explained_variance1 = "{0:.2f}".format(pc[0].explained_variance_ratio_[pc]*100)+"%"
-		# ~ explained_variance2 = "{0:.2f}".format(pc[1].explained_variance_ratio_[pc+1]*100)+"%"
-		ax[i[0]/len(genes)][(i[0]/2)%(len(genes)/2)].set_xlabel("PCA "+str(pca[0])+" ["+" of variance]")
-		ax[i[0]/len(genes)][(i[0]/2)%(len(genes)/2)].set_ylabel("PCA "+str(pca[1])+" ["+" of variance]")
-		ax[i[0]/len(genes)][(i[0]/2)%(len(genes)/2)].set_aspect("equal", adjustable="box")
-	plt.tight_layout()
-	plt.subplots_adjust(hspace=0.15, wspace=0.15, left=0.05, bottom=0.05)
-	plt.savefig(settings.result_filename+"-pca_quantile.png", dpi=200)
 	plt.show()
 
 ## plot cells of defined pair of PCs
@@ -445,6 +414,7 @@ def shape_plotly2matplotlib(s):
 # - annotation pd.DataFrame
 # - settings object
 def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, bin_col_dict=None, height = 1080, width = 1600, genes=None, DEBUG=False):
+	#~ IPython.embed()
 	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
 	#print(used_pcs.max())
@@ -497,7 +467,13 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 		# ~ for i in enumerate(genes): 
 		gene_info = mg.querymany(genes, scopes='symbol', fields='ensembl.transcript')[0]
 		trx = gene_info['ensembl']['transcript']
-		sum_trx = expression_table.loc[:,trx].sum(axis=1)
+		#test = all(elem in test for elem in expression_table.columns)
+		if type(trx) == list:
+			sub_trx = expression_table.reindex(trx, axis = 1)
+			sum_trx = sub_trx.loc[:,trx].sum(axis=1)
+		else:
+			sum_trx = expression_table.loc[:,trx]
+		
 		# color by quantile
 		trx_df = sum_trx.to_frame('trx_count')
 		number_of_bins = len(bin_col_dict.keys())

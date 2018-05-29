@@ -336,7 +336,6 @@ while True:
 
 		tsne3d = sklearn.manifold.TSNE(n_components=3, learning_rate=20, n_iter=10000, n_iter_without_progress=1000, perplexity = 10)
 		tsne_transformed_expression_3d = pd.DataFrame(tsne3d.fit_transform(PC_expression.values), index=PC_expression.index, columns=["x","y","z"])
-		IPython.embed()
 		comb = pd.concat([tsne_transformed_expression_3d, annotation], axis=1)
 		# plotly 3d plot
 		def plot_using_plotly(transformed_expression):
