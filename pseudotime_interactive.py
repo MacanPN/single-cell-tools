@@ -120,6 +120,7 @@ def subset_pc_expression(pc_expression, colnm, colval):
 		if colnm not in annotation.columns:
 			print("metadat not recognized (spelling error?)")
 			colnm, colval = retrieve_subset_param()
+		#~ IPython.embed()
 		subset_annotation = annotation[annotation[colnm].isin(colval)]
 		# add day0 cells to all subset_annotations if not removed in plot_settings
 		day0_annotation = annotation[annotation["day"]==0.0]
@@ -392,7 +393,6 @@ while True:
 				data.append( trace )
 			fig = dict(data=data, layout=layout)
 			url = plotly.offline.plot(fig, filename='single_cell-3d-tSNE', validate=False, auto_open=False)
-			IPython.embed()
 		plot_using_plotly(tsne_transformed_expression_3d)
 		
 	elif(action=="Q"):

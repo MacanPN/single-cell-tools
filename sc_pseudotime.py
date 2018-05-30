@@ -414,7 +414,6 @@ def shape_plotly2matplotlib(s):
 # - annotation pd.DataFrame
 # - settings object
 def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, bin_col_dict=None, height = 1080, width = 1600, genes=None, DEBUG=False):
-	#~ IPython.embed()
 	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
 	#print(used_pcs.max())
@@ -704,21 +703,6 @@ def rotate_expression(transformed_expression,x,y,angle):
 # - pca sklearn.decomposition object
 # - settings object
 def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=None):
-	
-	shRBKD_cells = annotation.loc[annotation['treatment'] != "shCtrl"].index
-	vals_shRBKD = transformed_expression.loc[shRBKD_cells,:]
-	
-	shCtrl_cells = annotation.loc[annotation['treatment'] == "shCtrl"].index
-	vals_shCtrl = transformed_expression.loc[shCtrl_cells,:]
-	
-	# ~ t_val = pd.DataFrame(columns = ['distance'])
-	t_val = []
-	for i in transformed_expression:
-		test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
-		t_val.append(test) 
-	print(t_val)
-
-
 	n_pca = len(transformed_expression.columns)
 	transformed_expression["day"] = annotation["day"]
 	transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
@@ -731,18 +715,36 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
 	fig,ax = plt.subplots(figsize=(8,5))
 	
 	ax2= ax.twinx()
-	ax3= ax.twinx()
 	
 	spearman.plot.bar(ax=ax, width=width, position=1, color="blue")
 	pd.Series(pca.explained_variance_ratio_, index=range(1,n_pca+1)).loc[spearman.index].plot.bar(ax=ax2, width=width, position=0, color="red")
 	
-	ax3.spines['right'].set_position(('outward', 60))
-	pd.Series(t_val, index=range(1,n_pca+1)).loc[spearman.index].plot.bar(ax=ax3, width=width, position=2, color="green")
-	
 	ax.set_xlabel("PC component")
 	ax.set_ylabel("Spearman correlation\nto days [blue]")
 	ax2.set_ylabel("% variance explained [red]")
-	ax3.set_ylabel("distance between RBKD and Ctrl [green]")
+	
+	
+	# plot difference between shRBKD and shCtrl cells if both present
+	# calculate distance between RBKD and Ctrl cells
+	shCtrl_cells = annotation.loc[annotation['treatment'].str.contains("shCtrl")].index
+	vals_shCtrl = transformed_expression.loc[shCtrl_cells,:]
+
+	if len(shCtrl_cells) > 0:
+		shRBKD_cells = annotation.drop(shCtrl_cells).index
+		vals_shRBKD = transformed_expression.loc[shRBKD_cells,:]
+		t_val = []
+		for i in transformed_expression.iloc[:, :-1]:
+			test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
+			t_val.append(test) 
+		
+		#~ # define axis 3
+		ax3= ax.twinx()
+		#~ # assign location for axis 3
+		ax3.spines['right'].set_position(('outward', 60))
+		#~ # plot axis 3 green bars
+		pd.Series(t_val, index=range(1,n_pca+1)).loc[spearman.index].plot.bar(ax=ax3, width=width, position=2, color="green")
+		#~ # assign label for axis 3
+		ax3.set_ylabel("distance between RBKD and Ctrl [green]")
 	plt.tight_layout()
 	low,high = plt.xlim()
 	plt.xlim(low-0.5, high)
@@ -983,6 +985,7 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 	
 
 def plot_3d_pca_colored_by_clustering(PC_expression, annotation, pca, settings):
+	
 	link_color = {}
 	def link_color_func(node):
 		return link_color[node]
