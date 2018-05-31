@@ -305,9 +305,15 @@ while True:
 		
 	elif(action == "M"):
 		filename = raw_input("Enter file name you'd like to save correlated features to: ")
-		top_n = int(raw_input("How many genes from each pc would you like to plot? "))
-		pcs = map(int,raw_input("Which PCs would you to correlate with? (type comma separated list, such as 1,3,4) ").split(","))
+		top_n = raw_input("How many genes from each pc would you like to save?; if blank will use "+sett.parameters['number_of_genes']+" (from plot_settings) ")
+		if top_n == "":
+			top_n = int(sett.parameters['number_of_genes'])
+		else:
+			top_n = int(top_n)
+		pcs = map(int,raw_input("Which PCs would you like to correlate with? (type comma separated list, such as 1,3,4) ").split(","))
 		pc_corr_trs = get_isoforms_correlated_pc_set(pca, expression_table, pcs, top_n, filename)
+		csv_filename = filename+"_pcs_"+"_".join(map(str, pcs))+".csv"
+		print("saving as "+csv_filename)
 		
 	elif(action=="F"):
 		if("pseudotime" not in globals()):

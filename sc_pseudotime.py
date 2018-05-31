@@ -213,6 +213,7 @@ def read_expression(expression_file, settings, min_expression = 0.1, min_cells =
 def run_PCA(expression_table, annotation, n_components):
 	pca = decomposition.PCA(n_components=n_components, svd_solver="full")
 	expression_table_for_PCA = expression_table.loc[annotation[annotation["superimpose"]==False].index]
+	#~ ipdb.set_trace()
 	print "Calculating PCA on table of shape:",expression_table_for_PCA.shape
 	pca.fit(expression_table_for_PCA)
 	print "Explained variance: ", pca.explained_variance_
