@@ -466,7 +466,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 		mg = mygene.MyGeneInfo()
 		# ~ for i in enumerate(genes): 
 		gene_info = mg.querymany(genes, scopes='symbol', fields='ensembl.transcript')[0]
-		trx = gene_info['ensembl']['transcript']
+		trx = gene_info['ensembl'][0]['transcript']
 		#test = all(elem in test for elem in expression_table.columns)
 		if type(trx) == list:
 			sub_trx = expression_table.reindex(trx, axis = 1)
