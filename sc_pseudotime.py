@@ -174,7 +174,6 @@ def read_expression(expression_file, settings, min_expression = 0.1, min_cells =
 	# annotate superimposed cells
 	for s in settings.sets["superimpose"]:
 		print "Superimposing cells from set:",s,settings.cell_sets[s]
-		#~ IPython.embed()
 		for i in settings.cell_sets[s]:
 			annotation.loc[i,"superimpose"] = "True"
 		
@@ -873,7 +872,6 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None, plot_id=None, ctrl_pseudotime=None):
 	expr_over_ptime = pd.DataFrame(pseudotime)
-	IPython.embed()
 	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
 	if ctrl_pseudotime is not None:
 		ctrl_over_ptime = pd.DataFrame(ctrl_pseudotime)
@@ -981,13 +979,11 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 				gene_col.columns = [gene]
 				corr = pd.concat([gene_col, subsetc.loc[:,"pseudotime"]], axis=1)
 				corr.columns = [gene, 'pseudotime']
-				#~ IPython.embed()
 				corr = corr.loc[ : , [gene,"pseudotime"]].corr(method=method).iloc[0,1]
 				if corr != corr: # if NaN (no data to calculate on)
 					corr = 0 # then correlation is zero
 				spearman.loc[gene,"corr"] = corr
 				#generate gene-level exprescsion table
-				#~ IPython.embed()
 				gene_exp.append(gene_col)
 			
 			gene_exp = pd.concat(gene_exp, axis = 1)
