@@ -873,6 +873,7 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None, plot_id=None, ctrl_pseudotime=None):
 	expr_over_ptime = pd.DataFrame(pseudotime)
+	IPython.embed()
 	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
 	if ctrl_pseudotime is not None:
 		ctrl_over_ptime = pd.DataFrame(ctrl_pseudotime)
@@ -979,8 +980,8 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 				gene_col = subsetc.loc[:, dic[gene]].sum(axis=1)
 				gene_col.columns = [gene]
 				corr = pd.concat([gene_col, subsetc.loc[:,"pseudotime"]], axis=1)
-				#~ corr.columns = [gene, 'pseudotime']
-				
+				corr.columns = [gene, 'pseudotime']
+				#~ IPython.embed()
 				corr = corr.loc[ : , [gene,"pseudotime"]].corr(method=method).iloc[0,1]
 				if corr != corr: # if NaN (no data to calculate on)
 					corr = 0 # then correlation is zero
@@ -991,7 +992,6 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 			
 			gene_exp = pd.concat(gene_exp, axis = 1)
 			gene_exp.columns = dic.keys()
-			IPython.embed()
 			
 			corr_exp_dict = {'spearman': spearman, 'exp': gene_exp}
 			
@@ -1024,7 +1024,6 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 			cell_set_flags = ["exp"]
 			# check if map is returning spearman correlation and gene_expression_table
 			corr_exp_dict = map(return_subset_correlation, subset_indices)
-			IPython.embed()
 			spearman = pd.concat(spearman, axis=1)
 			spearman.columns = cell_set_flags
 		else:
@@ -1032,7 +1031,6 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 			cell_set_flags = ["RBKD", "shCtrl"]
 			# check if map is returning spearman correlation and gene_expression_table
 			corr_exp_dict = map(return_subset_correlation, subset_indices)
-			IPython.embed()
 			spearman = pd.concat(spearman, axis=1)
 			spearman.columns = cell_set_flags
 			
