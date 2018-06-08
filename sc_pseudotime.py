@@ -872,6 +872,7 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None, plot_id=None, ctrl_pseudotime=None):
 	expr_over_ptime = pd.DataFrame(pseudotime)
+	#~ IPython.embed()
 	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
 	if ctrl_pseudotime is not None:
 		ctrl_over_ptime = pd.DataFrame(ctrl_pseudotime)
@@ -906,12 +907,14 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		translate_colors = ctrl_ann.apply(day_to_color, args=(color_by_day,), axis=1)
 		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
 		lowess = sm.nonparametric.lowess
+		#~ IPython.embed()
 		z = lowess(ctrl_over_ptime["expression"], pseudotime[pseudotime.index.isin(ctrl_over_ptime.index)])
 		subplt = pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 		# hardcode x-axis so that control is directly comparable to RBKD
 		subplt.set_xlim(0.0,1.0)
 	elif plot_id == "Ctrl_alone":
 		shctrl = annotation.loc[(annotation['treatment']=="shCtrl"), :]
+		IPython.embed()
 		ctrl_over_ptime = ctrl_over_ptime[ctrl_over_ptime.index.isin(shctrl.index)]
 
 		ctrl_ann = annotation.loc[ctrl_over_ptime.index, :] 
@@ -921,6 +924,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		
 		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
 		lowess = sm.nonparametric.lowess
+		IPython.embed()
 		z = lowess(ctrl_over_ptime["expression"], ctrl_pseudotime)
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 
@@ -937,6 +941,47 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 ## read pseudotime from tab delimited csv file
 def read_pseudotime_from_file(filename):
 	return pd.read_csv(filename, sep="\t", index_col=0, names=["pseudotime"])["pseudotime"]
+
+## look up gene, transcript dict from mygene
+def get_gene_transcript_dic(expression_table):
+	transcripts = expression_table.columns.copy()
+			
+	mg = mygene.MyGeneInfo()
+
+	gene_info = mg.querymany(transcripts, scopes='ensembl.transcript', fields='symbol', returnall=False)
+	
+	# remove transcripts not found in gene lookup
+	gene_info[:] = [d for d in gene_info if d.get('notfound') != True]
+	
+	# define contiguous list of transcripts
+	transcripts = [query for i, query in enumerate(d['query'] for d in gene_info)]
+	# define contiguous list of genes (matching transcripts)
+	genes = [symbol for i, symbol in enumerate(d['symbol'] for d in gene_info)]
+	
+	dic={}
+	for x,y in zip(transcripts, genes):
+		dic.setdefault(y,[]).append(x)	
+	
+	return(dic)
+
+## look up gene, transcript dict from mygene
+def trx_to_gene_exp_table(expression_table, gene_trx_dic):
+	gene_exp = []
+	for i,gene in enumerate(gene_trx_dic):
+	#~ for i,gene in enumerate(dic):
+		if i%1000 == 0:
+			#~ print gene
+			print "Genes processed:",i
+		gene_col = expression_table.loc[:, gene_trx_dic[gene]].sum(axis=1)
+		gene_col.columns = [gene]
+		#generate gene-level exprescsion table
+		gene_exp.append(gene_col)
+		#~ IPython.embed()
+	
+	gene_exp = pd.concat(gene_exp, axis = 1)
+	gene_exp.columns = gene_trx_dic.keys()
+
+	return(gene_exp)
 
 ## returns spearman correlation of each gene in expression matrix with pseudotime
 # arguments are:
@@ -966,12 +1011,14 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 				dic.setdefault(y,[]).append(x)	
 			
 			
-			spearman = pd.DataFrame(0, index=genes, columns=["corr"])
+			
+			spearman = pd.DataFrame(0, index=dic.keys(), columns=["corr"])
 			subsetc = exp.loc[subset_index]
 			subsetc["pseudotime"] = pseudotime[subset_index]
 			# correlation by gene
 			gene_exp = []
 			for i,gene in enumerate(dic):
+			#~ for i,gene in enumerate(dic):
 				if i%1000 == 0:
 					#~ print gene
 					print "Genes processed:",i
@@ -985,6 +1032,7 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 				spearman.loc[gene,"corr"] = corr
 				#generate gene-level exprescsion table
 				gene_exp.append(gene_col)
+				#~ IPython.embed()
 			
 			gene_exp = pd.concat(gene_exp, axis = 1)
 			gene_exp.columns = dic.keys()
@@ -1027,9 +1075,15 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 			cell_set_flags = ["RBKD", "shCtrl"]
 			# check if map is returning spearman correlation and gene_expression_table
 			corr_exp_dict = map(return_subset_correlation, subset_indices)
+			#~ IPython.embed()
+			spearman = [s for i,s in enumerate(d['spearman'] for d in corr_exp_dict)]
+			#~ spearman[0].reset_index(inplace=True)
+			#~ spearman[1].reset_index(drop=True, inplace=True)
 			spearman = pd.concat(spearman, axis=1)
+			#~ spearman.set_index('index', inplace=True)
 			spearman.columns = cell_set_flags
-			
+			#~ IPython.embed()
+			corr_exp_dict = {'spearman': spearman, 'exp': corr_exp_dict[0]['exp']}
 	return corr_exp_dict
 	
 
