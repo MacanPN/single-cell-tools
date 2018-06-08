@@ -994,7 +994,6 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, c
 			subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
 			transcripts = exp.columns.copy()
 			
-			IPython.embed()
 			spearman = pd.DataFrame(0, index=gene_trx_dic.keys(), columns=["corr"])
 			subsetc = exp.loc[subset_index]
 			subsetc["pseudotime"] = pseudotime[subset_index]
