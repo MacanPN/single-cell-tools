@@ -914,7 +914,6 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		subplt.set_xlim(0.0,1.0)
 	elif plot_id == "Ctrl_alone":
 		shctrl = annotation.loc[(annotation['treatment']=="shCtrl"), :]
-		IPython.embed()
 		ctrl_over_ptime = ctrl_over_ptime[ctrl_over_ptime.index.isin(shctrl.index)]
 
 		ctrl_ann = shctrl.loc[ctrl_over_ptime.index, :] 
@@ -924,7 +923,6 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		
 		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
 		lowess = sm.nonparametric.lowess
-		IPython.embed()
 		z = lowess(ctrl_over_ptime["expression"], ctrl_pseudotime)
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 
