@@ -16,6 +16,7 @@ from sc_pseudotime import *
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 import ipdb 
+import pickle
 
 from inspect import currentframe, getframeinfo
 
@@ -26,6 +27,7 @@ parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/sin
 parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/single_cell_tools/example_input_files/cell_sets.csv", help="cell sets", metavar="CELL_SETS")
 parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/single_cell_tools/example_input_files/plot_settings.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-r", "--corr-method", dest="corr_method", default="spearman", help="method of correlation (spearman or pearson)", metavar="CORR_METHOD")
+parser.add_argument("-f", "--feature", dest="feature", default="gene", help="feature of interest; either 'gene' or 'transcript' depending on desired output", metavar="FEATURE")
 parser.add_argument("-o", "--outfile", dest="outfile", default="gene_corr_with_ptime", help="a name to give to the output file", metavar="OUTFILE")
 parser.add_argument("-pt", "--pseudotime", dest="pseudotime", help="experimental cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=True)
 parser.add_argument("-cpt", "--control-pseudotime", dest="ctrl_pseudotime", help="control cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+')
@@ -50,13 +52,22 @@ if options.ctrl_pseudotime:
 sett = settings(settings_file, cellset_file)
 expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
 
-gene_expression_table = output_dir+"/gene_expression.csv"
-if not os.path.isfile(gene_expression_table):
-	print("creating gene expression table; saving as "+gene_expression_table)
+#~ def save_obj(output_dir, name ):
+    #~ with open(output_dir+'/'+ name + '.pkl', 'wb') as f:
+        #~ pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+#~ def load_obj(name ):
+    #~ with open(output_dir+'/' + name + '.pkl', 'rb') as f:
+        #~ return pickle.load(f)
+
+gene_expression_file = output_dir+"gene_expression.csv"
+if not os.path.isfile(gene_expression_file):
+	print("creating gene expression table; saving as "+gene_expression_file)
 	gene_trx_dic = get_gene_transcript_dic(expression_table)
 	gene_expression_table =  trx_to_gene_exp_table(expression_table, gene_trx_dic)
+	gene_expression_table.to_csv(gene_expression_file, sep = "\t")
 else:
-	gene_expression_table = pd.read_csv(gene_expression_table, index_col=0)
+	gene_expression_table = pd.read_csv(gene_expression_file, index_col=0, sep ="\t")
 
 
 def set_pts(pseudotime_files, cell_set_flag):
@@ -261,7 +272,7 @@ while True:
 		corr_out = raw_input("provide filename for new correlation files ")
 		## block of code to calculate correlations
 		pt = map(read_pseudotime_from_file, ptime_paths)
-		corr = [get_correlation_with_pseudotime(x, expression_table, method=correlation_method) for x in pt]
+		corr = [get_correlation_with_pseudotime(x, expression_table, gene_trx_dic, method=correlation_method) for x in pt]
 		corr.to_csv(corr_out+"_"+correlation_method+"_correlation.csv", sep="\t")
 		ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ptime_paths]
 		ptimes = dict(zip(ptime_titles, ptime_paths))
