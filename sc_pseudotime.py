@@ -917,7 +917,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		IPython.embed()
 		ctrl_over_ptime = ctrl_over_ptime[ctrl_over_ptime.index.isin(shctrl.index)]
 
-		ctrl_ann = annotation.loc[ctrl_over_ptime.index, :] 
+		ctrl_ann = shctrl.loc[ctrl_over_ptime.index, :] 
 		
 		# convert ctrl cells from gray to colored for plotting 
 		translate_colors = ctrl_ann.apply(day_to_color, args=(color_by_day,), axis=1)
@@ -988,41 +988,23 @@ def trx_to_gene_exp_table(expression_table, gene_trx_dic):
 # - exp = pd.DataFrame with gene expression 
 # - pseudotime = pd.Series with pseudotime coordinates for each cell
 # - [optional] correlation_threshold = returns only genes with absolute value of correlation >= threshold
-def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=None, correlation_threshold = 0, method = "spearman"):
+def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, cell_set_flag=None, correlation_threshold = 0, method = "spearman"):
 	
 	def return_subset_correlation(subset_index):
 			subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
 			transcripts = exp.columns.copy()
 			
-			mg = mygene.MyGeneInfo()
-
-			gene_info = mg.querymany(transcripts, scopes='ensembl.transcript', fields='symbol', returnall=False)
 			
-			# remove transcripts not found in gene lookup
-			gene_info[:] = [d for d in gene_info if d.get('notfound') != True]
-			
-			# define contiguous list of transcripts
-			transcripts = [query for i, query in enumerate(d['query'] for d in gene_info)]
-			# define contiguous list of genes (matching transcripts)
-			genes = [symbol for i, symbol in enumerate(d['symbol'] for d in gene_info)]
-			
-			dic={}
-			for x,y in zip(transcripts, genes):
-				dic.setdefault(y,[]).append(x)	
-			
-			
-			
-			spearman = pd.DataFrame(0, index=dic.keys(), columns=["corr"])
+			spearman = pd.DataFrame(0, index=gene_trx_dic.keys(), columns=["corr"])
 			subsetc = exp.loc[subset_index]
 			subsetc["pseudotime"] = pseudotime[subset_index]
 			# correlation by gene
-			gene_exp = []
-			for i,gene in enumerate(dic):
-			#~ for i,gene in enumerate(dic):
+			for i,gene in enumerate(gene_trx_dic):
+			#~ for i,gene in enumerate(gene_trx_dic):
 				if i%1000 == 0:
 					#~ print gene
 					print "Genes processed:",i
-				gene_col = subsetc.loc[:, dic[gene]].sum(axis=1)
+				gene_col = subsetc.loc[:, gene_trx_dic[gene]].sum(axis=1)
 				gene_col.columns = [gene]
 				corr = pd.concat([gene_col, subsetc.loc[:,"pseudotime"]], axis=1)
 				corr.columns = [gene, 'pseudotime']
@@ -1031,15 +1013,9 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 					corr = 0 # then correlation is zero
 				spearman.loc[gene,"corr"] = corr
 				#generate gene-level exprescsion table
-				gene_exp.append(gene_col)
 				#~ IPython.embed()
 			
-			gene_exp = pd.concat(gene_exp, axis = 1)
-			gene_exp.columns = dic.keys()
-			
-			corr_exp_dict = {'spearman': spearman, 'exp': gene_exp}
-			
-			return(corr_exp_dict)
+			return(spearman)
 			
 			# correlation by transcript
 			#~ for i,transcript in enumerate(transcripts):
@@ -1053,10 +1029,10 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 	
 	
 	if cell_set_flag == "ctrl":
-		corr_exp_dict = return_subset_correlation(pseudotime.index)
+		spearman = return_subset_correlation(pseudotime.index)
 
 	elif cell_set_flag == "exp":
-		corr_exp_dict = return_subset_correlation(pseudotime.index)
+		spearman = return_subset_correlation(pseudotime.index)
 
 	else:
 		exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
@@ -1067,24 +1043,19 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=N
 			subset_indices = [exp_index]
 			cell_set_flags = ["exp"]
 			# check if map is returning spearman correlation and gene_expression_table
-			corr_exp_dict = map(return_subset_correlation, subset_indices)
+			spearman = map(return_subset_correlation, subset_indices)
 			spearman = pd.concat(spearman, axis=1)
 			spearman.columns = cell_set_flags
 		else:
 			subset_indices = [exp_index, shctrl_index]
 			cell_set_flags = ["RBKD", "shCtrl"]
 			# check if map is returning spearman correlation and gene_expression_table
-			corr_exp_dict = map(return_subset_correlation, subset_indices)
-			#~ IPython.embed()
-			spearman = [s for i,s in enumerate(d['spearman'] for d in corr_exp_dict)]
-			#~ spearman[0].reset_index(inplace=True)
-			#~ spearman[1].reset_index(drop=True, inplace=True)
+			spearman = map(return_subset_correlation, subset_indices)
 			spearman = pd.concat(spearman, axis=1)
-			#~ spearman.set_index('index', inplace=True)
 			spearman.columns = cell_set_flags
 			#~ IPython.embed()
-			corr_exp_dict = {'spearman': spearman, 'exp': corr_exp_dict[0]['exp']}
-	return corr_exp_dict
+
+	return spearman
 	
 
 def plot_3d_pca_colored_by_clustering(PC_expression, annotation, pca, settings):

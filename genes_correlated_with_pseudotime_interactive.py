@@ -62,13 +62,13 @@ else:
 def set_pts(pseudotime_files, cell_set_flag):
 	pt = map(read_pseudotime_from_file, pseudotime_files)
 	#~ corr_exp_dict = get_correlation_with_pseudotime(pt, expression_table, annotation, cell_set_flag, method=correlation_method)
-	corr_exp_dict = [get_correlation_with_pseudotime(x, expression_table, annotation, cell_set_flag, method=correlation_method) for x in pt]
-	corr = [corr for i,corr in enumerate(d['spearman'] for d in corr_exp_dict)]
+	corr = [get_correlation_with_pseudotime(x, expression_table, annotation, cell_set_flag, method=correlation_method) for x in pt]
+	#~ corr = [corr for i,corr in enumerate(d['spearman'] for d in corr_exp_dict)]
 	corr = pd.concat(corr, axis=1)
 	ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
 	pt = dict(zip(ptime_titles, pt))
-	corr_pt_dict = {'corr': corr, 'pt': pt, 'exp': corr_exp_dict[0]['exp']}
-	return corr_pt_dict
+	#~ corr_pt_dict = {'corr': corr, 'pt': pt, 'exp': corr_exp_dict[0]['exp']}
+	return corr, pt
 
 
 
@@ -89,16 +89,14 @@ else:
 	
 	# read correlation files from similarly named files
 	if os.path.exists(ctrl_correlation_file):
+		print(ctrl_correlation_file)
 		ctrl_corr = pd.read_csv(ctrl_correlation_file, sep="\t", index_col=0)
 	
 	# check if control correlation files have already been read in
 	try:
 		ctrl_corr
 	except:
-		corr_pt_dict = set_pts(ctrl_pseudotime_files, cell_set_flag="ctrl")
-		ctrl_corr = corr_pt_dict['corr']
-		pt = corr_pt_dict['pt']
-		exp = corr_pt_dict['exp']
+		ctrl_corr, pt = set_pts(ctrl_pseudotime_files, cell_set_flag="ctrl")
 		ctrl_corr.columns = sorted(cpt.keys())
 		#~ exp.to_csv(gene_exp_file, sep="\t")
 		ctrl_corr.to_csv(ctrl_correlation_file, sep="\t")
@@ -121,7 +119,7 @@ correlation_file = "_".join(ptime_titles)+"_"+correlation_method+"_correlation.c
 gene_exp_file = "_".join(ptime_titles)+"_"+correlation_method+"_gene_expression.csv"
 
 print(correlation_file)
-print(ctrl_correlation_file)
+
 
 if os.path.isfile(gene_exp_file):
 	exp = pd.read_csv(gene_exp_file, sep = "\t", index_col=0)
@@ -141,28 +139,20 @@ try:
 	corr
 except:
 	if cpt == "none":
-		corr_pt_dict = set_pts(pseudotime_files, cell_set_flag="exp")
-		corr = corr_pt_dict['corr']
-		pt = corr_pt_dict['pt']
-		exp = corr_pt_dict['exp']
+		corr, pt = set_pts(pseudotime_files, cell_set_flag="exp")
 		corr_columns = []
 		for i in sorted(pt.keys()):
 			corr_columns += [i+"_exp_corr"]
 		corr.columns = corr_columns
 		corr.to_csv(correlation_file, sep="\t")
-		exp.to_csv(gene_exp_file, sep="\t")
 	else:
-		corr_pt_dict = set_pts(pseudotime_files, cell_set_flag="mix")
-		corr = corr_pt_dict['corr']
-		pt = corr_pt_dict['pt']
-		exp = corr_pt_dict['exp']
+		corr, pt = set_pts(pseudotime_files, cell_set_flag="mix")
 		corr_columns = []
 		for i in sorted(pt.keys()):
 			corr_columns += [i+"_exp_corr"]
 			corr_columns += [i+"_ctrl_corr"]
 		corr.columns = corr_columns
 		corr.to_csv(correlation_file, sep="\t")
-		exp.to_csv(gene_exp_file, sep="\t")
 else:
 	if corr_columns == list(corr.columns):
 		pass
@@ -271,7 +261,7 @@ while True:
 		corr_out = raw_input("provide filename for new correlation files ")
 		## block of code to calculate correlations
 		pt = map(read_pseudotime_from_file, ptime_paths)
-		corr, gene_exp = [get_correlation_with_pseudotime(x, expression_table, method=correlation_method) for x in pt]
+		corr = [get_correlation_with_pseudotime(x, expression_table, method=correlation_method) for x in pt]
 		corr.to_csv(corr_out+"_"+correlation_method+"_correlation.csv", sep="\t")
 		ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ptime_paths]
 		ptimes = dict(zip(ptime_titles, ptime_paths))
