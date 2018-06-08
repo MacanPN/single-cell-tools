@@ -51,14 +51,15 @@ if options.ctrl_pseudotime:
 	ctrl_pseudotime_files = sorted(options.ctrl_pseudotime) 
 sett = settings(settings_file, cellset_file)
 expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
+#~ expression_table = trx_expression_table.copy()
 
-#~ def save_obj(output_dir, name ):
-    #~ with open(output_dir+'/'+ name + '.pkl', 'wb') as f:
-        #~ pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+def save_obj(output_dir, obj, name):
+    with open(output_dir+'/'+ name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
-#~ def load_obj(name ):
-    #~ with open(output_dir+'/' + name + '.pkl', 'rb') as f:
-        #~ return pickle.load(f)
+def load_obj(output_dir, name ):
+    with open(output_dir+ name + '.pkl', 'rb') as f:
+        return pickle.load(f)
 
 gene_expression_file = output_dir+"gene_expression.csv"
 if not os.path.isfile(gene_expression_file):
@@ -66,14 +67,15 @@ if not os.path.isfile(gene_expression_file):
 	gene_trx_dic = get_gene_transcript_dic(expression_table)
 	gene_expression_table =  trx_to_gene_exp_table(expression_table, gene_trx_dic)
 	gene_expression_table.to_csv(gene_expression_file, sep = "\t")
+	save_obj(output_dir, gene_trx_dic, 'gene_trx_dic')
 else:
 	gene_expression_table = pd.read_csv(gene_expression_file, index_col=0, sep ="\t")
-
-
+	gene_trx_dic = load_obj(output_dir, 'gene_trx_dic')
+	
 def set_pts(pseudotime_files, cell_set_flag):
 	pt = map(read_pseudotime_from_file, pseudotime_files)
 	#~ corr_exp_dict = get_correlation_with_pseudotime(pt, expression_table, annotation, cell_set_flag, method=correlation_method)
-	corr = [get_correlation_with_pseudotime(x, expression_table, annotation, cell_set_flag, method=correlation_method) for x in pt]
+	corr = [get_correlation_with_pseudotime(x, expression_table, annotation, gene_trx_dic, cell_set_flag, method=correlation_method) for x in pt]
 	#~ corr = [corr for i,corr in enumerate(d['spearman'] for d in corr_exp_dict)]
 	corr = pd.concat(corr, axis=1)
 	ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]

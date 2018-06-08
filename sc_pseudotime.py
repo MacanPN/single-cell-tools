@@ -988,13 +988,13 @@ def trx_to_gene_exp_table(expression_table, gene_trx_dic):
 # - exp = pd.DataFrame with gene expression 
 # - pseudotime = pd.Series with pseudotime coordinates for each cell
 # - [optional] correlation_threshold = returns only genes with absolute value of correlation >= threshold
-def get_correlation_with_pseudotime(pseudotime, exp, annotation, cell_set_flag=None, correlation_threshold = 0, method = "spearman"):
+def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, cell_set_flag=None, correlation_threshold = 0, method = "spearman"):
 	
 	def return_subset_correlation(subset_index):
 			subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
 			transcripts = exp.columns.copy()
 			
-			#~ IPython.embed()
+			IPython.embed()
 			spearman = pd.DataFrame(0, index=gene_trx_dic.keys(), columns=["corr"])
 			subsetc = exp.loc[subset_index]
 			subsetc["pseudotime"] = pseudotime[subset_index]
