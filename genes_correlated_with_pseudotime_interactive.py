@@ -57,6 +57,13 @@ def save_obj(output_dir, obj, name):
     with open(output_dir+'/'+ name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
+def symbols_from_geneids(geneids):
+	mg = mygene.MyGeneInfo()
+	# ~ for i in enumerate(genes): 
+	gene_info = mg.querymany(geneids.index, scopes='ensembl.gene', fields='symbol')
+	symbols = [d['symbol'] for d in gene_info]
+	return(symbols)
+
 def load_obj(output_dir, name ):
     with open(output_dir+ name + '.pkl', 'rb') as f:
         return pickle.load(f)
@@ -75,7 +82,7 @@ else:
 def set_pts(pseudotime_files, cell_set_flag):
 	pt = map(read_pseudotime_from_file, pseudotime_files)
 	#~ corr_exp_dict = get_correlation_with_pseudotime(pt, expression_table, annotation, cell_set_flag, method=correlation_method)
-	corr = [get_correlation_with_pseudotime(x, expression_table, annotation, gene_trx_dic, cell_set_flag, method=correlation_method) for x in pt]
+	corr = [get_correlation_with_pseudotime(x, expression_table, annotation, gene_trx_dic, cell_set_flag, feature = options.feature, method=correlation_method) for x in pt]
 	#~ corr = [corr for i,corr in enumerate(d['spearman'] for d in corr_exp_dict)]
 	corr = pd.concat(corr, axis=1)
 	ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
@@ -97,7 +104,11 @@ else:
 	cpt = map(read_pseudotime_from_file, ctrl_pseudotime_files)
 	cptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ctrl_pseudotime_files]
 	cpt = dict(zip(cptime_titles, cpt))
-	ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_correlation.csv"
+	if options.feature == "transcript":
+		ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_transcript_correlation.csv"
+	elif options.feature == "gene":
+		ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_symbol_correlation.csv"
+
 	#~ gene_exp_file = "_".join(cptime_titles)+"_"+correlation_method+"_gene_expression.csv"
 	
 	# read correlation files from similarly named files
@@ -128,7 +139,12 @@ else:
 pt = map(read_pseudotime_from_file, pseudotime_files)
 ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
 pt = dict(zip(ptime_titles, pt))
-correlation_file = "_".join(ptime_titles)+"_"+correlation_method+"_correlation.csv"
+
+if options.feature == "transcript":
+	correlation_file = "_".join(ptime_titles)+"_"+correlation_method+"_transcript_correlation.csv"
+elif options.feature == "gene":
+	correlation_file = "_".join(ptime_titles)+"_"+correlation_method+"_symbol_correlation.csv"
+
 gene_exp_file = "_".join(ptime_titles)+"_"+correlation_method+"_gene_expression.csv"
 
 print(correlation_file)
@@ -192,6 +208,7 @@ def genes_within_threshold(rbkd_thresh, corr):
 
 ## function plots genes of interest (pd.Index) into pdf
 def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, ctrl_pseudotime=None, squeeze=True):
+	#~ IPython.embed()
 	if ctrl_pseudotime is None:
 		plot_id = ["exp"]*len(pt.keys())
 	else:
@@ -255,13 +272,16 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 #~ default_output_dir = "genes_corr_w_ptime"
 if not os.path.exists(output_dir):
 	os.makedirs(output_dir)
-	
+
+if options.feature == "gene":
+	expression_table = gene_expression_table
+
 # main loop / choosing action
 while True:
 	question = """Choose from following:
 	[C]	Create Correlation file from New Pseudotime Files
 	[D]	Plot User-Supplied Genes
-	[T]	Plot Top N Genes with highest correlation
+	[T]	Plot Top N Features (Genes or Transcripts) with highest correlation
 	[X]	Exit
 	"""
 	action = raw_input(question).upper()
@@ -286,17 +306,26 @@ while True:
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
 		DEGS = pd.read_csv(DEG_path, index_col=0, header=None)
+		DEGS = symbols_from_geneids(DEGS)
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
-		DEGS = corr[corr.index.isin(DEGS.index)].index
+		IPython.embed()
+		DEGS = corr[corr.index.isin(DEGS)].index
 		out_filename = output_dir+correlation_method+"_"+ptime+"_DEGS.pdf"
 		
 		if ctrl_ptime == '':
 			if len(pt) == 1:
 				plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
+				# plot transcripts of interest
+				#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
+				
 			else:
 				plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt)
+				# plot transcripts of interest
+				#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt)
 		else:
 			plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
+			# plot transcripts of interest
+			#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
 		
 	elif(action == "T"):
 		top_n = int(raw_input("How many genes would you like to plot? "))
@@ -322,19 +351,19 @@ while True:
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
 			if len(pt) == 1:
-				plot_genes_of_interest(genes_of_interest, out_filename, gene_expression_table, annotation, ptime, pt, squeeze=False)
+				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
 				
 				# plot transcripts of interest
 				#~ plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
 
 			else:
-				plot_genes_of_interest(genes_of_interest, out_filename, gene_expression_table, annotation, ptime, pt)
+				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt)
 				# plot transcripts of interest
 				#~ plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt)
 		else:
 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
-			plot_genes_of_interest(genes_of_interest, out_filename, gene_expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
+			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
 			# plot transcripts of interest
 			#~ plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
 	elif(action == "I"):

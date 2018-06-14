@@ -986,50 +986,47 @@ def trx_to_gene_exp_table(expression_table, gene_trx_dic):
 # - exp = pd.DataFrame with gene expression 
 # - pseudotime = pd.Series with pseudotime coordinates for each cell
 # - [optional] correlation_threshold = returns only genes with absolute value of correlation >= threshold
-def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, cell_set_flag=None, correlation_threshold = 0, method = "spearman"):
+def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, cell_set_flag=None, feature = "gene", correlation_threshold = 0, method = "spearman"):
 	
-	def return_subset_correlation(subset_index):
+	def return_subset_correlation(subset_index, feature):
 			subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
 			transcripts = exp.columns.copy()
-			
-			spearman = pd.DataFrame(0, index=gene_trx_dic.keys(), columns=["corr"])
 			subsetc = exp.loc[subset_index]
 			subsetc["pseudotime"] = pseudotime[subset_index]
-			# correlation by gene
-			for i,gene in enumerate(gene_trx_dic):
-			#~ for i,gene in enumerate(gene_trx_dic):
-				if i%1000 == 0:
-					#~ print gene
-					print "Genes processed:",i
-				gene_col = subsetc.loc[:, gene_trx_dic[gene]].sum(axis=1)
-				gene_col.columns = [gene]
-				corr = pd.concat([gene_col, subsetc.loc[:,"pseudotime"]], axis=1)
-				corr.columns = [gene, 'pseudotime']
-				corr = corr.loc[ : , [gene,"pseudotime"]].corr(method=method).iloc[0,1]
-				if corr != corr: # if NaN (no data to calculate on)
-					corr = 0 # then correlation is zero
-				spearman.loc[gene,"corr"] = corr
-				#generate gene-level exprescsion table
-				#~ IPython.embed()
-			
+			if feature == "gene":
+				spearman = pd.DataFrame(0, index=gene_trx_dic.keys(), columns=["corr"])
+				# correlation by gene
+				for i,gene in enumerate(gene_trx_dic):
+				#~ for i,gene in enumerate(gene_trx_dic):
+					if i%1000 == 0:
+						#~ print gene
+						print "Genes processed:",i
+					gene_col = subsetc.loc[:, gene_trx_dic[gene]].sum(axis=1)
+					gene_col.columns = [gene]
+					corr = pd.concat([gene_col, subsetc.loc[:,"pseudotime"]], axis=1)
+					corr.columns = [gene, 'pseudotime']
+					corr = corr.loc[ : , [gene,"pseudotime"]].corr(method=method).iloc[0,1]
+					if corr != corr: # if NaN (no data to calculate on)
+						corr = 0 # then correlation is zero
+					spearman.loc[gene,"corr"] = corr
+			elif feature == "transcript":
+				spearman = pd.DataFrame(0, index=transcripts, columns=["corr"])
+				# correlation by transcript
+				for i,transcript in enumerate(transcripts):
+					if i%1000 == 0:
+						print "Transcripts processed:",i
+					corr = subsetc.loc[ : , [transcript,"pseudotime"]].corr(method=method).iloc[0,1]
+					if corr != corr: # if NaN (no data to calculate on)
+						corr = 0 # then correlation is zero
+					spearman.loc[transcript,"corr"] = corr
 			return(spearman)
-			
-			# correlation by transcript
-			#~ for i,transcript in enumerate(transcripts):
-				#~ if i%1000 == 0:
-					#~ print "Genes processed:",i
-				#~ corr = subsetc.loc[ : , [transcript,"pseudotime"]].corr(method=method).iloc[0,1]
-				#~ if corr != corr: # if NaN (no data to calculate on)
-					#~ corr = 0 # then correlation is zero
-				#~ spearman.loc[transcript,"corr"] = corr
-			#~ return(spearman)
 	
 	
 	if cell_set_flag == "ctrl":
-		spearman = return_subset_correlation(pseudotime.index)
+		spearman = return_subset_correlation(pseudotime.index, feature)
 
 	elif cell_set_flag == "exp":
-		spearman = return_subset_correlation(pseudotime.index)
+		spearman = return_subset_correlation(pseudotime.index, feature)
 
 	else:
 		exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
@@ -1040,14 +1037,14 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, c
 			subset_indices = [exp_index]
 			cell_set_flags = ["exp"]
 			# check if map is returning spearman correlation and gene_expression_table
-			spearman = map(return_subset_correlation, subset_indices)
+			spearman = map(return_subset_correlation, subset_indices, feature)
 			spearman = pd.concat(spearman, axis=1)
 			spearman.columns = cell_set_flags
 		else:
 			subset_indices = [exp_index, shctrl_index]
 			cell_set_flags = ["RBKD", "shCtrl"]
 			# check if map is returning spearman correlation and gene_expression_table
-			spearman = map(return_subset_correlation, subset_indices)
+			spearman = map(return_subset_correlation, subset_indices, feature)
 			spearman = pd.concat(spearman, axis=1)
 			spearman.columns = cell_set_flags
 			#~ IPython.embed()
