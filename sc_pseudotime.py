@@ -1037,14 +1037,16 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, c
 			subset_indices = [exp_index]
 			cell_set_flags = ["exp"]
 			# check if map is returning spearman correlation and gene_expression_table
-			spearman = map(return_subset_correlation, subset_indices, feature)
+			spearman = [return_subset_correlation(x, feature) for x in subset_indices]
+			#~ spearman = map(return_subset_correlation, subset_indices, feature)
 			spearman = pd.concat(spearman, axis=1)
 			spearman.columns = cell_set_flags
 		else:
 			subset_indices = [exp_index, shctrl_index]
 			cell_set_flags = ["RBKD", "shCtrl"]
 			# check if map is returning spearman correlation and gene_expression_table
-			spearman = map(return_subset_correlation, subset_indices, feature)
+			spearman = [return_subset_correlation(x, feature) for x in subset_indices]
+			#~ spearman = map(return_subset_correlation, subset_indices, feature)
 			spearman = pd.concat(spearman, axis=1)
 			spearman.columns = cell_set_flags
 			#~ IPython.embed()
