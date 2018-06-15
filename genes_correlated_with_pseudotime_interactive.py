@@ -27,7 +27,7 @@ parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/sin
 parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/single_cell_tools/example_input_files/cell_sets.csv", help="cell sets", metavar="CELL_SETS")
 parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/single_cell_tools/example_input_files/plot_settings.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-r", "--corr-method", dest="corr_method", default="spearman", help="method of correlation (spearman or pearson)", metavar="CORR_METHOD")
-parser.add_argument("-f", "--feature", dest="feature", default="gene", help="feature of interest; either 'gene' or 'transcript' depending on desired output", metavar="FEATURE")
+parser.add_argument("-f", "--feature", dest="feature", help="feature of interest; either 'gene' or 'transcript' depending on desired output", metavar="FEATURE")
 parser.add_argument("-o", "--outfile", dest="outfile", default="gene_corr_with_ptime", help="a name to give to the output file", metavar="OUTFILE")
 parser.add_argument("-pt", "--pseudotime", dest="pseudotime", help="experimental cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=True)
 parser.add_argument("-cpt", "--control-pseudotime", dest="ctrl_pseudotime", help="control cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+')
@@ -306,9 +306,12 @@ while True:
 		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
 		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
 		DEGS = pd.read_csv(DEG_path, index_col=0, header=None)
-		DEGS = symbols_from_geneids(DEGS)
+		if options.feature == "gene":
+			DEGS = symbols_from_geneids(DEGS)
+		elif options.feature == "transcript":
+			DEGS = DEGS.index
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
-		IPython.embed()
+		#~ IPython.embed()
 		DEGS = corr[corr.index.isin(DEGS)].index
 		out_filename = output_dir+correlation_method+"_"+ptime+"_DEGS.pdf"
 		
