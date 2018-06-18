@@ -61,6 +61,7 @@ def symbols_from_geneids(geneids):
 	mg = mygene.MyGeneInfo()
 	# ~ for i in enumerate(genes): 
 	gene_info = mg.querymany(geneids.index, scopes='ensembl.gene', fields='symbol')
+	gene_info[:] = [d for d in gene_info if d.get('notfound') != True]
 	symbols = [d['symbol'] for d in gene_info]
 	return(symbols)
 
