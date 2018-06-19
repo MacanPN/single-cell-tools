@@ -26,9 +26,9 @@ option_list = list(
               help="gene expression input filename [default= %default]", metavar="character"),
   make_option(c("-a", "--annotation"), type="character", default=default_annotation,
               help="metadata about cells in input file [default= %default]", metavar="character"),
-  make_option(c("-c", "--cellset"), type="character", default=default_cell_info,
+  make_option(c("-c", "--cellset"), type="character", default=NA,
               help="tab delimited cell settings file [default= %default]", metavar="character"),
-  make_option(c("-p", "--plot_settings"), type="character", default=default_plot_settings,
+  make_option(c("-p", "--plot_settings"), type="character", default=NA,
               help="tab delimited plot settings file [default= %default]", metavar="character"), 
   make_option(c("-o", "--out"), type="character", default=NA,
               help="output file name [default= %default]", metavar="character")
