@@ -22,9 +22,9 @@ default_out = "/home/skevin"
 #'  section for parsing command line options when calling script
 #'  ###################################
 option_list = list(
-  make_option(c("-e", "--expr_mat"), type="character", default=default_expr_mat,
-              help="gene expression input filename [default= %default]", metavar="character"),
-  make_option(c("-a", "--annotation"), type="character", default=default_annotation,
+  make_option(c("-e", "--expr_mat"), type="character", default=NA,
+              help="expression matrix after census normalization [default= %default]", metavar="character"),
+  make_option(c("-a", "--annotation"), type="character", default=NA,
               help="metadata about cells in input file [default= %default]", metavar="character"),
   make_option(c("-c", "--cellset"), type="character", default=NA,
               help="tab delimited cell settings file [default= %default]", metavar="character"),
