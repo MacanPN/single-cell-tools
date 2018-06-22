@@ -240,7 +240,8 @@ plot_genes_summed_trx <- function(census_matrix, transcripts, annotation, facet)
 # load data ---------------------------------------------------------------
 
 print("loading census matrix")
-census_matrix = cataract::safe_read(opt$expr_mat)
+# census_matrix = cataract::safe_read(opt$expr_mat)
+census_matrix = readRDS(opt$expr_mat)
 print("loading cell metadata")
 annotation = cataract::safe_read(opt$annotation)
 
