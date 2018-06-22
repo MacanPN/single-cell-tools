@@ -23,6 +23,12 @@ default_cell_info <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/cell_se
 default_plot_settings <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
 default_out = "/home/skevin"
 
+shl <- mget(ls(pattern = "default"))
+save(shl, file = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
+
+load( "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
+list2env(shl, globalenv())
+
 #'  section for parsing command line options when calling script
 #'  ###################################
 option_list = list(
@@ -289,7 +295,7 @@ while (TRUE) {
     transcripts <- lookup_transcripts(input)
     transcripts <- transcripts[which(transcripts %in% rownames(census_matrix))]
     bplots <- plot_genes_summed_trx(census_matrix, transcripts, annotation, "cluster") 
-    pdf_out <- paste0(opt$out, input, ".pdf")
+    pdf_out <- paste0(opt$out, "/", input, ".pdf")
     pdf(pdf_out)
     invisible(lapply(bplots, print))
     dev.off()
@@ -313,7 +319,7 @@ while (TRUE) {
     transcripts <- rownames(diffex_genes[c(1:top_n),])
     transcripts <- transcripts[which(transcripts %in% rownames(census_matrix))]
     bplots <- plot_genes_summed_trx(census_matrix, transcripts, annotation, "day") 
-    pdf_out <- paste0(opt$out, diffex_group, ".pdf")
+    pdf_out <- paste0(opt$out, "/", diffex_group, ".pdf")
     pdf(pdf_out)
     invisible(lapply(bplots, print))
     dev.off()
@@ -338,7 +344,7 @@ while (TRUE) {
     
     transcripts <- transcripts[which(transcripts %in% rownames(census_matrix))]
     bplots <- plot_genes_summed_trx(census_matrix, transcripts, annotation, "cluster") 
-    pdf_out <- paste0(opt$out, diffex_group, ".pdf")
+    pdf_out <- paste0(opt$out, "/", diffex_group, ".pdf")
     pdf(pdf_out)
     invisible(lapply(bplots, print))
     dev.off()
