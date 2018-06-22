@@ -23,11 +23,16 @@ default_cell_info <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/cell_se
 default_plot_settings <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
 default_out = "/home/skevin"
 
-shl <- mget(ls(pattern = "default"))
-save(shl, file = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
+# shl <- mget(ls(pattern = "default"))
+# save(shl, file = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
 
-load( "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
-list2env(shl, globalenv())
+if (file.exists(default_expr_mat)){
+  load( "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
+  list2env(shl, globalenv())  
+} else {
+  default_home = "./" = default_expr_mat = default_annotation =  default_cell_info =  default_plot_settings = default_out
+}
+
 
 #'  section for parsing command line options when calling script
 #'  ###################################
