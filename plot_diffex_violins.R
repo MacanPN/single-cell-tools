@@ -2,6 +2,10 @@
 
 suppressMessages(library(optparse))
 
+
+# default data ------------------------------------------------------------
+
+
 # default_expr_mat = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/transcripts.tpm_census_matrix.csv"
 # default_annotation = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/FACS_20171031_sunlee_sample_sheet.csv"
 
@@ -22,13 +26,13 @@ default_out = "/home/skevin"
 #'  section for parsing command line options when calling script
 #'  ###################################
 option_list = list(
-  make_option(c("-e", "--expr_mat"), type="character", default=NA,
+  make_option(c("-e", "--expr_mat"), type="character", default=default_expr_mat,
               help="expression matrix after census normalization [default= %default]", metavar="character"),
-  make_option(c("-a", "--annotation"), type="character", default=NA,
+  make_option(c("-a", "--annotation"), type="character", default=default_annotation,
               help="metadata about cells in input file [default= %default]", metavar="character"),
-  make_option(c("-c", "--cellset"), type="character", default=NA,
+  make_option(c("-c", "--cellset"), type="character", default=default_cell_info,
               help="tab delimited cell settings file [default= %default]", metavar="character"),
-  make_option(c("-p", "--plot_settings"), type="character", default=NA,
+  make_option(c("-p", "--plot_settings"), type="character", default=default_plot_settings,
               help="tab delimited plot settings file [default= %default]", metavar="character"), 
   make_option(c("-o", "--out"), type="character", default=NA,
               help="output file name [default= %default]", metavar="character")
@@ -205,7 +209,7 @@ plot_trx_by_treatment_and_facet <- function(transcript, annotation, facet){
     inner_join(annotation)
   new_levels <- mixedsort(levels(filt_cm[[facet]]))
   filt_cm[[facet]] <- factor(filt_cm[[facet]], levels = new_levels)
-  bplot <- ggplot(data = filt_cm, aes(x=facet, y=counts)) + 
+  bplot <- ggplot(data = filt_cm, aes_string(x=facet, y="counts")) + 
     geom_boxplot() +
     geom_jitter(height = 0, width = 0.1) +
     # scale_x_discrete(mixedsort(levels(filt_cm[[facet]]))) +
@@ -243,6 +247,9 @@ if (!is.null(mt_settings$annotation)) {
 }
 
 
+# run while loop ----------------------------------------------------------
+
+
 while (TRUE) {
   question = "Choose from following:\n
                                     [P] Plot gene by treatment and day\n
@@ -259,7 +266,7 @@ while (TRUE) {
     break
   } else if (action == "P"){
     
-    # plot gene expression across all 16 sets ---------------------------------
+    # plot gene by treatment and day ---------------------------------
     
     gene_question <- "Enter gene symbol to plot (ex. MYCN): "
     cat(gene_question)
@@ -274,7 +281,7 @@ while (TRUE) {
     print(paste0("saving ", pdf_out))
   } else if (action == "M"){
     
-    # plot gene expression across all 16 sets ---------------------------------
+    # plot gene by treatment and cluster ---------------------------------
     
     gene_question <- "Enter gene symbol to plot (ex. MYCN): "
     cat(gene_question)
@@ -289,6 +296,9 @@ while (TRUE) {
     print(paste0("saving ", pdf_out))
   } else if (action == "L"){
     
+
+  # Plot list of genes by treatment and day -----------------------------
+
     treatment_question <- paste("Enter treatment_group to analyze (", prompt_genes_names, "): ")
     
     cat(treatment_question)
@@ -309,6 +319,9 @@ while (TRUE) {
     dev.off()
     print(paste0("saving ", pdf_out))
   } else if (action == "C"){
+    
+
+  # Plot list of genes by treatment and cluster -----------------------------
     
     treatment_question <- paste("Enter treatment_group to analyze (", prompt_genes_names, "): ")
     
@@ -331,6 +344,10 @@ while (TRUE) {
     dev.off()
     print(paste0("saving ", pdf_out))
   } else if (action == "I"){
+    
+
+  # debug -------------------------------------------------------------------
+
     browser()
     print("a")
   } 
