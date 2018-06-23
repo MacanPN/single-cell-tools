@@ -69,7 +69,7 @@ edb <- EnsDb.Hsapiens.v86
 
 
 find_remove_cells <- function(plot_settings, annotation){
-  browser()
+  # browser()
   test <- readLines(plot_settings)
   
   # if (!grepl('remove', test)){
