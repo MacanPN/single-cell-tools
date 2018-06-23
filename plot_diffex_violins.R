@@ -1,4 +1,4 @@
-#!/usr/local/bin/Rscript
+#!/usr/bin/Rscript
 
 suppressMessages(library(optparse))
 
@@ -267,9 +267,9 @@ annotation = cataract::safe_read(opt$annotation)
 mt_settings <- convert_mt_setting(opt$cellset, opt$plot_settings)
 
 if (!is.null(mt_settings$annotation)) {
-  removed_print <- annotation[annotation[,"sample_id"] %in% mt_settings$removed_cells,]
-  print("removing cells")
-  print(removed_print)
+  # removed_print <- annotation[annotation[,"sample_id"] %in% mt_settings$removed_cells,]
+  # print("removing cells")
+  # print(removed_print)
   
   exist_cols <- colnames(mt_settings$annotation)[!colnames(mt_settings$annotation) %in% colnames(annotation)]
   exist_cols <- c("sample_id", exist_cols)
