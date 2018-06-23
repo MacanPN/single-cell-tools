@@ -189,7 +189,7 @@ convert_mt_setting <- function(cell_settings, plot_settings){
   
 }
 
-take_input <- function(prompt = question, interactive = TRUE){
+take_input <- function(prompt = question, interactive = FALSE){
   if(interactive){
     param <- readline(prompt=question)
   } else {
