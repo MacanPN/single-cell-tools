@@ -893,7 +893,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 
 		expr_ann = annotation.loc[RBKD_over_ptime.index, :] 
 		# ~ ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
-		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
+		ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="log2 expression", c=expr_ann["color"], ax=ax)
 		lowess = sm.nonparametric.lowess
 		z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
@@ -905,7 +905,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		
 		# convert ctrl cells from gray to colored for plotting 
 		translate_colors = ctrl_ann.apply(day_to_color, args=(color_by_day,), axis=1)
-		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
+		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="log2 expression", c=translate_colors, ax=ax)
 		lowess = sm.nonparametric.lowess
 		#~ IPython.embed()
 		z = lowess(ctrl_over_ptime["expression"], pseudotime[pseudotime.index.isin(ctrl_over_ptime.index)])
@@ -921,7 +921,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		# convert ctrl cells from gray to colored for plotting 
 		translate_colors = ctrl_ann.apply(day_to_color, args=(color_by_day,), axis=1)
 		
-		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
+		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="log2 expression", c=translate_colors, ax=ax)
 		lowess = sm.nonparametric.lowess
 		z = lowess(ctrl_over_ptime["expression"], ctrl_pseudotime)
 		pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
