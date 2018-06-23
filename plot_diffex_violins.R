@@ -17,7 +17,7 @@ suppressMessages(library(optparse))
 # default_out = "~/monocle_test.pdf"
 
 #SHL 20170407
-default_expr_mat = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/sunhye_census_matrix_20170407.csv"
+default_expr_mat = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/sunhye_census_matrix_20170407.rds"
 default_annotation = "~/single_cell_pipeline/scde_input/shl_0407_w_centroids_cell_info.csv"
 default_cell_info <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv"
 default_plot_settings <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
@@ -69,12 +69,12 @@ edb <- EnsDb.Hsapiens.v86
 
 
 find_remove_cells <- function(plot_settings, annotation){
-  
+  browser()
   test <- readLines(plot_settings)
   
-  if (!grepl('remove', test)){
-    return(NULL)
-  }
+  # if (!grepl('remove', test)){
+  #   return(NULL)
+  # }
   
   vecs <- list()
   mtnames <- c()
@@ -189,7 +189,7 @@ convert_mt_setting <- function(cell_settings, plot_settings){
   
 }
 
-take_input <- function(prompt = question, interactive = FALSE){
+take_input <- function(prompt = question, interactive = TRUE){
   if(interactive){
     param <- readline(prompt=question)
   } else {
@@ -256,6 +256,10 @@ if (!is.null(mt_settings$annotation)) {
   oldannotation <- as.data.frame(annotation)
   names(oldannotation) <- tolower(names(oldannotation))
   annotation <- left_join(oldannotation, mt_settings$annotation, by = "sample_id")
+  
+  #remove cells from annoation and expression matrix
+  annotation <- annotation[!annotation$sample_id %in% mt_settings$removed_cells, ]
+  census_matrix2 <- census_matrix[,colnames(census_matrix) %in% annotation$sample_id] 
 }
 
 
