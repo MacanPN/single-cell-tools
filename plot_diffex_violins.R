@@ -1,4 +1,4 @@
-#!/usr/local/bin/Rscript
+#!/usr/bin/Rscript
 
 suppressMessages(library(optparse))
 
@@ -32,7 +32,7 @@ if (file.exists(default_expr_mat)){
   load( "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
   list2env(shl, globalenv())
 } else {
-  default_home = default_expr_mat = default_annotation =  default_cell_info =  default_plot_settings = default_out = NA
+  default_expr_mat = default_annotation =  default_cell_info =  default_plot_settings = default_out = NA
 
 }
 
@@ -70,7 +70,6 @@ edb <- EnsDb.Hsapiens.v86
 
 # load required functions -------------------------------------------------
 
-
 find_remove_cells <- function(plot_settings, annotation){
   # browser()
   test <- readLines(plot_settings)
@@ -86,20 +85,29 @@ find_remove_cells <- function(plot_settings, annotation){
       lbline = strsplit(i, "\t")
       d = unlist(lbline)[[2]]
       vecs <- append(vecs, lbline)
-      mtnames <- append(mtnames, d)    
+      # add treatment prefix
+      if (d %in% c("shCtrl", "sh733", "sh737")){
+        d <- paste0("treatment_", d)
+      }
+
+      mtnames <- append(mtnames, d) 
+      
     }
   }
   
+ 
+
+  
   pfx <- tolower(gsub("_.*", "", mtnames))
-  valid_pfx  <- which(pfx %in% colnames(annotation))
+  valid_pfx  <- which(pfx %in% tolower(colnames(annotation)))
   
   if (length(valid_pfx) == 0){
     return(NULL)
   }
   
+  which(pfx %in% annotation$treatment_group)
+  
   pfx <- pfx[valid_pfx]
-  
-  
   
   sfx <- gsub(".*_", "", mtnames[valid_pfx])
   
@@ -118,6 +126,7 @@ find_remove_cells <- function(plot_settings, annotation){
 
 
 match_cols <- function(match_vecs, sv_name){
+  # browser()
   out=NULL
   for (i in match_vecs){
     vetor <- i
@@ -130,7 +139,7 @@ match_cols <- function(match_vecs, sv_name){
 }
 
 convert_mt_setting <- function(cell_settings, plot_settings){
-  
+
   test <- readLines(cell_settings)
   
   vecs <- list()
@@ -144,6 +153,10 @@ convert_mt_setting <- function(cell_settings, plot_settings){
     }
     
   }
+  # browser()
+  # add treatment group label to conform to formatting of other tags
+  treatment_ind <- which(mtnames %in% c("shCtrl", "sh733", "sh737"))
+  mtnames[treatment_ind] <- paste0("treatment_", mtnames[treatment_ind])
   
   pfx <- unique(gsub("_.*", "", mtnames[grep("_", mtnames)]))
   pfx <- paste0(pfx, "_")
@@ -157,6 +170,7 @@ convert_mt_setting <- function(cell_settings, plot_settings){
   sub_vecs <- list()
   vec_names <- list()
   for (i in test){
+
     test_vec <- vecs[i]
     sub_vecs <- append(sub_vecs, list(test_vec))
   }
@@ -192,7 +206,7 @@ convert_mt_setting <- function(cell_settings, plot_settings){
   
 }
 
-take_input <- function(prompt = question, interactive = FALSE){
+take_input <- function(prompt = question, interactive = TRUE){
   if(interactive){
     param <- readline(prompt=question)
   } else {
@@ -253,6 +267,10 @@ annotation = cataract::safe_read(opt$annotation)
 mt_settings <- convert_mt_setting(opt$cellset, opt$plot_settings)
 
 if (!is.null(mt_settings$annotation)) {
+  removed_print <- annotation[annotation[,"sample_id"] %in% mt_settings$removed_cells,]
+  print("removing cells")
+  print(removed_print)
+  
   exist_cols <- colnames(mt_settings$annotation)[!colnames(mt_settings$annotation) %in% colnames(annotation)]
   exist_cols <- c("sample_id", exist_cols)
   
