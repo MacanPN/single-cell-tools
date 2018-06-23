@@ -32,7 +32,8 @@ if (file.exists(default_expr_mat)){
   load( "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
   list2env(shl, globalenv())
 } else {
-  default_home = NA = default_expr_mat = default_annotation =  default_cell_info =  default_plot_settings = default_out
+  default_home = default_expr_mat = default_annotation =  default_cell_info =  default_plot_settings = default_out = NA
+
 }
 
 
