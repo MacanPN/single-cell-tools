@@ -259,7 +259,7 @@ if (!is.null(mt_settings$annotation)) {
   
   #remove cells from annoation and expression matrix
   annotation <- annotation[!annotation$sample_id %in% mt_settings$removed_cells, ]
-  census_matrix2 <- census_matrix[,colnames(census_matrix) %in% annotation$sample_id] 
+  census_matrix <- census_matrix[,colnames(census_matrix) %in% annotation$sample_id] 
 }
 
 
