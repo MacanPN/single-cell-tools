@@ -19,18 +19,20 @@ suppressMessages(library(optparse))
 #SHL 20170407
 default_expr_mat = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/sunhye_census_matrix_20170407.rds"
 default_annotation = "~/single_cell_pipeline/scde_input/shl_0407_w_centroids_cell_info.csv"
-default_cell_info <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv"
-default_plot_settings <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
+# default_cell_info <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv"
+# default_plot_settings <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
+default_cell_info <- "~/tmp/New_cells_sets_3_1.csv"
+default_plot_settings <- "~/tmp/New_plot_settings_2d.csv"
 default_out = "/home/skevin"
 
-# shl <- mget(ls(pattern = "default"))
-# save(shl, file = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
+shl <- mget(ls(pattern = "default"))
+save(shl, file = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
 
 if (file.exists(default_expr_mat)){
   load( "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
-  list2env(shl, globalenv())  
+  list2env(shl, globalenv())
 } else {
-  default_home = "./" = default_expr_mat = default_annotation =  default_cell_info =  default_plot_settings = default_out
+  default_home = NA = default_expr_mat = default_annotation =  default_cell_info =  default_plot_settings = default_out
 }
 
 
@@ -45,7 +47,7 @@ option_list = list(
               help="tab delimited cell settings file [default= %default]", metavar="character"),
   make_option(c("-p", "--plot_settings"), type="character", default=default_plot_settings,
               help="tab delimited plot settings file [default= %default]", metavar="character"), 
-  make_option(c("-o", "--out"), type="character", default=NA,
+  make_option(c("-o", "--out"), type="character", default="/home/skevin",
               help="output file name [default= %default]", metavar="character")
 );
 
@@ -215,9 +217,11 @@ lookup_transcripts <- function(genename){
 }
 
 plot_trx_by_treatment_and_facet <- function(transcript, annotation, facet){
+  # browser()
   filt_cm <- census_matrix[rownames(census_matrix) %in% transcript,]
   filt_cm <- tidyr::gather(filt_cm, "sample_id", "counts") %>% 
     inner_join(annotation)
+  filt_cm <- filt_cm[!is.na(filt_cm[[facet]]),]
   new_levels <- mixedsort(levels(filt_cm[[facet]]))
   filt_cm[[facet]] <- factor(filt_cm[[facet]], levels = new_levels)
   bplot <- ggplot(data = filt_cm, aes_string(x=facet, y="counts")) + 
