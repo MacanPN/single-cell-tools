@@ -25,8 +25,8 @@ default_cell_info <- "~/tmp/New_cells_sets_3_1.csv"
 default_plot_settings <- "~/tmp/New_plot_settings_2d.csv"
 default_out = "/home/skevin"
 
-shl <- mget(ls(pattern = "default"))
-save(shl, file = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
+# shl <- mget(ls(pattern = "default"))
+# save(shl, file = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
 
 if (file.exists(default_expr_mat)){
   load( "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
