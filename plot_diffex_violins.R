@@ -12,24 +12,25 @@ suppressMessages(library(optparse))
 # default_clusters = "~/single_cell_pipeline/scde_input/diffex_by_trs_clusters_1_4/"
 
 #SHL 20171031
-# default_infile <- "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/FACS_20171031_sunlee_H_sapiens_summarized_experiment.rds"
-# default_cell_info = "~/single_cell_tools/FACS_0407_1031_SHL_input_files/cells_sets_1_2.csv"
-# default_out = "~/monocle_test.pdf"
+# default_expr_mat = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/FACS_20171031_sunlee_H_sapiens_census_matrix.rds"
+# default_annotation = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/FACS_20171031_sunlee_H_sapiens_census_matrix_meta.csv"
+# default_cell_info <- "~/single_cell_tools/FACS_1031_2017_SHL_input_files/cells_sets_1031_2017.csv"
+# default_plot_settings <- "~/single_cell_tools/FACS_1031_2017_SHL_input_files/plot_settings_1031_2017.csv"
+# default_out = "/home/skevin"
 
 #SHL 20170407
-default_expr_mat = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/sunhye_census_matrix_20170407.rds"
-default_annotation = "~/single_cell_pipeline/scde_input/shl_0407_w_centroids_cell_info.csv"
-# default_cell_info <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv"
-# default_plot_settings <- "~/single_cell_tools/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
-default_cell_info <- "~/tmp/New_cells_sets_3_1.csv"
-default_plot_settings <- "~/tmp/New_plot_settings_2d.csv"
-default_out = "/home/skevin"
+# default_expr_mat = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/sunhye_census_matrix_20170407.rds"
+# default_annotation = "~/single_cell_pipeline/scde_input/shl_0407_w_centroids_cell_info.csv"
+# default_cell_info <- "~/tmp/New_cells_sets_3_1.csv"
+# default_plot_settings <- "~/tmp/New_plot_settings_2d.csv"
+# default_out = "/home/skevin"
 
 # shl <- mget(ls(pattern = "default"))
-# save(shl, file = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
+# save(shl, file = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/shl_1031_plot_diffex_input.rda")
 
 if (file.exists(default_expr_mat)){
   load( "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda")
+  # load( "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/shl_1031_plot_diffex_input.rda")
   list2env(shl, globalenv())
 } else {
   default_expr_mat = default_annotation =  default_cell_info =  default_plot_settings = default_out = NA
@@ -48,7 +49,7 @@ option_list = list(
               help="tab delimited cell settings file [default= %default]", metavar="character"),
   make_option(c("-p", "--plot_settings"), type="character", default=default_plot_settings,
               help="tab delimited plot settings file [default= %default]", metavar="character"), 
-  make_option(c("-o", "--out"), type="character", default="/home/skevin",
+  make_option(c("-o", "--out"), type="character", default=default_out,
               help="output file name [default= %default]", metavar="character")
 );
 
@@ -185,9 +186,10 @@ convert_mt_setting <- function(cell_settings, plot_settings){
   
   
   if (is.list(param_dfs) & length(param_dfs) != 0) {
+    # browser()
     param_dfs <- param_dfs %>%
-      Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2,by="sample_id"), .) %>% 
-      arrange(sample_id)  
+      Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="sample_id"), .) %>% 
+      dplyr::arrange(sample_id)  
     
     dup_cells <- which(duplicated(param_dfs[,1]))
     if (any(dup_cells)){
@@ -239,17 +241,42 @@ plot_trx_by_treatment_and_facet <- function(transcript, annotation, facet){
   filt_cm <- filt_cm[!is.na(filt_cm[[facet]]),]
   new_levels <- mixedsort(levels(filt_cm[[facet]]))
   filt_cm[[facet]] <- factor(filt_cm[[facet]], levels = new_levels)
-  bplot <- ggplot(data = filt_cm, aes_string(x=facet, y="counts")) + 
+  
+  RBKD_filt_cm <- filt_cm %>% 
+    dplyr::filter(treatment_group %in% c("sh733", "sh737", "sh842")) %>% 
+    dplyr::mutate(treatment_group = "RBKD")
+  
+  comb_filt_cm <- rbind(RBKD_filt_cm, filt_cm)
+  
+  
+  if(any(comb_filt_cm$day %in% c("day_15"))){
+      dplyr::mutate(day = dplyr::case_when(
+        day %in% c("day_3", "day_5") ~ "day 3-5",
+        day %in% c("day_7", "day_9") ~ "day 7-9",
+        day %in% c("day_12", "day_15") ~ "day 12-15",
+        TRUE ~ as.character(day)
+      ))
+  }
+  
+  comb_filt_cm <- comb_filt_cm[!is.na(comb_filt_cm$day),]
+  
+  comb_filt_cm$day <- factor(comb_filt_cm$day, levels <- unique(comb_filt_cm$day))
+  # comb_filt_cm$day <- factor(comb_filt_cm$day, levels = c("RBKD", levels(filt_cm$treatment_group)))
+  # comb_filt_cm$treatment_group <- factor(comb_filt_cm$treatment_group, levels = c("RBKD", levels(filt_cm$treatment_group)))
+  
+  bplot <- ggplot(data = comb_filt_cm, aes_string(x=facet, y="counts")) + 
     geom_boxplot() +
     geom_jitter(height = 0, width = 0.1) +
     # scale_x_discrete(mixedsort(levels(filt_cm[[facet]]))) +
     facet_grid(. ~ treatment_group) + 
     theme(axis.text.x=element_text(angle=90, hjust=1)) +
     labs(title = lookup_genes(transcript), subtitle = transcript)
+
   return(bplot)
 }
 
 plot_genes_summed_trx <- function(census_matrix, transcripts, annotation, facet){
+  # browser()
   # input = readline(prompt="Enter gene symbol to plot (ex. MYCN): ")
   # prep_transcripts <- lapply(transcripts, prep_transcript)
   bplots <- lapply(transcripts, plot_trx_by_treatment_and_facet, annotation, facet)
