@@ -1,4 +1,4 @@
-#!/usr/local/bin/Rscript
+#!/usr/bin/Rscript
 
 suppressMessages(library(optparse))
 
@@ -12,11 +12,11 @@ suppressMessages(library(optparse))
 # default_clusters = "~/single_cell_pipeline/scde_input/diffex_by_trs_clusters_1_4/"
 
 #SHL 20171031
-# default_expr_mat = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/FACS_20171031_sunlee_H_sapiens_census_matrix.rds"
-# default_annotation = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/FACS_20171031_sunlee_H_sapiens_census_matrix_meta.csv"
-# default_cell_info <- "~/single_cell_tools/FACS_1031_2017_SHL_input_files/cells_sets_1031_2017.csv"
-# default_plot_settings <- "~/single_cell_tools/FACS_1031_2017_SHL_input_files/plot_settings_1031_2017.csv"
-# default_out = "/home/skevin"
+default_expr_mat = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/FACS_20171031_sunlee_H_sapiens_census_matrix.rds"
+default_annotation = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/FACS_20171031_sunlee_H_sapiens_census_matrix_meta.csv"
+default_cell_info <- "~/single_cell_tools/FACS_1031_2017_SHL_input_files/cells_sets_4.csv"
+default_plot_settings <- "~/single_cell_tools/FACS_1031_2017_SHL_input_files/plot_settings_2d.csv"
+default_out = "/home/skevin"
 
 #SHL 20170407
 # default_expr_mat = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/sunhye_census_matrix_20170407.rds"
@@ -25,12 +25,12 @@ suppressMessages(library(optparse))
 # default_plot_settings <- "~/tmp/New_plot_settings_2d.csv"
 # default_out = "/home/skevin"
 
+# input_rda <- "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda"
+input_rda <- "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/shl_1031_plot_diffex_input.rda"
+
 # shl <- mget(ls(pattern = "default"))
-# save(shl, file = "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/shl_1031_plot_diffex_input.rda")
-
-input_rda <- "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_plot_diffex_input.rda"
-# input_rda <- "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/shl_1031_plot_diffex_input.rda"
-
+# save(shl, file = input_rda)
+  
 if (file.exists(input_rda)){
   load( input_rda)
   list2env(shl, globalenv())
@@ -142,9 +142,10 @@ match_cols <- function(match_vecs, sv_name){
 }
 
 convert_mt_setting <- function(cell_settings, plot_settings){
-
+  # browser()
   test <- readLines(cell_settings)
-  
+  # drop blank lines
+  test <- test[grepl(".*", test)]
   vecs <- list()
   mtnames <- c()
   for (i in test){
@@ -250,12 +251,11 @@ plot_trx_by_treatment_and_facet <- function(transcript, annotation, facet){
   
   comb_filt_cm <- rbind(RBKD_filt_cm, filt_cm)
   
-  
   if(any(comb_filt_cm$day %in% c("day_15"))){
-      dplyr::mutate(day = dplyr::case_when(
-        day %in% c("day_3", "day_5") ~ "day 3-5",
-        day %in% c("day_7", "day_9") ~ "day 7-9",
-        day %in% c("day_12", "day_15") ~ "day 12-15",
+      comb_filt_cm <- dplyr::mutate(comb_filt_cm, day = dplyr::case_when(
+        day == "day_3" | day == "day_5" ~ "day 3-5",
+        day == "day_7" | day == "day_9" ~ "day 7-9",
+        day == "day_12" | day == "day_15" ~ "day 12-15",
         TRUE ~ as.character(day)
       ))
   }
@@ -265,7 +265,7 @@ plot_trx_by_treatment_and_facet <- function(transcript, annotation, facet){
   comb_filt_cm$day <- factor(comb_filt_cm$day, levels <- unique(comb_filt_cm$day))
   # comb_filt_cm$day <- factor(comb_filt_cm$day, levels = c("RBKD", levels(filt_cm$treatment_group)))
   # comb_filt_cm$treatment_group <- factor(comb_filt_cm$treatment_group, levels = c("RBKD", levels(filt_cm$treatment_group)))
-  
+
   bplot <- ggplot(data = comb_filt_cm, aes_string(x=facet, y="counts")) + 
     geom_boxplot() +
     geom_jitter(height = 0, width = 0.1) +
@@ -367,18 +367,21 @@ while (TRUE) {
 
   # Plot list of genes by treatment and day -----------------------------
 
-    treatment_question <- paste("Enter treatment_group to analyze (", prompt_genes_names, "): ")
+    treatment_question <- paste0("Provide filepath to list of genes (as .txt file)")
     
     cat(treatment_question)
-    diffex_group <- take_input(treatment_question)
+    gene_list <- take_input(treatment_question)
     # diffex_group <- readline(prompt=treatment_question)
-    diffex_genes <- read.csv(new_genes_names[grep(diffex_group, new_genes_names)])
+    gene_list <- read.csv(gene_list)
     
-    top_n_question <- "how many genes do you want to plot? "
-    cat(top_n_question)
-    top_n <- take_input(top_n_question)
+    # top_n_question <- "how many genes do you want to plot? "
+    # cat(top_n_question)
+    # top_n <- take_input(top_n_question)
     
-    transcripts <- rownames(diffex_genes[c(1:top_n),])
+    # transcripts <- rownames(diffex_genes[c(1:top_n),])
+    
+    transcripts <- gene_list[,1]
+    
     transcripts <- transcripts[which(transcripts %in% rownames(census_matrix))]
     bplots <- plot_genes_summed_trx(census_matrix, transcripts, annotation, "day") 
     pdf_out <- paste0(opt$out, "/", diffex_group, ".pdf")
@@ -391,23 +394,23 @@ while (TRUE) {
 
   # Plot list of genes by treatment and cluster -----------------------------
     
-    treatment_question <- paste("Enter treatment_group to analyze (", prompt_genes_names, "): ")
+    treatment_question <- paste0("Provide filepath to list of genes (as .txt file)")
     
     cat(treatment_question)
     diffex_group <- take_input(treatment_question)
     # diffex_group <- readline(prompt=treatment_question)
-    diffex_genes <- read.csv(new_genes_names[grep(diffex_group, new_genes_names)])
+    gene_list <- read.csv(gene_list)
     
-    top_n_question <- "how many genes do you want to plot? "
-    cat(top_n_question)
-    top_n <- take_input(top_n_question)
+    # top_n_question <- "how many genes do you want to plot? "
+    # cat(top_n_question)
+    # top_n <- take_input(top_n_question)
     
     transcripts <- rownames(diffex_genes[c(1:top_n),])
     
     transcripts <- transcripts[which(transcripts %in% rownames(census_matrix))]
     bplots <- plot_genes_summed_trx(census_matrix, transcripts, annotation, "cluster") 
-    pdf_out <- paste0(opt$out, "/", diffex_group, ".pdf")
-    pdf(pdf_out)
+    pdf_out <- paste0(opt$out, "/", basename(diffex_group), ".pdf")
+      pdf(pdf_out)
     invisible(lapply(bplots, print))
     dev.off()
     print(paste0("saving ", pdf_out))
