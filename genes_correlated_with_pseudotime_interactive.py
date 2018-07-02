@@ -249,6 +249,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 			for key in pt:
 				ax[0][pt.keys().index(key)].set_title(key+"_"+correlation_method+"=%.2f" % corr.loc[t,key+"_exp_corr"])
 
+
 		else: 
 			while cntr < len(plot_id):
 				plot_gene_with_pseudotime(expression_table, pt[ptime], t, annotation, ax=ax[0+cntr], plot_id=plot_id[cntr], ctrl_pseudotime=ctrl_pseudotime)
@@ -257,8 +258,11 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 			ax[0].set_title(plot_id[0]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_exp_corr"])
 			ax[1].set_title(plot_id[1]+"_"+correlation_method+"=%.2f" % corr.loc[t,ptime+"_ctrl_corr"])
 			ax[2].set_title(plot_id[2]+"_w_Ctrl_pseudotime_"+correlation_method+"=%.2f" % ctrl_corr.loc[t,ctrl_ptime])
+
 		
 		plt.tight_layout()
+		plt.xlabel("pseudotime")
+		plt.ylabel("log 2 expression")
 		plt.subplots_adjust(top=0.85)
 		pp.savefig()
 	pp.close()
