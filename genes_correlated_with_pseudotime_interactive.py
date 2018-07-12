@@ -105,9 +105,9 @@ else:
 	cpt = map(read_pseudotime_from_file, ctrl_pseudotime_files)
 	cptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ctrl_pseudotime_files]
 	cpt = dict(zip(cptime_titles, cpt))
-	if options.feature == "transcript":
+	if (options.feature == "transcript" or options.feature == "transcripts"):
 		ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_transcript_correlation.csv"
-	elif options.feature == "gene":
+	elif (options.feature == "gene" or options.feature == "genes"):
 		ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_symbol_correlation.csv"
 
 	#~ gene_exp_file = "_".join(cptime_titles)+"_"+correlation_method+"_gene_expression.csv"
