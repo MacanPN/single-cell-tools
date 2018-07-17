@@ -110,9 +110,7 @@ def retrieve_subset_param():
 
 def subset_pc_expression(pc_expression, colnm, colval):
 	if not all(colval):
-		# ~ IPython.embed()
 		# ~ clusters_without_time = get_cluster_labels(linkage, number_of_clusters, subset_PC_expression.index)
-		# ~ IPython.embed()
 		# ~ cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
 		# ~ change_annotation_colors_to_clusters(clusters_without_time, subset_annotation, cluster_colors)
 		return annotation, PC_expression
@@ -120,7 +118,6 @@ def subset_pc_expression(pc_expression, colnm, colval):
 		if colnm not in annotation.columns:
 			print("metadat not recognized (spelling error?)")
 			colnm, colval = retrieve_subset_param()
-		#~ IPython.embed()
 		subset_annotation = annotation[annotation[colnm].isin(colval)]
 		# add day0 cells to all subset_annotations if not removed in plot_settings
 		day0_annotation = annotation[annotation["day"]==0.0]
@@ -164,7 +161,6 @@ def normalize_centroids(subset_pc_expression):
 		for i,j in zip(coords, sub_ctrl_cntrds.index):
 			trace[i] = trace[i] - (sub_ctrl_cntrds.loc[j,] - sub_ctrl_cntrds.loc[j,0])
 		fig["data"][-1] = trace
-	#~ IPython.embed()
 	return(fig)
 	#~ trace = record_centroids(clusters, comb, settings)
 	#~ centroids = pd.DataFrame([])
@@ -241,7 +237,6 @@ while True:
 					old_colors = subset_annotation["color"]
 					subset_annotation, subset_PC_expression = subset_pc_expression(subset_PC_expression, colnm, colvalp)
 					subset_annotation.loc[:,"color"] = old_colors[old_colors.index.isin(subset_annotation.index)]
-					#~ IPython.embed()
 					new_clusters = [(i, c[c.isin(subset_annotation.index)]) for i,c in subset_clusters]
 					plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = new_clusters)
 					del subset_annotation, subset_PC_expression

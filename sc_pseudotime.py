@@ -707,6 +707,7 @@ def rotate_expression(transformed_expression,x,y,angle):
 # - pca sklearn.decomposition object
 # - settings object
 def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=None):
+	#~ ipdb.set_trace()
 	n_pca = len(transformed_expression.columns)
 	transformed_expression["day"] = annotation["day"]
 	transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
@@ -751,7 +752,7 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
 		ax3.set_ylabel("distance between RBKD and Ctrl [green]")
 	plt.tight_layout()
 	low,high = plt.xlim()
-	plt.xlim(low-0.5, high)
+	plt.xlim(low-0.5, high+0.5)
 	plt.savefig(spearman_filename, dpi=200)
 	#~ ipdb.set_trace()
 	if user_pcs:
@@ -872,7 +873,6 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None, plot_id=None, ctrl_pseudotime=None):
 	expr_over_ptime = pd.DataFrame(pseudotime)
-	#~ IPython.embed()
 	expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
 	if ctrl_pseudotime is not None:
 		ctrl_over_ptime = pd.DataFrame(ctrl_pseudotime)
@@ -907,7 +907,6 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
 		translate_colors = ctrl_ann.apply(day_to_color, args=(color_by_day,), axis=1)
 		ax = ctrl_over_ptime.plot.scatter(x="pseudotime", y="expression", c=translate_colors, ax=ax)
 		lowess = sm.nonparametric.lowess
-		#~ IPython.embed()
 		z = lowess(ctrl_over_ptime["expression"], pseudotime[pseudotime.index.isin(ctrl_over_ptime.index)])
 		subplt = pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
 		# hardcode x-axis so that control is directly comparable to RBKD
@@ -975,7 +974,6 @@ def trx_to_gene_exp_table(expression_table, gene_trx_dic):
 		gene_col.columns = [gene]
 		#generate gene-level exprescsion table
 		gene_exp.append(gene_col)
-		#~ IPython.embed()
 	
 	gene_exp = pd.concat(gene_exp, axis = 1)
 	gene_exp.columns = gene_trx_dic.keys()
@@ -1050,7 +1048,6 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, c
 			#~ spearman = map(return_subset_correlation, subset_indices, feature)
 			spearman = pd.concat(spearman, axis=1)
 			spearman.columns = cell_set_flags
-			#~ IPython.embed()
 
 	return spearman
 	
