@@ -206,15 +206,20 @@ while True:
 		break
 		#~ exit()
 	elif(action == "H"):
-		number_of_clusters = int(raw_input("How many clusters would you like to generate? "))
+		
+		color_scheme = raw_input("How would you like to color dendrogram? ('retain' to keep current pca plot colors, 'overwrite' to use new colors) ")
+		if color_scheme == "overwrite":
+		  number_of_clusters = int(raw_input("How many clusters would you like to generate? "))
+		else:
+		  number_of_clusters = 3
 		sett.num_clusters = number_of_clusters
 		print("plotting...\n dendrogram will be saved as a .pdf shortly")
 		try:
 			subset_annotation
 		except:
-			plot_all_hierarchical_clusterings(PC_expression, annotation, sett)
+			plot_all_hierarchical_clusterings(PC_expression, annotation, color_scheme, sett)
 		else:
-			plot_all_hierarchical_clusterings(PC_expression, subset_annotation, sett)
+			plot_all_hierarchical_clusterings(PC_expression, subset_annotation, color_scheme, sett)
 	elif(action == "P"):
 		colnm, colvalp = retrieve_subset_param()
 		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
@@ -274,6 +279,7 @@ while True:
 	elif(action == "S"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
+		#~ IPython.embed()
 		pseudotime, centroids = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, subset_clusters, sett)
 		
 	elif(action == "O"):

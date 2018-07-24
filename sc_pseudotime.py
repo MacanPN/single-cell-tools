@@ -592,7 +592,7 @@ def change_annotation_colors_to_clusters(clusters, annotation, colors):
 # - annotation pd.DataFrame
 # - settings object
 # - filename for output picture
-def plot_all_hierarchical_clusterings(transformed_expression, annotation, settings, clusters=None):
+def plot_all_hierarchical_clusterings(transformed_expression, annotation, color_scheme, settings, clusters=None):
 	
 	link_color = {}
 	def link_color_func(node):
@@ -605,7 +605,7 @@ def plot_all_hierarchical_clusterings(transformed_expression, annotation, settin
 	i=0
 	pp = PdfPages(settings.result_filename+"-clustering.pdf")
 	for method in scipy_linkage_methods:
-		plot_hierarchical_clustering(transformed_expression, annotation, method=method, sett=settings, clusters=clusters)
+		plot_hierarchical_clustering(transformed_expression, annotation, method=method, color_scheme=color_scheme, sett=settings, clusters=clusters)
 		i += 1
 		pp.savefig()
 	pp.close()
@@ -618,8 +618,9 @@ def plot_all_hierarchical_clusterings(transformed_expression, annotation, settin
 #  arguments are:
 # - pd.DataFrame with PCA transformed gene expression
 # - method of linkages (ward, complete, average, etc.)
-def plot_hierarchical_clustering(transformed_expression, annotation, method, color_scheme="static", sett=settings, clusters=None):
+def plot_hierarchical_clustering(transformed_expression, annotation, method, color_scheme="overwrite", sett=settings, clusters=None):
 	# color links on the basis of connection to same-group neighbor. 
+
 	# If neighbors in same group, color identically. If neighbors in different groups, color gray.
 	def colorize_links(linkage):
 		l_color = {}
@@ -650,10 +651,11 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
 			
 	linkage = sc.cluster.hierarchy.linkage(transformed_expression, method=method)
 	
-	
 	clusters_without_time = get_cluster_labels(linkage, sett.num_clusters, transformed_expression.index)
 	cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
-	change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
+
+	if color_scheme == "overwrite":
+	  change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
 	clusters = []
 	
 	for i in range(0,sett.num_clusters):
@@ -811,6 +813,7 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 	palette_size = int(raw_input("What palette size would you like to use (how many colors)? "))
 	calculate_on = list_from_ranges(raw_input("Which PCs would you like to use for calculating pseudotime? [type comma separated list, list can also include ranges 1-5,8] "))
 	used_PC_expression = PC_expression[calculate_on]
+
 	centroids = get_cluster_centroids(used_PC_expression, clusters)
 	sq_distances = pd.DataFrame(index=used_PC_expression.index, columns=[])
 	weights = pd.DataFrame(index=used_PC_expression.index, columns=[])
@@ -1109,6 +1112,7 @@ def get_cluster_centroids(PC_expression, clusters):
 		centroids.append(PC_expression.loc[cl[1],:].mean())
 	# append "first cell" and "last cell" to centroids to 
 	# based on extrapolation of trace from centroids 0 to 1 and n-1 to n respectively
+
 	half_trace_seg_1 = (centroids[0] - centroids[1])/2
 	half_trace_seg_n = (centroids[-1] - centroids[-2])/2
 	first_cell = centroids[0] + half_trace_seg_1
