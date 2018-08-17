@@ -412,7 +412,7 @@ def shape_plotly2matplotlib(s):
 # - pd.DataFrame with PCA transformed gene expression 
 # - annotation pd.DataFrame
 # - settings object
-def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, bin_col_dict=None, height = 1080, width = 1600, genes=None, DEBUG=False):
+def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, bin_col_dict=None, height = 1080, width = 1600, features=None, feat_type="gene", DEBUG=False):
 	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
 	#print(used_pcs.max())
@@ -458,35 +458,59 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 	if "name" not in comb.columns:
 		comb["name"] = comb["color"]+"_"+comb["shape"]
 	traces = comb["name"].unique()
-	# allow coloring cells by quantile expression of supplied genes
-	if (genes is not None):
-		markers = list(annotation["shape"].unique())
-		mg = mygene.MyGeneInfo()
-		# ~ for i in enumerate(genes): 
-		gene_info = mg.querymany(genes, scopes='symbol', fields='ensembl.transcript')[0]
-		if len(gene_info['ensembl']) > 1:
-			trx = gene_info['ensembl'][0]['transcript']
-		else:
-			trx = gene_info['ensembl']['transcript']
-		#test = all(elem in test for elem in expression_table.columns)
-		if type(trx) == list:
-			sum_trx = expression_table.loc[:,trx].sum(axis=1)
-			# catch pandas omission of missing list values in loc; incompatible between pandas versions
-			#~ sub_trx = expression_table.reindex(trx, axis = 1)
-			#~ sum_trx = sub_trx.loc[:,trx].sum(axis=1)
-		else:
-			sum_trx = expression_table.loc[:,trx]
+	# allow coloring cells by quantile expression of supplied features
+	if (feat_type == "g"):
+		if (features is not None):
+			markers = list(annotation["shape"].unique())
+			mg = mygene.MyGeneInfo()
+			# ~ for i in enumerate(features): 
+			gene_info = mg.querymany(features, scopes='symbol', fields='ensembl.transcript')[0]
+			if len(gene_info['ensembl']) > 1:
+				trx = gene_info['ensembl'][0]['transcript']
+			else:
+				trx = gene_info['ensembl']['transcript']
+			#test = all(elem in test for elem in expression_table.columns)
+			if type(trx) == list:
+				sum_trx = expression_table.loc[:,trx].sum(axis=1)
+				# catch pandas omission of missing list values in loc; incompatible between pandas versions
+				#~ sub_trx = expression_table.reindex(trx, axis = 1)
+				#~ sum_trx = sub_trx.loc[:,trx].sum(axis=1)
+			else:
+				sum_trx = expression_table.loc[:,trx]
+			
+			# color by quantile
+			trx_df = sum_trx.to_frame('trx_count')
+			number_of_bins = len(bin_col_dict.keys())
+			bin_labels=bin_col_dict.keys()
+			
+			trx_df['bin'] = pd.cut(trx_df.trx_count, number_of_bins, labels=bin_labels)
+			trx_df['color'] = trx_df['bin'].map(bin_col_dict)
+			comb['color'] = trx_df['color']
+			comb['name'] = trx_df['bin']
+			traces = comb["name"].unique().sort_values()
 		
-		# color by quantile
-		trx_df = sum_trx.to_frame('trx_count')
-		number_of_bins = len(bin_col_dict.keys())
-		bin_labels=bin_col_dict.keys()
+	if (feat_type == "t"):
+		# ~ IPython.embed()
+		# ~ ipdb.set_trace()
+		if (features is not None):
+			markers = list(annotation["shape"].unique())
+			mg = mygene.MyGeneInfo()
+			# ~ for i in enumerate(features): 
+			gene_info = mg.querymany(features, scopes='symbol', fields='ensembl.transcript')[0]
+			sum_trx = expression_table.loc[:,features]
+			
+			# color by quantile
+			trx_df = sum_trx.to_frame('trx_count')
+			number_of_bins = len(bin_col_dict.keys())
+			bin_labels=bin_col_dict.keys()
+			
+			trx_df['bin'] = pd.cut(trx_df.trx_count, number_of_bins, labels=bin_labels)
+			trx_df['color'] = trx_df['bin'].map(bin_col_dict)
+			comb['color'] = trx_df['color']
+			comb['name'] = trx_df['bin']
+			traces = comb["name"].unique().sort_values()
 		
-		trx_df['bin'] = pd.cut(trx_df.trx_count, number_of_bins, labels=bin_labels)
-		trx_df['color'] = trx_df['bin'].map(bin_col_dict)
-		comb['color'] = trx_df['color']
-		comb['name'] = trx_df['bin']
-		traces = comb["name"].unique().sort_values()
+		
 
 	data = []
 	for t in traces:
@@ -533,9 +557,9 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 			nested_set(layout, ['scene', c, 'range'], [layout['scene'][c]['range'][0],trace[i].max()])
 			
 	# ~ fig = dict(data=data, layout=layout)
-	if (genes is not None):
+	if (features is not None):
 		fig = go.Figure(data=data, layout=layout)
-		url = plotly.offline.plot(fig, filename=settings.result_filename+"_"+genes, validate=False, auto_open=False)
+		url = plotly.offline.plot(fig, filename=settings.result_filename+"_"+features, validate=False, auto_open=False)
 	else:
 		fig = dict(data=data, layout=layout)
 		url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)

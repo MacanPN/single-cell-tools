@@ -292,15 +292,31 @@ while True:
 		sett.pcs = pcs
 		bins = int(raw_input("How many bins would you like to quantile? "))
 		sett.bins = bins
-		marker_genes = raw_input("Which marker genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
+		features = raw_input("Which genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
+		feat_type = raw_input("Plot by gene (g) or by transcript (t)? ")
 		bin_colors = ["grey", "sky-blue", "blue", "light green", "green", "orange", "red", "dark red"]
 		bin_col_dict = dict(zip(range(0,bins), bin_colors))
 		# ~ bin_col_dict = {}
 		# ~ for i in range(0,bins):
 			# ~ color = raw_input("Assign color for bin "+str(i)+": ")
 			# ~ bin_col_dict.update({i:color})
-		for i in marker_genes:
-			plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, genes=i, bin_col_dict=bin_col_dict, expression_table=expression_table)
+		if feat_type == "g":
+			for i in features:
+				plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, features=i, bin_col_dict=bin_col_dict, expression_table=expression_table, feat_type = feat_type)
+		elif feat_type == "t":
+			for i in features:
+				sett.result_filename = sett.result_filename+"_"+i
+				markers = list(annotation["shape"].unique())
+				mg = mygene.MyGeneInfo()
+				# ~ for i in enumerate(features): 
+				gene_info = mg.querymany(i, scopes='symbol', fields='ensembl.transcript')[0]
+				if len(gene_info['ensembl']) > 1:
+					trx = gene_info['ensembl'][0]['transcript']
+				else:
+					trx = gene_info['ensembl']['transcript']
+				for j in trx:
+					if j in expression_table.columns:
+						plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, features=j, bin_col_dict=bin_col_dict, expression_table=expression_table, feat_type = feat_type)
 		# ~ plot_marker_gene_quantile(expression_table, subset_PC_expression, subset_annotation, pcs, sett, marker_genes)
 		
 		
