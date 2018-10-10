@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import pandas as pd
 import matplotlib
@@ -51,10 +51,10 @@ annotation["name"] = "day "+annotation["day"].astype(str)
 def assign_time_clusters_using_clustering(colnm=None, colval=None):
 	pc_set = "Which PCs would you like to use for clustering? [type comma separated list, list can also include ranges 1-5,8] "
 	scipy_linkage_methods = [ "complete", "average", "single", "centroid", "median", "ward"]
-	cluster_on_pcs = list_from_ranges(raw_input(pc_set))
-	number_of_clusters = int(raw_input("How many clusters would you like to generate? "))
+	cluster_on_pcs = list_from_ranges(input(pc_set))
+	number_of_clusters = int(input("How many clusters would you like to generate? "))
 	sett.num_clusters = number_of_clusters
-	method = raw_input("Which clustering would you like to use: "+", ".join(scipy_linkage_methods)+": ")
+	method = input("Which clustering would you like to use: "+", ".join(scipy_linkage_methods)+": ")
 	if method not in scipy_linkage_methods:
 		print("clustering method not supported (spelling error?)")
 		return
@@ -68,7 +68,7 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
 		sett.pcs = cluster_on_pcs[:3]
 		plot_3d_pca(subset_PC_expression, subset_annotation, sett)
 		for i in range(0,number_of_clusters):
-			time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
+			time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
 			clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
 		clusters.sort(key=lambda by_first: by_first[0])
 		dendro = plot_hierarchical_clustering(subset_PC_expression[cluster_on_pcs], subset_annotation, method=method, sett=sett)
@@ -82,7 +82,7 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
 		sett.pcs = cluster_on_pcs[:3]
 		plot_3d_pca(PC_expression, annotation, sett)
 		for i in range(0,number_of_clusters):
-			time = float(raw_input("Assign time for cluster shown in "+cluster_colors[i]+": "))
+			time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
 			clusters.append( (time,annotation.loc[annotation["color"]==cluster_colors[i]].index) )
 		clusters.sort(key=lambda by_first: by_first[0])
 		dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method, sett=sett)
@@ -104,8 +104,8 @@ def print_clusters(clusters):
 		#~ clusters_df = pd.concat([clusters_df, enum_df], axis=1)
 
 def retrieve_subset_param():
-	colnm = raw_input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
-	colval = raw_input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
+	colnm = input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
+	colval = input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
 	return colnm, colval
 
 def subset_pc_expression(pc_expression, colnm, colval):
@@ -142,7 +142,7 @@ def find_discrim_pcs(subset_pc_expression, annotation):
 def normalize_centroids(subset_pc_expression):
 	print("provide control group: ")
 	ctrl_colnm, ctrl_colval = retrieve_subset_param()
-	pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+	pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 	sett.pcs = pcs
 	
 	ctrl_annotation, ctrl_pc_expression = subset_pc_expression(PC_expression, colnm, colval)
@@ -201,15 +201,15 @@ while True:
 	[T]	Run tSNE
 	[X]	Exit
 	"""
-	action = raw_input(question).upper()
+	action = input(question).upper()
 	if(action == "X"):
 		break
 		#~ exit()
 	elif(action == "H"):
 		
-		color_scheme = raw_input("How would you like to color dendrogram? ('retain' to keep current pca plot colors, 'overwrite' to use new colors) ")
+		color_scheme = input("How would you like to color dendrogram? ('retain' to keep current pca plot colors, 'overwrite' to use new colors) ")
 		if color_scheme == "overwrite":
-		  number_of_clusters = int(raw_input("How many clusters would you like to generate? "))
+		  number_of_clusters = int(input("How many clusters would you like to generate? "))
 		else:
 		  number_of_clusters = 3
 		sett.num_clusters = number_of_clusters
@@ -222,7 +222,7 @@ while True:
 			plot_all_hierarchical_clusterings(PC_expression, subset_annotation, color_scheme, sett)
 	elif(action == "P"):
 		colnm, colvalp = retrieve_subset_param()
-		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+		pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 		sett.pcs = pcs
 		print("plotting...\n the plot will open in your web browser shortly")
 		if not all(colvalp):
@@ -253,13 +253,13 @@ while True:
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		subset_clusters = time_clusters_from_annotations(subset_annotation)
-		pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+		pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 		print("Time clusters were assigned according to labels")
 	
 	elif(action == "D"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
-		# ~ pcs = map(int,raw_input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+		# ~ pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
 		find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
 		print("Showing PCS most correlated with time")
 		
@@ -268,7 +268,7 @@ while True:
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
 		subset_clusters, dendro = assign_time_clusters_using_clustering(colnm, colval)
 		print("Time clusters were assigned according to hierarchical clustering")
-		filename = raw_input("Enter file name you'd like to save clustering plot as (preferably ending with .pdf) ")
+		filename = input("Enter file name you'd like to save clustering plot as (preferably ending with .pdf) ")
 		plt.savefig(filename)
 		
 	elif(action == "N"):
@@ -288,17 +288,17 @@ while True:
 	elif(action == "G"):
 		colnm, colval = retrieve_subset_param()
 		subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
-		pcs = map(int,raw_input("Which PCs would you to correlate with? (type comma separated list, such as 1,3,4) ").split(","))
+		pcs = map(int,input("Which PCs would you to correlate with? (type comma separated list, such as 1,3,4) ").split(","))
 		sett.pcs = pcs
-		bins = int(raw_input("How many bins would you like to quantile? "))
+		bins = int(input("How many bins would you like to quantile? "))
 		sett.bins = bins
-		features = raw_input("Which genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
-		feat_type = raw_input("Plot by gene (g) or by transcript (t)? ")
+		features = input("Which genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
+		feat_type = input("Plot by gene (g) or by transcript (t)? ")
 		bin_colors = ["grey", "sky-blue", "blue", "light green", "green", "orange", "red", "dark red"]
 		bin_col_dict = dict(zip(range(0,bins), bin_colors))
 		# ~ bin_col_dict = {}
 		# ~ for i in range(0,bins):
-			# ~ color = raw_input("Assign color for bin "+str(i)+": ")
+			# ~ color = input("Assign color for bin "+str(i)+": ")
 			# ~ bin_col_dict.update({i:color})
 		if feat_type == "g":
 			for i in features:
@@ -321,13 +321,13 @@ while True:
 		
 		
 	elif(action == "M"):
-		filename = raw_input("Enter file name you'd like to save correlated features to: ")
-		top_n = raw_input("How many genes from each pc would you like to save?; if blank will use "+sett.parameters['number_of_genes']+" (from plot_settings) ")
+		filename = input("Enter file name you'd like to save correlated features to: ")
+		top_n = input("How many genes from each pc would you like to save?; if blank will use "+sett.parameters['number_of_genes']+" (from plot_settings) ")
 		if top_n == "":
 			top_n = int(sett.parameters['number_of_genes'])
 		else:
 			top_n = int(top_n)
-		pcs = map(int,raw_input("Which PCs would you like to correlate with? (type comma separated list, such as 1,3,4) ").split(","))
+		pcs = map(int,input("Which PCs would you like to correlate with? (type comma separated list, such as 1,3,4) ").split(","))
 		pc_corr_trs = get_isoforms_correlated_pc_set(pca, expression_table, pcs, top_n, filename)
 		csv_filename = filename+"_pcs_"+"_".join(map(str, pcs))+".csv"
 		print("saving as "+csv_filename)
@@ -336,7 +336,7 @@ while True:
 		if("pseudotime" not in globals()):
 			print("Pseudotime was not yet generated!")
 			continue
-		filename = raw_input("Enter file name you'd like to save pseudotime as (preferably ending with .csv) ")
+		filename = input("Enter file name you'd like to save pseudotime as (preferably ending with .csv) ")
 		pseudotime.to_csv(filename, sep="\t")
 	elif(action=="T"):
 		
@@ -419,7 +419,7 @@ while True:
 		plot_using_plotly(tsne_transformed_expression_3d)
 		
 	elif(action=="Q"):
-		cluster_dir = raw_input("Enter location of diffex csvs ")
+		cluster_dir = input("Enter location of diffex csvs ")
 		diffex_csvs = read_in_diffex(cluster_dir)
 		plot_heatmap(expression_table, annotation, dendro)
 		

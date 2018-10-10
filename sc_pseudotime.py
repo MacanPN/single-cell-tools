@@ -100,22 +100,24 @@ class settings:
 			dim_line = f.readline().rstrip()
 			self.plot_dim = map(int, dim_line.split(","))
 			if self.run_mode not in run_modes:
-				print "Unkown run mode (line 2 in settings file): ",self.run_mode
+				print ("Unkown run mode (line 2 in settings file): ",self.run_mode)
 				raise ValueError
 			# if we're plotting pca, we want list of PCs to use
 			if self.run_mode in ["2d-pca-single", "3d-pca","3d-pca-colored-by-clustering","test"]:
 				self.pcs = map(int,mode_line.split("\t")[1].split(","))
 				if not(
-					((self.run_mode == "2d-pca-single")and(len(self.pcs)==2))
-					or((self.run_mode in ["3d-pca","3d-pca-colored-by-clustering","test"])and(len(self.pcs)==3))
+					((self.run_mode == "2d-pca-single")and(len(list(self.pcs))==2))
+					or((self.run_mode in ["3d-pca","3d-pca-colored-by-clustering","test"])and(len(list(self.pcs))==3))
 					):
-					print "Invalid number of PCs given! ",mode_line
+					print ("Invalid number of PCs given! ",mode_line)
 					raise ValueError
 			# if we want to color cells by clustering, we need to grab number of clusters required
 			if self.run_mode == "3d-pca-colored-by-clustering":
 				self.n_clusters = int(mode_line.split("\t")[2])
 				self.clustering_method = mode_line.split("\t")[3]
-			# from third line onwards, the script reads different operations carried out on defined cell sets
+			# to know which genes were removed based on expression filtering
+			self.removed_features = []
+			# from fourth line onwards, the script reads different operations carried out on defined cell sets
 			for line in f:
 				if(line.startswith("#")):
 					continue
@@ -127,7 +129,7 @@ class settings:
 				elif(x[0] in accepted_parameters):
 					self.parameters[x[0]] = x[1]
 				else:
-					print "Unknown option:",line
+					print ("Unknown option:",line)
 					exit(1)
 	def __copy__(self):
 		return copy.deepcopy(self)
@@ -139,24 +141,31 @@ class settings:
 def read_expression(expression_file, settings, min_expression = 0.1, min_cells = 10, log_transform = True):
 	# read expression
 	expression_table = pd.read_csv(expression_file, sep=",", index_col = 0).transpose()
-	print "Read expression table with shape:",expression_table.shape
+	expression_table = expression_table.dropna(axis = 'columns')
+	print ("Read expression table with shape:",expression_table.shape)
 	
 	# remove genes with less then min_cells expressing them
 	expressed_genes = (expression_table > min_expression).sum() > min_cells
+	# ~ IPython.embed()
+	# store removed features in settings.removed_features
+	false_indices = np.where(expressed_genes != True)
+	settings.removed_features = expressed_genes.iloc[false_indices].index
 	expression_table = expression_table.loc[ : , expressed_genes]
-	print "Removed genes that are not expressed >",min_expression," in at least",min_cells ,"cells"
-	print "Expression table has now shape:",expression_table.shape
+	print ("Removed genes that are not expressed >",min_expression," in at least",min_cells ,"cells")
+	# ~ IPython.embed()
+	# ~ settings.removed_genes = 
+	print ("Expression table has now shape:",expression_table.shape)
 	
 	# remove unwanted cells
 	for s in settings.sets["remove"]:
-		print "Removed cells from set:",s,settings.cell_sets[s]
+		print ("Removed cells from set:",s,settings.cell_sets[s])
 		expression_table.drop(settings.cell_sets[s], inplace=True, errors="ignore")
 
 	# log transform
 	if(log_transform):
 		expression_table += 1
 		expression_table = expression_table.apply(np.log2)
-		print "Log transformed data"
+		print ("Log transformed data")
 	
 	# create annotation table and populate it with default values
 	annotation = pd.DataFrame(index=expression_table.index)
@@ -173,7 +182,7 @@ def read_expression(expression_file, settings, min_expression = 0.1, min_cells =
 	
 	# annotate superimposed cells
 	for s in settings.sets["superimpose"]:
-		print "Superimposing cells from set:",s,settings.cell_sets[s]
+		print ("Superimposing cells from set:",s,settings.cell_sets[s])
 		for i in settings.cell_sets[s]:
 			annotation.loc[i,"superimpose"] = "True"
 		
@@ -213,10 +222,10 @@ def run_PCA(expression_table, annotation, n_components):
 	pca = decomposition.PCA(n_components=n_components, svd_solver="full")
 	expression_table_for_PCA = expression_table.loc[annotation[annotation["superimpose"]==False].index]
 	#~ ipdb.set_trace()
-	print "Calculating PCA on table of shape:",expression_table_for_PCA.shape
+	print ("Calculating PCA on table of shape:",expression_table_for_PCA.shape)
 	pca.fit(expression_table_for_PCA)
-	print "Explained variance: ", pca.explained_variance_
-	print "Explained variance ratio: ", pca.explained_variance_ratio_
+	print ("Explained variance: ", pca.explained_variance_)
+	print ("Explained variance ratio: ", pca.explained_variance_ratio_)
 	# transform expression using PCA vectors
 	transformed_expression = pd.DataFrame(pca.transform(expression_table), index=expression_table.index, columns = range(1,n_components+1))
 	return transformed_expression, pca
@@ -417,6 +426,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 	max_range = (used_pcs.max() - used_pcs.min()).max()
 	#print(used_pcs.max())
 	#print(used_pcs.min())
+	# ~ IPython.embed()
 	layout = dict(
 		width=width,
 		height=height,
@@ -469,25 +479,31 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 				trx = gene_info['ensembl'][0]['transcript']
 			else:
 				trx = gene_info['ensembl']['transcript']
-			#test = all(elem in test for elem in expression_table.columns)
-			if type(trx) == list:
-				sum_trx = expression_table.loc[:,trx].sum(axis=1)
-				# catch pandas omission of missing list values in loc; incompatible between pandas versions
-				#~ sub_trx = expression_table.reindex(trx, axis = 1)
-				#~ sum_trx = sub_trx.loc[:,trx].sum(axis=1)
+			if not (set(trx) & set(expression_table.columns.values)):
+				if set(settings.removed_features) & set(trx):
+					min_expression = 0.1
+					min_cells = 10
+					print(features+" removed by minimium filtering threshold of "+str(min_expression)+" in "+str(min_cells)+" cells.")
+					return
 			else:
-				sum_trx = expression_table.loc[:,trx]
-			
-			# color by quantile
-			trx_df = sum_trx.to_frame('trx_count')
-			number_of_bins = len(bin_col_dict.keys())
-			bin_labels=bin_col_dict.keys()
-			
-			trx_df['bin'] = pd.cut(trx_df.trx_count, number_of_bins, labels=bin_labels)
-			trx_df['color'] = trx_df['bin'].map(bin_col_dict)
-			comb['color'] = trx_df['color']
-			comb['name'] = trx_df['bin']
-			traces = comb["name"].unique().sort_values()
+				if type(trx) == list:
+					sum_trx = expression_table.loc[:,trx].sum(axis=1)
+					# catch pandas omission of missing list values in loc; incompatible between pandas versions
+					#~ sub_trx = expression_table.reindex(trx, axis = 1)
+					#~ sum_trx = sub_trx.loc[:,trx].sum(axis=1)
+				else:
+					sum_trx = expression_table.loc[:,trx]
+				
+				# color by quantile
+				trx_df = sum_trx.to_frame('trx_count')
+				number_of_bins = len(bin_col_dict.keys())
+				bin_labels=bin_col_dict.keys()
+				
+				trx_df['bin'] = pd.cut(trx_df.trx_count, number_of_bins, labels=bin_labels)
+				trx_df['color'] = trx_df['bin'].map(bin_col_dict)
+				comb['color'] = trx_df['color']
+				comb['name'] = trx_df['bin']
+				traces = comb["name"].unique().sort_values()
 		
 	if (feat_type == "t"):
 		# ~ IPython.embed()
@@ -511,7 +527,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
 			traces = comb["name"].unique().sort_values()
 		
 		
-
+	# ~ IPython.embed()
 	data = []
 	for t in traces:
 
@@ -608,7 +624,7 @@ def get_cluster_labels(linkage, n_clusters, labels):
 def change_annotation_colors_to_clusters(clusters, annotation, colors):
 	for i,c in enumerate(clusters.values()):
 		annotation.loc[c, "color"] = colors[i]
-	print colors
+	print( colors)
 
 ## plot hierarchical clustering for all methods of linkage
 # arguments are:
@@ -737,7 +753,7 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
 	n_pca = len(transformed_expression.columns)
 	transformed_expression["day"] = annotation["day"]
 	transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
-	print "Finding best rotation for Spearman correlation. Shape of used table:",transformed_expression_without_superimposed.shape
+	print( "Finding best rotation for Spearman correlation. Shape of used table:",transformed_expression_without_superimposed.shape)
 	spearman = transformed_expression_without_superimposed.corr(method="spearman").loc["day",range(1,n_pca+1)].abs().sort_values(ascending=False)
 	#plot_spearman correlations and explained variation
 	spearman_filename = settings.result_filename.replace(".png", "_spearman.png")
@@ -798,8 +814,8 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
 			best_spearman = spearman
 		
 	del(transformed_expression["day"])
-	print settings.pcs
-	print "Best rotation: ",best_angle
+	print (settings.pcs)
+	print ("Best rotation: ",best_angle)
 	
 	rotated_expression = rotate_expression(transformed_expression, int(settings.pcs[0]), int(settings.pcs[1]), best_angle)
 	# plot original PC plot
@@ -834,8 +850,8 @@ def list_from_ranges(s):
 #  w = 1/(dist^2)
 def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters, settings):
 	
-	palette_size = int(raw_input("What palette size would you like to use (how many colors)? "))
-	calculate_on = list_from_ranges(raw_input("Which PCs would you like to use for calculating pseudotime? [type comma separated list, list can also include ranges 1-5,8] "))
+	palette_size = int(input("What palette size would you like to use (how many colors)? "))
+	calculate_on = list_from_ranges(input("Which PCs would you like to use for calculating pseudotime? [type comma separated list, list can also include ranges 1-5,8] "))
 	used_PC_expression = PC_expression[calculate_on]
 
 	centroids = get_cluster_centroids(used_PC_expression, clusters)
@@ -863,7 +879,7 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 
 	pseudotime = pd.Series(0, index=used_PC_expression.index)
 	for w in weights:
-		print w
+		print (w)
 		pseudo_part = (pseudotime_clusters[w][0]+1)*weights[w]
 		pseudotime += pseudo_part
 	pseudotime /= weights.sum(axis=1)
@@ -996,7 +1012,7 @@ def trx_to_gene_exp_table(expression_table, gene_trx_dic):
 	#~ for i,gene in enumerate(dic):
 		if i%1000 == 0:
 			#~ print gene
-			print "Genes processed:",i
+			print ("Genes processed:",i)
 		gene_col = expression_table.loc[:, gene_trx_dic[gene]].sum(axis=1)
 		gene_col.columns = [gene]
 		#generate gene-level exprescsion table
@@ -1026,7 +1042,7 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, c
 				#~ for i,gene in enumerate(gene_trx_dic):
 					if i%1000 == 0:
 						#~ print gene
-						print "Genes processed:",i
+						print ("Genes processed:",i)
 					gene_col = subsetc.loc[:, gene_trx_dic[gene]].sum(axis=1)
 					gene_col.columns = [gene]
 					corr = pd.concat([gene_col, subsetc.loc[:,"pseudotime"]], axis=1)
@@ -1040,7 +1056,7 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, c
 				# correlation by transcript
 				for i,transcript in enumerate(transcripts):
 					if i%1000 == 0:
-						print "Transcripts processed:",i
+						print ("Transcripts processed:",i)
 					corr = subsetc.loc[ : , [transcript,"pseudotime"]].corr(method=method).iloc[0,1]
 					if corr != corr: # if NaN (no data to calculate on)
 						corr = 0 # then correlation is zero
