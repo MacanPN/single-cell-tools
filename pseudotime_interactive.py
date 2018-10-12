@@ -222,7 +222,8 @@ while True:
 			plot_all_hierarchical_clusterings(PC_expression, subset_annotation, color_scheme, sett)
 	elif(action == "P"):
 		colnm, colvalp = retrieve_subset_param()
-		pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+		pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
+		# ~ IPython.embed()
 		sett.pcs = pcs
 		print("plotting...\n the plot will open in your web browser shortly")
 		if not all(colvalp):

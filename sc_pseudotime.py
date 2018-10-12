@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import sys
 import numpy as np
 import scipy as sc
-import scipy.cluster.hierarchy as sch
 import sklearn
 from sklearn import decomposition
 from sklearn import cluster
@@ -98,16 +97,16 @@ class settings:
 			self.run_mode = mode_line.split("\t")[0]
 			# third line defines dimensions of pca plot
 			dim_line = f.readline().rstrip()
-			self.plot_dim = map(int, dim_line.split(","))
+			self.plot_dim = [int(i) for i in dim_line.split(",")]
 			if self.run_mode not in run_modes:
 				print ("Unkown run mode (line 2 in settings file): ",self.run_mode)
 				raise ValueError
 			# if we're plotting pca, we want list of PCs to use
 			if self.run_mode in ["2d-pca-single", "3d-pca","3d-pca-colored-by-clustering","test"]:
-				self.pcs = map(int,mode_line.split("\t")[1].split(","))
+				self.pcs = [int(i) for i in mode_line.split("\t")[1].split(",")]
 				if not(
-					((self.run_mode == "2d-pca-single")and(len(list(self.pcs))==2))
-					or((self.run_mode in ["3d-pca","3d-pca-colored-by-clustering","test"])and(len(list(self.pcs))==3))
+					((self.run_mode == "2d-pca-single")and(len(self.pcs)==2))
+					or((self.run_mode in ["3d-pca","3d-pca-colored-by-clustering","test"])and(len(self.pcs)==3))
 					):
 					print ("Invalid number of PCs given! ",mode_line)
 					raise ValueError
@@ -422,7 +421,8 @@ def shape_plotly2matplotlib(s):
 # - annotation pd.DataFrame
 # - settings object
 def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, bin_col_dict=None, height = 1080, width = 1600, features=None, feat_type="gene", DEBUG=False):
-	used_pcs = transformed_expression[ [settings.pcs[0], settings.pcs[1], settings.pcs[2]]]
+	# ~ IPython.embed()
+	used_pcs = transformed_expression[ list(settings.pcs)]
 	max_range = (used_pcs.max() - used_pcs.min()).max()
 	#print(used_pcs.max())
 	#print(used_pcs.min())
@@ -888,7 +888,7 @@ def calculate_pseudotime_using_cluster_times(PC_expression, annotation, clusters
 	pseudotime /= pseudotime.max()
 	pal = sns.cubehelix_palette(palette_size+1, start=2, rot=0, dark=0, light=0.85)
 	pal = [(int(i[0]*256),int(i[1]*256),int(i[2]*256)) for i in pal]
-	color_indices = map(int,pseudotime*palette_size)
+	color_indices = [int(i) for i in pseudotime*palette_size]
 	annotation["color"] = [RGBToHTMLColor(pal[i]) for i in color_indices]
 	return pseudotime, centroids
 
@@ -1364,7 +1364,7 @@ def main():
 		plot_3d_pca(PC_expression, annotation, sett)
 		pal = sns.cubehelix_palette(palette_size+1, start=2, rot=0, dark=0, light=0.85)
 		pal = [(int(i[0]*256),int(i[1]*256),int(i[2]*256)) for i in pal]
-		color_indices = map(int,pseudotime*palette_size)
+		color_indices = [int(i) for i in pseudotime*palette_size]
 		annotation["color"] = [RGBToHTMLColor(pal[i]) for i in color_indices]
 		#HTML_pal = ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']
 		#annotation["color"] = [HTML_pal[i] for i in color_indices]
