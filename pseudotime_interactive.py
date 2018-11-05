@@ -21,9 +21,9 @@ import colorsys
 from sc_pseudotime import *
 
 parser = argparse.ArgumentParser(description="runs pseudotime_interactive")
-parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/single_cell_tools/example_input_files/transcripts.tpm_census_matrix-comma-delimited.csv", help="gene by cell matrix of expression values", metavar="EXPR")
-parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/single_cell_tools/example_input_files/cell_sets.csv", help="cell sets", metavar="CELL_SETS")
-parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/single_cell_tools/example_input_files/plot_settings.csv", help="plot settings", metavar="PLOT_SETTINGS")
+parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/single_cell_tools/dshayler_input/3_Fetal_Seq/fetal_census_matrix.csv", help="gene by cell matrix of expression values", metavar="EXPR")
+parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/single_cell_tools/dshayler_input/3_Fetal_Seq/ThreeSeq_Fetal_Metadata_101718.csv", help="cell sets", metavar="CELL_SETS")
+parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/single_cell_tools/dshayler_input/3_Fetal_Seq/101718_3d_PCA_No_Bad_Reads_NoVSX2_3FR_Seq_grp.txt", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=True)
 
 
@@ -50,7 +50,7 @@ PC_expression,pca = run_PCA(expression_table, annotation, n_pca)
 clusters = None
 annotation["name"] = "day "+annotation["day"].astype(str)
 
-def assign_time_clusters_using_clustering(colnm=None, colval=None):
+def assign_clusters_using_hierarch(colnm=None, colval=None):
     pc_set = "Which PCs would you like to use for clustering? [type comma separated list, list can also include ranges 1-5,8] "
     scipy_linkage_methods = [ "complete", "average", "single", "centroid", "median", "ward"]
     cluster_on_pcs = list_from_ranges(input(pc_set))
@@ -79,7 +79,7 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
         clusters_without_time = get_cluster_labels(linkage, number_of_clusters, PC_expression.index)
         cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
         print("Now plotting clusters")
-        change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
+        annotation = change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
         clusters = []
         sett.pcs = cluster_on_pcs[:3]
         plot_3d_pca(PC_expression, annotation, sett)
@@ -88,8 +88,33 @@ def assign_time_clusters_using_clustering(colnm=None, colval=None):
             clusters.append( (time,annotation.loc[annotation["color"]==cluster_colors[i]].index) )
         clusters.sort(key=lambda by_first: by_first[0])
         dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method, sett=sett)
-    
+    sett.subset = 'param'
     return clusters, dendro
+    
+def assign_clusters_using_file(cluster_file):
+    sett.append("cluster", cluster_file)
+    sett.n_clusters = len(sett.sets['cluster'])
+    cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+    clusters = {}
+    number_of_clusters = sett.n_clusters
+    for i in range(number_of_clusters):
+        clusters[i] = set(sett.cell_sets[sett.sets['cluster'][i]])
+    subset_annotation, subset_PC_expression = subset_pc_by_clusters(PC_expression, clusters)
+    subset_annotation = change_annotation_colors_to_clusters(clusters, subset_annotation, cluster_colors)
+    clusters = []
+    plot_3d_pca(subset_PC_expression, subset_annotation, sett)
+    for i in range(0,number_of_clusters):
+        time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
+        clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
+    clusters.sort(key=lambda by_first: by_first[0])
+    # remove empty clusters before proceeding
+    filt_clusters = []
+    for i in clusters:
+        if(len(i[1]) > 0):
+            filt_clusters.append(i)
+    # set subset flag
+    sett.subset = 'cluster'
+    return subset_annotation, subset_PC_expression, filt_clusters
 
 def print_clusters(clusters):
     if(clusters == None):
@@ -119,7 +144,7 @@ def retrieve_subset_param():
     colval = input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
     return colnm, colval
 
-def subset_pc_expression(pc_expression, colnm, colval):
+def subset_pc_by_param(pc_expression, colnm, colval):
     if not all(colval):
         # ~ clusters_without_time = get_cluster_labels(linkage, number_of_clusters, subset_PC_expression.index)
         # ~ cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
@@ -137,6 +162,17 @@ def subset_pc_expression(pc_expression, colnm, colval):
             subset_annotation = subset_annotation.append(excluded_day0)
         subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
         return subset_annotation, subset_PC_expression
+        
+def subset_pc_by_clusters(pc_expression, clusters):
+    cluster_cells = set.union(*clusters.values())
+    subset_annotation = annotation[annotation.index.isin(cluster_cells)]   
+    # add day0 cells to all subset_annotations if not removed in plot_settings
+    day0_annotation = annotation[annotation["day"]==0.0]
+    excluded_day0 = day0_annotation[-day0_annotation.isin(subset_annotation)].dropna()
+    if (not day0_annotation.empty):
+        subset_annotation = subset_annotation.append(excluded_day0)
+    subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+    return subset_annotation, subset_PC_expression
 
 def find_discrim_pcs(subset_pc_expression, annotation):
     
@@ -156,7 +192,7 @@ def normalize_centroids(subset_pc_expression):
     pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
     sett.pcs = pcs
     
-    ctrl_annotation, ctrl_pc_expression = subset_pc_expression(PC_expression, colnm, colval)
+    ctrl_annotation, ctrl_pc_expression = subset_pc_by_param(PC_expression, colnm, colval)
     ctrl_clusters = time_clusters_from_annotations(ctrl_annotation)
     ctrl_cntrds = get_cluster_centroids(ctrl_pc_expression, ctrl_clusters)
     try:
@@ -200,8 +236,9 @@ while True:
     question = """Choose from following:
     [H]    Plot Hierarchical Clustering
     [P]    Plot PCA
-    [L]    Assign time clusters according to time Labels (like day_4 ... )
-    [C]    Assign time clusters using hierarchical clustering
+    [L]    Assign clusters according to time Labels (like day_4 ... )
+    [C]    Assign clusters using hierarchical clustering
+    [U]    Assign clusters using file
     [D]    Find Most Correlated and Most Discriminating (treat v ctrl) PCs
     [N]    Normalize centroids
     [G]    Plot PCA Colored by Quantile Expression of Marker Genes
@@ -237,52 +274,57 @@ while True:
         
         sett.pcs = pcs
         print("plotting...\n the plot will open in your web browser shortly")
-        if not all(colvalp):
+        
+        # If using settings as specified in initial settings files
+        if (sett.subset == 'None'):        
+        # ~ if not all(colvalp):
             fig = plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
-        else:
-            try:
-                subset_PC_expression
-            except:
-                subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colvalp)
-                plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+        elif (sett.subset == 'param'):
+            if (colvalp == colval):
+                plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
+            elif set(colvalp).issubset(colval):
+                #~ ipdb.set_trace()
+                old_colors = subset_annotation["color"]
+                subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colvalp)
+                subset_annotation.loc[:,"color"] = old_colors[old_colors.index.isin(subset_annotation.index)]
+                new_clusters = [(i, c[c.isin(subset_annotation.index)]) for i,c in subset_clusters]
+                plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = new_clusters)
                 del subset_annotation, subset_PC_expression
             else:
-                if (colvalp == colval):
-                    plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
-                elif set(colvalp).issubset(colval):
-                    #~ ipdb.set_trace()
-                    old_colors = subset_annotation["color"]
-                    subset_annotation, subset_PC_expression = subset_pc_expression(subset_PC_expression, colnm, colvalp)
-                    subset_annotation.loc[:,"color"] = old_colors[old_colors.index.isin(subset_annotation.index)]
-                    new_clusters = [(i, c[c.isin(subset_annotation.index)]) for i,c in subset_clusters]
-                    plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = new_clusters)
-                    del subset_annotation, subset_PC_expression
-                else:
-                    subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colvalp)
-                    plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
-                    del subset_annotation, subset_PC_expression
+                subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colvalp)
+                plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+                del subset_annotation, subset_PC_expression
+        elif (sett.subset == 'cluster'):
+            plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
+            
     elif(action == "L"):
         colnm, colval = retrieve_subset_param()
-        subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
+        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval)
         subset_clusters = time_clusters_from_annotations(subset_annotation)
         pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
         print("Time clusters were assigned according to labels")
     
     elif(action == "D"):
         colnm, colval = retrieve_subset_param()
-        subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
+        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval)
         # ~ pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
         find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
         print("Showing PCS most correlated with time")
         
     elif(action == "C"):
         colnm, colval = retrieve_subset_param()
-        subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
-        subset_clusters, dendro = assign_time_clusters_using_clustering(colnm, colval)
+        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval)
+        subset_clusters, dendro = assign_clusters_using_hierarch(colnm, colval)
         print("Time clusters were assigned according to hierarchical clustering")
         filename = input("Enter file name you'd like to save clustering plot as (preferably ending with .pdf) ")
         plt.savefig(filename)
-        
+ 
+    elif(action == "U"):
+        cluster_file = input("Provide path to file with cluster info (in cell_settings format) ")
+        # ~ cluster_file = "runtime_settings.csv"
+        subset_annotation, subset_PC_expression, subset_clusters = assign_clusters_using_file(cluster_file)
+        print("Time clusters were assigned according to specified file ")
+    
     elif(action == "N"):
         test = normalize_centroids(subset_pc_expression)
         url = plotly.offline.plot(test, filename="normalize_centroids.html", validate=False, auto_open=False)
@@ -290,7 +332,7 @@ while True:
         
     elif(action == "S"):
         colnm, colval = retrieve_subset_param()
-        subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
+        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval)
         pseudotime, centroids = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, subset_clusters, sett)
         
     elif(action == "O"):
@@ -303,7 +345,7 @@ while True:
     
     elif(action == "G"):
         colnm, colval = retrieve_subset_param()
-        subset_annotation, subset_PC_expression = subset_pc_expression(PC_expression, colnm, colval)
+        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval)
         pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
         sett.pcs = pcs
         bins = int(input("How many bins would you like to quantile? "))
@@ -316,11 +358,6 @@ while True:
         pal = [(int(i[0]*256),int(i[1]*256),int(i[2]*256)) for i in pal]
         bin_colors = cl.to_rgb(pal)
         
-        
-        
-        
-        # ~ bin_colors = get_spaced_rgb(bins)
-        # ~ bin_colors = cl.to_rgb(bin_colors)
         bin_col_dict = dict(zip(range(0,bins), bin_colors))
         if feat_type == "g":
             for i in features:

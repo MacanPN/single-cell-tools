@@ -45,7 +45,7 @@ cluster_group_prefix= "cluster_"
 ## sets with parameter look like:
 # operation    set_name    parameter
 # for ex.: color    day_4    clue
-accepted_sets_with_parameter = ["color", "outline-color", "size", "name", "shape"]
+accepted_sets_with_parameter = ["color", "outline-color", "size", "name", "shape", "cluster"]
 
 ## sets without parameter look like:
 # operation    set_name
@@ -67,6 +67,15 @@ def RGBToHTMLColor(rgb_tuple):
     hexcolor = '#%02x%02x%02x' % rgb_tuple
     # that's it! '%02x' means zero-padded, 2-digit hex values
     return hexcolor
+    
+def read_cell_sets(cellset_file):
+    
+    cell_sets = {}
+    with open(cellset_file, 'rU') as f:
+        for line in f:
+            x = line.rstrip().split("\t")
+            cell_sets[x[0]] = x[1:]
+    return cell_sets    
 
 ## this class reads settings of the run and keeps them in its attributes
 #  if settings file in incorrect, the init method prints error and terminates application
@@ -87,6 +96,28 @@ class settings:
                 x = line.rstrip().split("\t")
                 cell_sets[x[0]] = x[1:]
         return cell_sets
+    ## function takes existing settings file and appends information from user supplied file during runtime of script
+    # - object of settings class
+    # - path to file with additional settings to specify during runtime
+    def append(self, param, runtime_file):
+        cell_sets = read_cell_sets(runtime_file)
+        self.cell_sets.update(cell_sets)  
+        for i in cell_sets:
+            if(param in accepted_sets_without_parameter):
+                self.sets[param].append(i)
+            elif(param in accepted_sets_with_parameter):
+                self.sets[param].append(i)
+            else:
+                if (line == "\n"):
+                    print("Error: Please remove all empty lines from cell and plot settings files!")
+                else:
+                    print ("Unknown option:",line)
+                exit(1)
+        return(self)
+        
+    # ~ def set_subset_flag(self, subset_flag):
+        # ~ self.subset = subset_flag
+        # ~ return(self)
     
     def __init__(self, settings_file, cellset_file):
         self.cell_sets = self.read_cell_sets(cellset_file)
@@ -126,6 +157,8 @@ class settings:
                 self.clustering_method = mode_line.split("\t")[3]
             # to know which genes were removed based on expression filtering
             self.removed_features = []
+            # to know whether to run package functions on subset data
+            self.subset = 'None'
             # from fourth line onwards, the script reads different operations carried out on defined cell sets
             for line in f:
                 if(line.startswith("#") or line == "\n"):
@@ -143,10 +176,32 @@ class settings:
                     else:
                         print ("Unknown option:",line)
                     exit(1)
+            # to get a list of cells removed based on cell_settings file
+            self.removed_cells = []
+            for i in self.sets['remove']:
+                self.removed_cells.extend(self.cell_sets[i])
+                
     def __copy__(self):
         return copy.deepcopy(self)
 
-
+## function takes existing settings file and appends information from user supplied file during runtime of script
+# - object of settings class
+# - path to file with additional settings to specify during runtime
+# ~ def append_to_settings(settings, param, runtime_file):
+    # ~ cell_sets = read_cell_sets(runtime_file)
+    # ~ settings.cell_sets.update(cell_sets)  
+    # ~ for i in cell_sets:
+        # ~ if(param in accepted_sets_without_parameter):
+            # ~ settings.sets[param].append(i)
+        # ~ elif(param in accepted_sets_with_parameter):
+            # ~ settings.sets[param].append(i)
+        # ~ else:
+            # ~ if (line == "\n"):
+                # ~ print("Error: Please remove all empty lines from cell and plot settings files!")
+            # ~ else:
+                # ~ print ("Unknown option:",line)
+            # ~ exit(1)
+            
 ## function takes expression file and settings object and returns:
 # - pd.DataFrame with [log transformed] expression values [genes expressed over min_expression in at least min_cells]
 # - pd.DataFrame with annotations for each cell. Expression table and annotation table have the same rows
@@ -385,7 +440,6 @@ def record_trace(clusters, comb, settings, centroids=None):
             symbol=["x"]*used_centroids.shape[0], #c[1]["shape"],
             line=dict(width=1) )
         )
-    IPython.embed()
     return(trace)
 
 def shape_matplotlib2plotly(s):
@@ -566,7 +620,6 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
             )
         data.append( trace )
     if(clusters != None):
-        IPython.embed()
         centroids = get_cluster_centroids(transformed_expression, clusters)
         trace = record_trace(clusters, comb, settings, centroids)
         data.append(trace)
@@ -639,8 +692,9 @@ def get_cluster_labels(linkage, n_clusters, labels):
 #  colors are the colors to assign
 def change_annotation_colors_to_clusters(clusters, annotation, colors):
     for i,c in enumerate(clusters.values()):
-        annotation.loc[c, "color"] = colors[i]
-    print( colors)
+        annotation.loc[annotation.index.isin(c), "color"] = colors[i]
+    print(colors)
+    return(annotation)
 
 ## plot hierarchical clustering for all methods of linkage
 # arguments are:
@@ -956,6 +1010,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
         expr_ann = annotation.loc[RBKD_over_ptime.index, :] 
         # ~ ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
         ax = RBKD_over_ptime.plot.scatter(x="pseudotime", y="expression", c=expr_ann["color"], ax=ax)
+    
         lowess = sm.nonparametric.lowess
         z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
         pd.DataFrame(z, columns=["pseudotime","local regression"]).plot.line(x="pseudotime", y="local regression", c="gray", style="--", ax=ax)
@@ -1171,14 +1226,12 @@ def get_cluster_centroids(PC_expression, clusters):
         centroids.append(PC_expression.loc[cl[1],:].mean())
     # append "first cell" and "last cell" to centroids to 
     # based on extrapolation of trace from centroids 0 to 1 and n-1 to n respectively
-
     half_trace_seg_1 = (centroids[0] - centroids[1])/2
     half_trace_seg_n = (centroids[-1] - centroids[-2])/2
     first_cell = centroids[0] + half_trace_seg_1
     last_cell = centroids[-1] + half_trace_seg_n
     centroids.insert(0, first_cell)
     centroids.append(last_cell)
-    
     centroids = pd.concat(centroids, axis=1)
     return centroids
 
