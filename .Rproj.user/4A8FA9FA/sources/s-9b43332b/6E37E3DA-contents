@@ -1,0 +1,227 @@
+#!/usr/bin/Rscript --default-packages=methods,utils
+
+# Caution!  ---------------------------------------------------------------
+
+# known bug in scde error fitting, see https://groups.google.com/forum/#!topic/singlecellstats/rbFUTOQ9wu4
+#   need to install specific (legacy) version 2.13.0 of package 'flexmix'
+
+library(cataract)
+library(optparse)
+library(gtools)
+library(SummarizedExperiment)
+
+# default input files -----------------------------------------------------
+# caution! scde requires raw counts for expression matrix input!!
+# default_infile = system.file("extdata", "expression_matrix_sample.csv", package="cataract")
+# default_cell_info = system.file("extdata", "coldata_sample.csv", package="cataract")
+# default_groupfile = system.file("extdata", "comparison_groups_sample.csv", package="cataract")
+# default_feature = "transcript"
+# default_out = "./scde"
+
+# default Dominic ---------------------------------------------------------
+# default_infile = "~/single_cell_pipeline/data/sc_cone_devel/sc_cone_devel_H_sapiens/2_seq_dshayler/stringtie_transcripts_raw_counts_2_seq.csv"
+# default_cell_info = "~/single_cell_pipeline/output/merged_analyses/peleg_dominic_df_analysis4.csv"
+# default_groupfile = "~/single_cell_pipeline/output/merged_analyses/ds_2_seq_scde_group_file.csv"
+# default_out = "~/single_cell_pipeline/output/merged_analyses/"
+# default_feature = "transcript"
+
+# default Sunhye ---------------------------------------------------------
+default_infile = "~/single_cell_projects/quicklinks/FACS_20171031_sunlee_H_sapiens_proj/output/transcript_count_matrix.csv"
+default_cell_info = "~/single_cell_projects/quicklinks/FACS_20171031_sunlee_H_sapiens_proj/output/FACS_20171031_sunlee_sample_sheet.csv"
+default_groupfile = "~/single_cell_projects/quicklinks/FACS_20171031_sunlee_H_sapiens_proj/output/scde/FACS_1031_sunlee_diffex_groups_20181004.csv"
+default_out = "~/single_cell_projects/quicklinks/FACS_20171031_sunlee_H_sapiens_proj/output/scde/"
+default_feature = "transcript"
+
+# ds <- mget(ls(pattern="default*"))
+# save(ds, file="~/single_cell_pipeline/output/merged_analyses/ds_scde_20180517.rda")
+# 
+# shl <- mget(ls(pattern="default*"))
+# save(shl, file="~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/scde/shl_1031_scde_20180408.rda")
+
+# load( "~/single_cell_pipeline/output/merged_analyses/ds_scde_20180517.rda")
+# list2env(ds, globalenv())
+
+# load( "~/single_cell_pipeline/output/FACS_20171031_sunlee_H_sapiens_output/scde/shl_1031_scde_20180408.rda")
+# list2env(shl, globalenv())
+
+
+#'  section for parsing command line options when calling script
+#'  ###################################
+option_list = list(
+  make_option(c("-i", "--infile"), type="character", default=default_infile,
+              help="gene expression input filename [default= %default]", metavar="character"),
+  make_option(c("-c", "--cell_info"), type="character", default=default_cell_info,
+              help="metadata about cells in input file [default= %default]", metavar="character"),
+  make_option(c("-g", "--groupfile"), type="character", default=default_groupfile,
+              help="file that defines comparison groups [default= %default]", metavar="character"),
+  make_option(c("-o", "--out"), type="character", default=default_out,
+              help="output file name [default= %default]", metavar="character"),
+  make_option(c("-f", "--feature"), type="character", default=default_feature, 
+              help="the feature (gene or transcript) under analysis", metavar="character")
+);
+
+opt_parser = OptionParser(option_list=option_list);
+opt = parse_args(opt_parser, print_help_and_exit = TRUE);
+
+if (any(sapply(opt, is.na))){
+  print_help(opt_parser)
+  stop("Please provide all necessary arguments.", call.=FALSE)
+}
+
+# load functions ---------------------------------------------------
+
+sumexp_from_tibbles <- function(counts, coldata, metadata){
+	#browser()
+	featuredata <- data.frame(counts[,1])
+	rownames(featuredata) <- featuredata[,1]
+	
+	counts <- data.frame(counts)
+	rownames(counts) <- counts[,1]
+	counts[,1] <- NULL
+	counts <- as.matrix(counts)
+	coldata <- data.frame(coldata)
+	rownames(coldata) <- coldata[,1]
+	coldata <- coldata[colnames(counts),]
+	
+	sumexp <- SummarizedExperiment(assays=list(counts=counts), colData=coldata, rowData=featuredata, metadata=metadata)	
+	return(sumexp)
+}
+
+prep_counts_and_sample_sheet <- function (diffex_settings, counts, sample_sheet) {
+	#browser()
+	sumexp <- sumexp_from_tibbles(counts, sample_sheet, diffex_settings)
+	
+	subset_param <- diffex_settings$subset_param
+	subset_vals <- unlist(strsplit(diffex_settings$subset_param_values, ","))
+	
+	sumexp <- sumexp[sumexp[[subset_param]] %in% subset_vals,]
+	return(sumexp)
+	
+}
+
+find_cells <- function(df, day_cat, treatment){
+  df <- dplyr::filter(df, day %in% day_cat) %>% 
+    dplyr::filter(treatment_group %in% treatment) %>% 
+    dplyr::filter(branch == "A")
+  cells = paste(df$Sample_ID, collapse = " ")
+  return(cells)
+}
+
+prep_scde_input <- function (diffex_settings, counts, metadata,	feature, output_dir) {
+	#browser()
+
+	summarized_exp <- prep_counts_and_sample_sheet(diffex_settings, counts, metadata)
+
+
+	group_factor <- metadata(summarized_exp)$comparison
+	group_factor <-factor(colData(summarized_exp)[[group_factor]])
+	
+	
+	names(group_factor) <- colnames(assay(summarized_exp))
+	cd <- scde::clean.counts(assay(summarized_exp), min.lib.size = 1000, 
+													 min.reads = 10, min.detected = 10)
+	
+	group_factor<-group_factor[colnames(cd)]
+	o.ifm <- scde::scde.error.models(counts = cd, groups = group_factor, 
+																	 n.cores = 1, threshold.segmentation = TRUE, save.crossfit.plots = FALSE, 
+																	 save.model.plots = FALSE, verbose = 1)
+	valid.cells <- o.ifm$corr.a > 0
+	table(valid.cells)
+	o.ifm <- o.ifm[valid.cells, ]
+	o.prior <- scde::scde.expression.prior(models = o.ifm, counts = cd, 
+																				 length.out = 400, show.plot = FALSE)
+	scde_input <- list(group_factor = group_factor, cd = cd, 
+										 o.ifm = o.ifm, o.prior = o.prior, subset_param_values = subset_param_values)
+	if (feature == "gene") {
+		dir.create(paste0(output_dir, "/diffex_by_gene"), recursive = TRUE)
+		saveRDS(scde_input, paste0(output_dir, "/diffex_by_gene/", 
+															 analysis_id, "_", comparison, "_gene_stringtie.rds"))
+	}
+	else if (feature == "transcript") {
+		dir.create(paste0(output_dir, "/diffex_by_trs"), recursive = TRUE)
+		saveRDS(scde_input, paste0(output_dir, "/diffex_by_trs/", 
+															 analysis_id, "_", comparison, "_trs_stringtie.rds"))
+	}
+	else {
+		stop("invalid feature selection; please use either 'gene' or 'transcript'")
+	}
+	return(scde_input)
+}
+
+#' end command line parsing
+#' #################################
+
+#' prep input data for differential expression comparison
+
+# user_groups <- read.table(textConnection(gsub(" |,", "\t", readLines(opt$groupfile))), sep="\t", header = TRUE, stringsAsFactors = FALSE, fill=TRUE)
+
+diffex_settings <- readr::read_tsv(opt$groupfile)
+# convert dataframe into lists
+
+diffex_settings <- purrr::transpose(diffex_settings)
+
+# trace("prep_counts_and_sample_sheet", quote(browser(skipCalls = 4)),
+      # exit = quote(browser(skipCalls = 4)))
+# 
+# trace("prep_scde_input", quote(browser(skipCalls = 4)),
+#       exit = quote(browser(skipCalls = 4)))
+
+counts <- readr::read_csv(opt$infile)
+
+
+
+sample_sheet <- readr::read_csv(opt$cell_info)
+
+
+
+diffex_in <- purrr::map(diffex_settings, prep_scde_input, counts, sample_sheet, feature = opt$feature, output_dir = opt$out)
+
+
+saveRDS(diffex_in,"~/single_cell_projects/tmp/shl_scde2.rds")
+
+# saveRDS(mtcars, "~/single_cell_projects/tmp/test.rds")
+
+# trace("prep_counts_and_sample_sheet", quote(browser(skipCalls = 4)),
+# 	exit = quote(browser(skipCalls = 4)))
+
+
+
+## Display the log file
+# readLines("prep.Rout")
+# run scde with comparison by group --------------------------
+
+# trace("parallel_scde", quote(browser(skipCalls = 4)),
+#       exit = quote(browser(skipCalls = 4)))
+
+# trace(scde:::quick.distribution.summary, quote(browser(skipCalls = 4)), exit = quote(browser(skipCalls = 4)))
+# trace(scde:::get.ratio.posterior.Z.score, quote(browser(skipCalls = 4)), exit = quote(browser(skipCalls = 4)))
+comparisons <- user_groups$comparison
+analysis_ids = user_groups$analysis_id
+rds_files <- list.files(path = paste0(opt$out, "/diffex_by_trs"), pattern=".*stringtie.rds$", full.names = TRUE)
+
+rds_files <- sapply(analysis_ids, function(x) rds_files[grep(x, rds_files)])
+
+rds_names <- basename(rds_files)
+rds_names <- gsub("_stringtie.rds", "", rds_names)
+
+scde_preps <- purrr::map(rds_files, readRDS)
+scde_preps <- purrr::map2(scde_preps, rds_names, function(x,y){c(x, analysis_id=y)})
+
+# test2 <- purrr::map2(scde_preps, user_groups$subset_param_values, function(x,y) {x[["subset_param_value"]] <- y; return(x)})
+
+# comparisons <- comparisons[pmatch(comparisons, rds_names)]
+
+if (!typeof(scde_preps) == "list") {
+  scde_preps <- list(scde_preps)
+}
+
+# trace(cataract::parallel_scde, quote(browser(skipCalls = 4)), exit = quote(browser(skipCalls = 4)))
+
+purrr::map2(scde_preps, comparisons, parallel_scde, coldata = opt$cell_info, output_dir = opt$out, feature = opt$feature)
+
+## Display the log file
+# readLines("run.Rout")
+
+
+
+

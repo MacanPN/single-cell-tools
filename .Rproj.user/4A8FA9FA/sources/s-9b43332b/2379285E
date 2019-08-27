@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1540327020532.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "201|59|207|0|\n210|47|216|0|\n218|52|224|0|\n226|69|233|0|\n236|103|258|0|\n262|107|290|0|\n292|43|297|0|\n299|46|307|0|\n309|50|317|0|\n319|59|326|0|\n388|30|392|1|\n392|31|396|1|\n406|133|530|0|\n532|139|652|0|\n716|31|719|2|\n",
+    "hash" : "0",
+    "id" : "2379285E",
+    "lastKnownWriteTime" : 1540333755,
+    "last_content_update" : 1540337557008,
+    "path" : "~/single_cell_projects/quicklinks/FACS_20181001_dshayler_Organoid_proj/src/cataract_differential_expression.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "679,50",
+        "scrollLine" : "670"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

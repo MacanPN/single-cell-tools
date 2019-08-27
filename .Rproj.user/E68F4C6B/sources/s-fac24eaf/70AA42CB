@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1566935195844.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "70AA42CB",
+    "lastKnownWriteTime" : 1566866804,
+    "last_content_update" : 1566866804,
+    "path" : "/dataVolume/storage/single_cell_tools/pseudotime_interactive.py",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "44,37",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "python"
+}
