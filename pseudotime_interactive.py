@@ -79,15 +79,15 @@ def assign_clusters_using_hierarch(colnm=None, colval=None):
         clusters_without_time = get_cluster_labels(linkage, number_of_clusters, PC_expression.index)
         cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
         print("Now plotting clusters")
-        annotation = change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
+        subset_annotation = change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
         clusters = []
         sett.pcs = cluster_on_pcs[:3]
-        plot_3d_pca(PC_expression, annotation, sett)
+        plot_3d_pca(PC_expression, subset_annotation, sett)
         for i in range(0,number_of_clusters):
             time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
-            clusters.append( (time,annotation.loc[annotation["color"]==cluster_colors[i]].index) )
+            clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
         clusters.sort(key=lambda by_first: by_first[0])
-        dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], annotation, method=method, sett=sett)
+        dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], subset_annotation, method=method, sett=sett)
     sett.subset = 'param'
     return clusters, dendro
     
