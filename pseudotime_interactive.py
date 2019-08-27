@@ -14,17 +14,17 @@ import math
 import IPython
 import argparse
 import os
-import plotly
+import chart_studio.plotly
 import colorsys
 #~ import ipdb
 
 from sc_pseudotime import *
 
 parser = argparse.ArgumentParser(description="runs pseudotime_interactive")
-parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/single_cell_tools/dshayler_input/3_Fetal_Seq/fetal_census_matrix.csv", help="gene by cell matrix of expression values", metavar="EXPR")
-parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/single_cell_tools/dshayler_input/3_Fetal_Seq/ThreeSeq_Fetal_Metadata_101718.csv", help="cell sets", metavar="CELL_SETS")
-parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/single_cell_tools/dshayler_input/3_Fetal_Seq/101718_3d_PCA_No_Bad_Reads_NoVSX2_3FR_Seq_grp.txt", help="plot settings", metavar="PLOT_SETTINGS")
-parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=True)
+parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/python_packages/single_cell_tools/dshayler_input/3_Fetal_Seq/fetal_census_matrix.csv", help="gene by cell matrix of expression values", metavar="EXPR")
+parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/python_packages/single_cell_tools/dshayler_input/3_Fetal_Seq/ThreeSeq_Fetal_Metadata_101718.csv", help="cell sets", metavar="CELL_SETS")
+parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/python_packages/single_cell_tools/dshayler_input/3_Fetal_Seq/101718_3d_PCA_No_Bad_Reads_NoVSX2_3FR_Seq_grp.txt", help="plot settings", metavar="PLOT_SETTINGS")
+parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=False)
 
 
 try:
@@ -142,6 +142,8 @@ def print_dendro(dendros, method):
 def retrieve_subset_param():
     colnm = input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
     colval = input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
+    if colval != "":
+      sett.subset = "param"
     return colnm, colval
 
 def subset_pc_by_param(pc_expression, colnm, colval):
@@ -274,26 +276,32 @@ while True:
         
         sett.pcs = pcs
         print("plotting...\n the plot will open in your web browser shortly")
-        
+        # IPython.embed()
         # If using settings as specified in initial settings files
         if (sett.subset == 'None'):        
         # ~ if not all(colvalp):
             fig = plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
         elif (sett.subset == 'param'):
-            if (colvalp == colval):
-                plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
-            elif set(colvalp).issubset(colval):
-                #~ ipdb.set_trace()
-                old_colors = subset_annotation["color"]
-                subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colvalp)
-                subset_annotation.loc[:,"color"] = old_colors[old_colors.index.isin(subset_annotation.index)]
-                new_clusters = [(i, c[c.isin(subset_annotation.index)]) for i,c in subset_clusters]
-                plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = new_clusters)
-                del subset_annotation, subset_PC_expression
-            else:
-                subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colvalp)
-                plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
-                del subset_annotation, subset_PC_expression
+            subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colvalp)
+            plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+            del subset_annotation, subset_PC_expression
+        # elif (sett.subset == 'param'):
+        #   
+        #     if (colvalp == colval):
+        #         plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
+        #     elif set(colvalp).issubset(colval):
+        #         #~ ipdb.set_trace()
+        #         old_colors = subset_annotation["color"]
+        #         
+        #         subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colvalp)
+        #         subset_annotation.loc[:,"color"] = old_colors[old_colors.index.isin(subset_annotation.index)]
+        #         new_clusters = [(i, c[c.isin(subset_annotation.index)]) for i,c in subset_clusters]
+        #         plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = new_clusters)
+        #         del subset_annotation, subset_PC_expression
+        #     else:
+        #         subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colvalp)
+        #         plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
+        #         del subset_annotation, subset_PC_expression
         elif (sett.subset == 'cluster'):
             plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
             
@@ -353,12 +361,13 @@ while True:
         features = input("Which genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
         feat_type = input("Plot by gene (g) or by transcript (t)? ")
         
-        palette_size = bins
-        pal = sns.color_palette("coolwarm", palette_size+1)
-        pal = [(int(i[0]*256),int(i[1]*256),int(i[2]*256)) for i in pal]
-        bin_colors = cl.to_rgb(pal)
-        
+        #palette_size = bins
+        #pal = sns.color_palette("coolwarm", palette_size+1)
+        #pal = [(int(i[0]*256),int(i[1]*256),int(i[2]*256)) for i in pal]
+        bin_colors = ["grey", "blue", "#21f2e4", "orange", "red", "#51040a"]
         bin_col_dict = dict(zip(range(0,bins), bin_colors))
+	#bin_colors = cl.to_rgb(pal)
+        #bin_col_dict = dict(zip(range(0,bins), bin_colors))
         if feat_type == "g":
             for i in features:
                 plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, features=i, bin_col_dict=bin_col_dict, expression_table=expression_table, feat_type = feat_type)
