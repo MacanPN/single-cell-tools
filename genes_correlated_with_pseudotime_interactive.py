@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python 
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -23,9 +23,9 @@ from inspect import currentframe, getframeinfo
 import argparse
 
 parser = argparse.ArgumentParser(description="runs genes_correlated_with_pseudotime")
-parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/single_cell_tools/example_input_files/transcripts.tpm_census_matrix-comma-delimited.csv", help="gene by cell matrix of expression values", metavar="EXPR")
-parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/single_cell_tools/example_input_files/cell_sets.csv", help="cell sets", metavar="CELL_SETS")
-parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/single_cell_tools/example_input_files/plot_settings.csv", help="plot settings", metavar="PLOT_SETTINGS")
+parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv", help="gene by cell matrix of expression values", metavar="EXPR")
+parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv", help="cell sets", metavar="CELL_SETS")
+parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-r", "--corr-method", dest="corr_method", default="spearman", help="method of correlation (spearman or pearson)", metavar="CORR_METHOD")
 parser.add_argument("-f", "--feature", dest="feature", help="feature of interest; either 'gene' or 'transcript' depending on desired output", metavar="FEATURE", required=True)
 parser.add_argument("-o", "--outfile", dest="outfile", default="gene_corr_with_ptime", help="a name to give to the output file", metavar="OUTFILE")
@@ -129,7 +129,7 @@ else:
 		if sorted(cpt.keys()) == list(ctrl_corr.columns):
 			pass
 		else:
-			print "column names do not match!"
+			print("column names do not match!")
 			
 	ctrl_user_ptimes = ' '.join(cpt.keys())
 
@@ -187,7 +187,8 @@ else:
 	if corr_columns == list(corr.columns):
 		pass
 	else:
-		print "column names do not match!"
+		print("column names do not match!")
+
 
 user_ptimes = ' '.join(pt.keys())
 
@@ -209,7 +210,7 @@ def genes_within_threshold(rbkd_thresh, corr):
 
 ## function plots genes of interest (pd.Index) into pdf
 def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, ctrl_pseudotime=None, squeeze=True):
-	#~ IPython.embed()
+
 	if ctrl_pseudotime is None:
 		plot_id = ["exp"]*len(pt.keys())
 	else:
@@ -220,7 +221,7 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 	pp = PdfPages(out_filename)
 	for i,t in enumerate(genes_of_interest):
 		fig, ax = plt.subplots(1,len(plot_id), figsize=(15,5), sharey="row", squeeze=squeeze) #define common y axis for set of plots (treatments)
-		print i,t
+		print(i,t)
 		title = t
 		try:
 			mg = mygene.MyGeneInfo()
@@ -240,14 +241,14 @@ def plot_genes_of_interest(genes_of_interest, out_filename, expression_table, an
 		
 		if ctrl_pseudotime is None:
 			while cntr < len(plot_id):
-				plot_gene_with_pseudotime(expression_table, pt[pt.keys()[cntr]], t, annotation, ax=ax[0][0+cntr], plot_id=plot_id[cntr])
-
-				plot_gene_with_pseudotime(expression_table, pt[pt.keys()[cntr]], t, annotation, ax=ax[0][0+cntr], plot_id=plot_id[cntr])
+				plot_gene_with_pseudotime(expression_table, pt[list(pt)[cntr]], t, annotation, ax=ax[0][0+cntr], plot_id=plot_id[cntr])
 				cntr += 1
 			# ~ for i in pt.names
-			
+
 			for key in pt:
-				ax[0][pt.keys().index(key)].set_title(key+"_"+correlation_method+"=%.2f" % corr.loc[t,key+"_exp_corr"])
+				ax[0][list(pt).index(key)].set_title(key+"_"+correlation_method+"=%.2f" % corr.loc[t,key+"_exp_corr"])
+				# ax[0][key].set_title(key+"_"+correlation_method+"=%.2f" % corr.loc[t,key+"_exp_corr"])
+
 
 
 		else: 
@@ -289,14 +290,14 @@ while True:
 	[T]	Plot Top N Features (Genes or Transcripts) with highest correlation
 	[X]	Exit
 	"""
-	action = raw_input(question).upper()
+	action = input(question).upper()
 	if(action == "X"):
 		break
 		#~ exit()
 		#~ FACS_0407_2017_SHL_input_files/DEGS_day_12.csv
 	elif(action == "C"):
-		ptime_paths = raw_input("provide path(s) to new pseudotime files ").split(",")
-		corr_out = raw_input("provide filename for new correlation files ")
+		ptime_paths = input("provide path(s) to new pseudotime files ").split(",")
+		corr_out = input("provide filename for new correlation files ")
 		## block of code to calculate correlations
 		pt = map(read_pseudotime_from_file, ptime_paths)
 		corr = [get_correlation_with_pseudotime(x, expression_table, gene_trx_dic, method=correlation_method) for x in pt]
@@ -307,23 +308,24 @@ while True:
 		corr.columns = ptime_titles
 		
 	elif(action == "D"):
-		DEG_path = raw_input("provide path to differentially expressed genes ")
-		ptime = raw_input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
-		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
+		DEG_path = input("provide path to differentially expressed genes ")
+		ptime = input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
+		ctrl_ptime = input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
 		DEGS = pd.read_csv(DEG_path, index_col=0, header=None)
 		if options.feature == "gene":
 			DEGS = symbols_from_geneids(DEGS)
 		elif options.feature == "transcript":
 			DEGS = DEGS.index
 		corr["order"] = corr[ptime+"_exp_corr"].abs()
-		#~ IPython.embed()
+
 		DEGS = corr[corr.index.isin(DEGS)].index
 		out_filename = output_dir+correlation_method+"_"+ptime+"_DEGS.pdf"
-		
+		IPython.embed()
 		if ctrl_ptime == '':
 			if len(pt) == 1:
-				plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
-				# plot transcripts of interest
+			  IPython.embed()
+			  plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
+        # plot transcripts of interest
 				#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
 				
 			else:
@@ -336,22 +338,28 @@ while True:
 			#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
 		
 	elif(action == "T"):
-		top_n = int(raw_input("How many genes would you like to plot? "))
-		ptime = raw_input("Which pseudotime would you like to order by? ("+user_ptimes+ ") ")
-		ctrl_ptime = raw_input("Which ctrl pseudotime would you like to correlate with? Leave blank if no control present. ("+ctrl_user_ptimes+ ") ")
-		ht = float(raw_input("set upper threshold (def. 0.3) "))
-		lt = float(raw_input("set lower threshold (def. 0.2) Leave blank if no control present. ") or 0)
-		threshold_set = raw_input("retain genes above upper threshold in ("+user_ptimes+ ") (split with , for mult.) ").split(",")
+		top_n = int(input("How many genes would you like to plot? "))
+		ptime = input("Which pseudotime would you like to order by? ("+user_ptimes+ ") ")
+		ctrl_ptime = input("Which ctrl pseudotime would you like to correlate with? Leave blank if no control present. ("+ctrl_user_ptimes+ ") ")
+
+		ht = input("set upper threshold (def. 0.3) ")
+		if not ht == '':
+		  ht = float(ht)
+		else:
+		  ht = 0.3
+		lt = float(input("set lower threshold (def. 0.2) Leave blank if no control present. ") or 0)
+		threshold_set = input("retain genes above upper threshold in ("+user_ptimes+ ") (split with , for mult.) ").split(",")
 		corr["order"] = (corr[ptime+"_exp_corr"]).abs()
 		# ~ corr["order"] = (corr[ptime]).abs()
-		#~ IPython.embed()	
+	
 		if len(threshold_set) > 1:
 
 			corrs = map(genes_within_threshold, threshold_set, corr)
 			genes_of_interest = corr.loc[pd.concat(corrs, axis=1, join='inner').index]
-			#~ IPython.embed()
+
 		else:
 			genes_of_interest = genes_within_threshold(threshold_set[0], corr)
+		IPython.embed()
 		if top_n > len(genes_of_interest):
 			print("error! number of genes requested exceeds number of genes matching filtering criteria ("+str(len(genes_of_interest))+")")
 			pass
