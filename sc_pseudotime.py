@@ -19,6 +19,7 @@ import mygene
 import statsmodels.api as sm
 import copy # needed to copy class settings
 from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.colors
 # import plotly.plotly as py
 import chart_studio.plotly as py
 import plotly.graph_objs as go
@@ -33,6 +34,8 @@ import pickle
 import colorlover as cl
 import ipdb
 import os
+import plotly.io
+import plotly
 
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
@@ -502,6 +505,12 @@ def color_by_quantile(trx_df, comb, bin_col_dict):
     # ~ traces = comb["name"].unique.sort_values()
     traces = bin_range_dict.values()
     return(comb, traces) 
+    
+def color_by_value(trx_df, comb):
+  comb['color'] = trx_df.trx_count
+  comb['name'] = "expression"
+  traces = ['expression']
+  return(comb, traces)
                 
 ## create 3d PCA plot using plotly library
 # arguments are:
@@ -552,6 +561,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
             aspectmode = 'manual'
         ),
     )
+    
     comb = pd.concat([transformed_expression, annotation], axis=1)
     #comb["name"] = comb["shape"]
     if "name" not in comb.columns:
@@ -585,7 +595,8 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
                 
                 # color by quantile
                 trx_df = sum_trx.to_frame('trx_count')
-                comb, traces = color_by_quantile(trx_df, comb, bin_col_dict)
+                # comb, traces = color_by_quantile(trx_df, comb, bin_col_dict)
+                comb, traces = color_by_value(trx_df, comb)
             
     if (feat_type == "t"):
         
@@ -599,9 +610,9 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
             
             # color by quantile
             trx_df = sum_trx.to_frame('trx_count')
-            comb, traces = color_by_quantile(trx_df, comb, bin_col_dict)      
+            # comb, traces = color_by_quantile(trx_df, comb, bin_col_dict)  
+            comb, traces = color_by_value(trx_df, comb)
             
-    
     data = []
     for t in traces:
         trace = dict(
@@ -616,10 +627,13 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
                 size=comb.loc[comb["name"]==t,"size"].values,
                 # ~ color=trx_df.color,
                 color=comb.loc[comb["name"]==t,"color"].values,
+                colorbar=dict(
+                  title="Colorbar"),
+                colorscale="Viridis",
                 symbol=comb.loc[comb["name"]==t,"shape"].apply(shape_matplotlib2plotly).values,
                 line=dict(width=1) )
             )
-        data.append( trace )
+        data.append(trace)
     if(clusters != None):
         centroids = get_cluster_centroids(transformed_expression, clusters)
         trace = record_trace(clusters, comb, settings, centroids)
@@ -634,7 +648,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
     def nested_set(dic, keys, value):                     
         for key in keys[:-1]:
             dic = dic.setdefault(key, {})
-        dic[keys[-1]] = value     
+        dic[keys[-1]] = value
     
     axis_tuples = list(zip(["x", "y", "z"],["xaxis", "yaxis", "zaxis"]))
     for i,c in axis_tuples:
@@ -646,12 +660,41 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
     # ~ fig = dict(data=data, layout=layout)
     if (features is not None):
         fig = go.Figure(data=data, layout=layout)
-        url = plotly.offline.plot(fig, filename=settings.result_filename+"_"+features, validate=False, auto_open=False)
+        # cdict = {
+        #   'red': ((0.0, 0.12, 0.12),
+        #   (1.0, 0.96, 0.96)),
+        #   'green': ((0.0, 0.53, 0.53),
+        #   (1.0, 0.15, 0.15)),
+        #   'blue': ((0.0, 0.90, 0.90),
+        #   (1.0, 0.34, 0.34)),
+        #   'alpha': ((0.0, 1, 1),
+        #   (0.5, 1, 1),
+        #   (1.0, 1, 1))
+        #   }
+        # 
+        # red_blue = matplotlib.colors.LinearSegmentedColormap('RedBlue', cdict)
+        # 
+        # # add color bar
+        # colorbar_trace  = go.Scatter(x=[None],
+        # y=[None],
+        # mode='markers',
+        # marker=dict(
+        #   colorscale=red_blue,
+        #   showscale=True,
+        #   cmin=-5,
+        #   cmax=5,
+        #   colorbar=dict(thickness=5, tickvals=[-5, 5], ticktext=['Low', 'High'], outlinewidth=0)
+        #   ),
+        # hoverinfo='none')
+        # fig['layout']['showlegend'] = False
+        # fig.add_trace(colorbar_trace)
+        
+        url = plotly.offline.plot(fig, filename="output/"+settings.result_filename+"_"+features, validate=False, auto_open=False)
+        # url = plotly.io.write_html(fig, file=settings.result_filename+"_"+features, validate=False, auto_open=False)
     else:
         fig = dict(data=data, layout=layout)
-        url = plotly.offline.plot(fig, filename=settings.result_filename, validate=False, auto_open=False)
-
-
+        url = plotly.offline.plot(fig, filename="output/"+settings.result_filename, validate=False, auto_open=False)
+        # url = plotly.io.write_html(fig, file=settings.result_filename, validate=False, auto_open=False)
     
     print(url)
     return(fig)
@@ -1396,7 +1439,7 @@ def plot_heatmap(expression_table, annotation, cell_dendro):
                                        'zeroline': False,
                                        'showticklabels': False,
                                        'ticks':""}})
-    url = plotly.offline.plot(figure, filename='dendrogram_with_heatmap', validate=False, auto_open=False)
+    url = plotly.offline.plot(figure, filename='output/dendrogram_with_heatmap', validate=False, auto_open=False)
     print(url)
 
 ## main function

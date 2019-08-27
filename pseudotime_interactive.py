@@ -16,14 +16,16 @@ import argparse
 import os
 import chart_studio.plotly
 import colorsys
+import plotly.express as px
+
 #~ import ipdb
 
 from sc_pseudotime import *
 
 parser = argparse.ArgumentParser(description="runs pseudotime_interactive")
-parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/python_packages/single_cell_tools/dshayler_input/3_Fetal_Seq/fetal_census_matrix.csv", help="gene by cell matrix of expression values", metavar="EXPR")
-parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/python_packages/single_cell_tools/dshayler_input/3_Fetal_Seq/ThreeSeq_Fetal_Metadata_101718.csv", help="cell sets", metavar="CELL_SETS")
-parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/python_packages/single_cell_tools/dshayler_input/3_Fetal_Seq/101718_3d_PCA_No_Bad_Reads_NoVSX2_3FR_Seq_grp.txt", help="plot settings", metavar="PLOT_SETTINGS")
+parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="resources/dshayler_input/3_Fetal_Seq/fetal_census_matrix.csv", help="gene by cell matrix of expression values", metavar="EXPR")
+parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="resources/dshayler_input/3_Fetal_Seq/ThreeSeq_Fetal_Metadata_101718.csv", help="cell sets", metavar="CELL_SETS")
+parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="resources/dshayler_input/3_Fetal_Seq/101718_3d_PCA_No_Bad_Reads_NoVSX2_3FR_Seq_grp.txt", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=False)
 
 
@@ -243,7 +245,7 @@ while True:
     [U]    Assign clusters using file
     [D]    Find Most Correlated and Most Discriminating (treat v ctrl) PCs
     [N]    Normalize centroids
-    [G]    Plot PCA Colored by Quantile Expression of Marker Genes
+    [G]    Plot PCA Colored by Expression of Marker Genes
     [S]    Calculate pseudotime for cells using times assigned to clusters
     [O]    Output clusters (so they can be copied to a file)
     [F]    Save generated pseudotime to file
@@ -335,7 +337,7 @@ while True:
     
     elif(action == "N"):
         test = normalize_centroids(subset_pc_expression)
-        url = plotly.offline.plot(test, filename="normalize_centroids.html", validate=False, auto_open=False)
+        url = plotly.offline.plot(test, filename="resources/normalize_centroids.html", validate=False, auto_open=False)
         print(url)
         
     elif(action == "S"):
@@ -356,7 +358,8 @@ while True:
         subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval)
         pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
         sett.pcs = pcs
-        bins = int(input("How many bins would you like to quantile? "))
+        # bins = int(input("How many bins would you like to quantile? "))
+        bins = 5
         sett.bins = bins
         features = input("Which genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
         feat_type = input("Plot by gene (g) or by transcript (t)? ")
@@ -465,6 +468,7 @@ while True:
             data = []
             traces = comb["name"].unique()
             for t in traces:
+              
                 trace = dict(
                     text = transformed_expression.index, #+ "\n" + transformed_expression["branch"],
                     x = transformed_expression["x"],
@@ -481,10 +485,11 @@ while True:
                     line=dict(width=1) )
                 )
                 
-                data.append( trace )
+                data.append(trace)
             fig = dict(data=data, layout=layout)
-            url = plotly.offline.plot(fig, filename='single_cell-3d-tSNE', validate=False, auto_open=False)
-        plot_using_plotly(tsne_transformed_expression_3d)
+            url = plotly.offline.plot(fig, filename='resources/single_cell-3d-tSNE', validate=False, auto_open=False)
+            
+            plot_using_plotly(tsne_transformed_expression_3d)
         
     elif(action=="Q"):
         cluster_dir = input("Enter location of diffex csvs ")
