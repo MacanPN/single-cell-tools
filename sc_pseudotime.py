@@ -689,10 +689,14 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
         # fig['layout']['showlegend'] = False
         # fig.add_trace(colorbar_trace)
         
+        if not os.path.exists('output'):
+          os.makedirs('output')
         url = plotly.offline.plot(fig, filename="output/"+settings.result_filename+"_"+features, validate=False, auto_open=False)
         # url = plotly.io.write_html(fig, file=settings.result_filename+"_"+features, validate=False, auto_open=False)
     else:
         fig = dict(data=data, layout=layout)
+        if not os.path.exists('output'):
+          os.makedirs('output')
         url = plotly.offline.plot(fig, filename="output/"+settings.result_filename, validate=False, auto_open=False)
         # url = plotly.io.write_html(fig, file=settings.result_filename, validate=False, auto_open=False)
     
@@ -1439,6 +1443,8 @@ def plot_heatmap(expression_table, annotation, cell_dendro):
                                        'zeroline': False,
                                        'showticklabels': False,
                                        'ticks':""}})
+    if not os.path.exists('output'):
+      os.makedirs('output')
     url = plotly.offline.plot(figure, filename='output/dendrogram_with_heatmap', validate=False, auto_open=False)
     print(url)
 
