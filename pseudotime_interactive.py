@@ -52,7 +52,7 @@ PC_expression,pca = run_PCA(expression_table, annotation, n_pca)
 clusters = None
 annotation["name"] = "day "+annotation["day"].astype(str)
 
-def assign_clusters_using_hierarch(colnm=None, colval=None):
+def assign_clusters_using_hierarch(subset_annotation, colnm=None, colval=None):
     pc_set = "Which PCs would you like to use for clustering? [type comma separated list, list can also include ranges 1-5,8] "
     scipy_linkage_methods = [ "complete", "average", "single", "centroid", "median", "ward"]
     cluster_on_pcs = list_from_ranges(input(pc_set))
@@ -67,6 +67,8 @@ def assign_clusters_using_hierarch(colnm=None, colval=None):
         clusters_without_time = get_cluster_labels(linkage, number_of_clusters, subset_PC_expression.index)
         cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
         print("Now plotting clusters")
+        # breakpoint
+        # IPython.embed()
         change_annotation_colors_to_clusters(clusters_without_time, subset_annotation, cluster_colors)
         clusters = []
         sett.pcs = cluster_on_pcs[:3]
@@ -324,7 +326,7 @@ while True:
     elif(action == "C"):
         colnm, colval = retrieve_subset_param()
         subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval)
-        subset_clusters, dendro = assign_clusters_using_hierarch(colnm, colval)
+        subset_clusters, dendro = assign_clusters_using_hierarch(subset_annotation, colnm, colval)
         print("Time clusters were assigned according to hierarchical clustering")
         filename = input("Enter file name you'd like to save clustering plot as (preferably ending with .pdf) ")
         plt.savefig(filename)
