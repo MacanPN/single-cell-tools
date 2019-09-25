@@ -18,7 +18,7 @@ library(here)
 library(annotables)
 ```
 
-```{r}
+```{r, eval = F}
 use_python("/home/skevin/miniconda3/bin/python3", required = T)
 
 py_config()
@@ -67,28 +67,38 @@ fileInput("ctrl_pseudotime", "control cells. a list of pseudotime values. Can ac
 ```
 
 ```{r}
-output_dir <-  "/home/skevin/single_cell_tools/gene_corr_with_ptime/"
+output_dir <-  "output/gene_corr_with_ptime/"
 ```
 
 
 
 ```{r, eval = T}
-source_python("~/single_cell_tools/genes_correlated_with_pseudotime2.py")
+source_python("genes_correlated_with_pseudotime2.py")
 
 ```
 
 ```{python, echo = F}
-cellset_file = "/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv"
-settings_file = "/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
+from genes_correlated_with_pseudotime2 import *
+```
+
+
+```{python, echo = F}
+
+cellset_file = "resources/input/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv"
+settings_file = "resources/input/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
+```
+
+
+```{python, echo = F}
 sett = settings(settings_file, cellset_file)
-expression_file = "/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv"
+expression_file = "resources/input/FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv"
 expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
 ```
 
 ```{r}
-pseudotime_files = "/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/733_PC4-5"
+pseudotime_files = "resources/input/FACS_0407_2017_SHL_input_files/733_PC4-5"
 
-ctrl_pseudotime_files = "/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/737_PC1-4"
+ctrl_pseudotime_files = "resources/input/FACS_0407_2017_SHL_input_files/737_PC1-4"
 
 ```
 

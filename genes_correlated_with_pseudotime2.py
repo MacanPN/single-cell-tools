@@ -1,6 +1,8 @@
 #!/usr/bin/env python 
 
-sys.path.insert(0, "/home/skevin/single_cell_tools/")
+import sys
+
+sys.path.insert(0, "/home/skevin/python_packages/single_cell_tools")
 from sc_pseudotime2 import *
 from inspect import currentframe, getframeinfo
 
@@ -68,7 +70,7 @@ def load_ctrl_pseudotimes(pseudotime_files, ctrl_pseudotime_files=None, expressi
   	# read correlation files from similarly named files
   	if os.path.exists(ctrl_correlation_file):
   		print(ctrl_correlation_file)
-  		ctrl_corr = pd.read_csv(ctrl_correlation_file, sep="\t", index_col=0)
+  		ctrl_corr = pd.read_csv(ctrl_correlation_file, sep="\t", index_col=0, error_bad_lines=False)
   
   	# check if control correlation files have already been read in
   	try:
@@ -109,7 +111,7 @@ def load_exp_pseudotimes(pseudotime_files, cpt="none", expression_table=None, an
   
   # read correlation files from similarly named files
   if os.path.exists(correlation_file):
-  	corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
+  	corr = pd.read_csv(correlation_file, sep="\t", index_col=0, error_bad_lines=False)
   
   if cpt == "none":
 

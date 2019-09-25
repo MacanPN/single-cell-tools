@@ -23,13 +23,13 @@ from inspect import currentframe, getframeinfo
 import argparse
 
 parser = argparse.ArgumentParser(description="runs genes_correlated_with_pseudotime")
-parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv", help="gene by cell matrix of expression values", metavar="EXPR")
-parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv", help="cell sets", metavar="CELL_SETS")
-parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="/home/skevin/single_cell_tools/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv", help="plot settings", metavar="PLOT_SETTINGS")
+parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/python_packages/single_cell_tools/resources/input/FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv", help="gene by cell matrix of expression values", metavar="EXPR")
+parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/python_packages/single_cell_tools/resources/input/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv", help="cell sets", metavar="CELL_SETS")
+parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/python_packages/single_cell_tools/resources/input/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-r", "--corr-method", dest="corr_method", default="spearman", help="method of correlation (spearman or pearson)", metavar="CORR_METHOD")
-parser.add_argument("-f", "--feature", dest="feature", help="feature of interest; either 'gene' or 'transcript' depending on desired output", metavar="FEATURE", required=True)
-parser.add_argument("-o", "--outfile", dest="outfile", default="gene_corr_with_ptime", help="a name to give to the output file", metavar="OUTFILE")
-parser.add_argument("-pt", "--pseudotime", dest="pseudotime", help="experimental cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=True)
+parser.add_argument("-f", "--feature", dest="feature", default = "gene", help="feature of interest; either 'gene' or 'transcript' depending on desired output", metavar="FEATURE", required=False)
+parser.add_argument("-o", "--outdir", dest="outdir", default="output/gene_corr_with_ptime", help="a name to give to the output file", metavar="OUTDIR")
+parser.add_argument("-pt", "--pseudotime", dest="pseudotime", default = "resources/example_input_files/example_pseudotime.csv", help="experimental cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=False)
 parser.add_argument("-cpt", "--control-pseudotime", dest="ctrl_pseudotime", help="control cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+')
 
 
@@ -44,7 +44,7 @@ expression_file = os.path.expanduser(options.expr_mat)
 cellset_file    = os.path.expanduser(options.cell_sets)
 settings_file   = os.path.expanduser(options.plot_settings)
 correlation_method = options.corr_method
-output_dir      = options.outfile+"/"
+output_dir      = options.outdir+"/"
 
 pseudotime_files = sorted(options.pseudotime)
 if options.ctrl_pseudotime:
