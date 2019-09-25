@@ -538,7 +538,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
                 gridcolor='rgb(0, 0, 0)',
                 zerolinecolor='rgb(255, 0, 0)',
                 showbackground=True,
-                backgroundcolor='#eaeaea'
+                backgroundcolor='#bababa'
             ),
             yaxis=dict(
                 range = [-settings.plot_dim[1], settings.plot_dim[1]],
@@ -547,7 +547,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
                 gridcolor='rgb(0, 0, 0)',
                 zerolinecolor='rgb(255, 0, 0)',
                 showbackground=True,
-                backgroundcolor='#eaeaea'
+                backgroundcolor='#bababa'
             ),
             zaxis=dict(
                 range = [-settings.plot_dim[2], settings.plot_dim[2]],
@@ -556,7 +556,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
                 gridcolor='rgb(0, 0, 0)',
                 zerolinecolor='rgb(255, 0, 0)',
                 showbackground=True,
-                backgroundcolor='#eaeaea'
+                backgroundcolor='#bababa'
             ),
             aspectmode = 'manual'
         ),
