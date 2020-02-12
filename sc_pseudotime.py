@@ -290,7 +290,7 @@ def run_PCA(expression_table, annotation, n_components):
     
     pca = decomposition.PCA(n_components=n_components, svd_solver="full")
     expression_table_for_PCA = expression_table.loc[annotation[annotation["superimpose"]==False].index]
-    #~ ipdb.set_trace()
+    #~ 
     print ("Calculating PCA on table of shape:",expression_table_for_PCA.shape)
     pca.fit(expression_table_for_PCA)
     print ("Explained variance: ", pca.explained_variance_)
@@ -442,6 +442,8 @@ def record_trace(clusters, comb, settings, centroids=None):
             symbol=["x"]*used_centroids.shape[0], #c[1]["shape"],
             line=dict(width=1) )
         )
+        
+    #     
     return(trace)
 
 def shape_matplotlib2plotly(s):
@@ -490,7 +492,7 @@ def shape_plotly2matplotlib(s):
 # - combined expression matrix and annotation data 
 # - dictionary linking bins to colors
 def color_by_quantile(trx_df, comb, bin_col_dict):
-    # ipdb.set_trace()
+    # 
     number_of_bins = len(bin_col_dict.keys())
     bin_labels=bin_col_dict.keys()
     bin_quantiles = pd.cut(trx_df.trx_count, number_of_bins, labels=bin_labels, retbins=True)
@@ -524,7 +526,6 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
     max_range = (used_pcs.max() - used_pcs.min()).max()
     #print(used_pcs.max())
     #print(used_pcs.min())
-    
     layout = dict(
         width=width,
         height=height,
@@ -561,14 +562,14 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
             aspectmode = 'manual'
         ),
     )
-    
+    # IPython.embed()
     comb = pd.concat([transformed_expression, annotation], axis=1)
     #comb["name"] = comb["shape"]
     if "name" not in comb.columns:
         comb["name"] = comb["color"]+"_"+comb["shape"]
     traces = comb["name"].unique()
     # allow coloring cells by quantile expression of supplied features
-    if (feat_type == "g"):
+    if (feat_type == "gene"):
         if (features is not None):
             markers = list(annotation["shape"].unique())
             mg = mygene.MyGeneInfo()
@@ -598,9 +599,9 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
                 # comb, traces = color_by_quantile(trx_df, comb, bin_col_dict)
                 comb, traces = color_by_value(trx_df, comb)
             
-    if (feat_type == "t"):
+    if (feat_type == "transcript"):
         
-        # ~ ipdb.set_trace()
+        # ~ 
         if (features is not None):
             markers = list(annotation["shape"].unique())
             mg = mygene.MyGeneInfo()
@@ -635,24 +636,21 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
             )
         data.append(trace)
     if(clusters != None):
+        # ipdb.set_trace()
         centroids = get_cluster_centroids(transformed_expression, clusters)
         trace = record_trace(clusters, comb, settings, centroids)
         data.append(trace)
-    if(DEBUG):
-        IPython.embed()
         
-        
-    #print(annotation["shape"].apply(shape_matplotlib2plotly))
-    
     # check if start/end centroids extend off the plot dimensions and reassign dimensions if so
-    def nested_set(dic, keys, value):                     
-        for key in keys[:-1]:
-            dic = dic.setdefault(key, {})
-        dic[keys[-1]] = value
-    
+    def nested_set(dic, keys, value):
+      for key in keys[:-1]:
+          dic = dic.setdefault(key, {})
+      dic[keys[-1]] = value
+      
+    #print(annotation["shape"].apply(shape_matplotlib2plotly))
     axis_tuples = list(zip(["x", "y", "z"],["xaxis", "yaxis", "zaxis"]))
     for i,c in axis_tuples:
-        # IPython.embed()
+        # 
         if (trace[i].min() < layout['scene'][c]['range'][0]):
             nested_set(layout, ['scene', c, 'range'], [trace[i].min(),layout['scene'][c]['range'][1]])
         if (trace[i].max() > layout['scene'][c]['range'][1]):
@@ -713,7 +711,7 @@ def get_cluster_labels(linkage, n_clusters, labels):
 #  colors are the colors to assign
 def change_annotation_colors_to_clusters(clusters, annotation, colors):
   # breakpoint
-  # IPython.embed()
+  # 
   for i,c in enumerate(clusters.values()):
       annotation.loc[annotation.index.isin(c), "color"] = colors[i]
   print(colors)
@@ -791,7 +789,7 @@ def plot_hierarchical_clustering(transformed_expression, annotation, method, col
     cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
 
     if color_scheme == "overwrite":
-      change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
+      annotation = change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
     clusters = []
     
     for i in range(0,sett.num_clusters):
@@ -845,7 +843,7 @@ def rotate_expression(transformed_expression,x,y,angle):
 # - pca sklearn.decomposition object
 # - settings object
 def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=None):
-    #~ ipdb.set_trace()
+    #~ 
     n_pca = len(transformed_expression.columns)
     transformed_expression["day"] = annotation["day"]
     transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
@@ -892,7 +890,7 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
     low,high = plt.xlim()
     plt.xlim(low-0.5, high+0.5)
     plt.savefig(spearman_filename, dpi=200)
-    #~ ipdb.set_trace()
+    #~ 
     if user_pcs:
         settings.pcs = user_pcs
     else:
@@ -1011,7 +1009,7 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - pd.Series with pseudotime coordinates for each cell
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filename=None, ax=None, plot_id=None, ctrl_pseudotime=None):
-    # IPython.embed()
+    # 
     expr_over_ptime = pd.DataFrame(pseudotime)
     expr_over_ptime["expression"] = exp.loc[pseudotime.index, transcript_id]
     if ctrl_pseudotime is not None:
@@ -1038,7 +1036,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
         
         expression = RBKD_over_ptime["expression"]
         # expression = x=np.random.uniform(5,size=(100))+2.0
-        # IPython.embed()
+        # 
         Replications = np.array([np.random.choice(expression, size=len(expression), replace=True) for _ in range(1000)])
         Mean = np.mean(Replications, axis=1)
         
@@ -1048,7 +1046,7 @@ def plot_gene_with_pseudotime(exp, pseudotime, transcript_id, annotation, filena
         lowc=Replications[lowb,:]
         upc=Replications[upb,:]
         
-        # IPython.embed()
+        # 
 
         z = lowess(RBKD_over_ptime["expression"], pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
         zlow = lowess(lowc, pseudotime[pseudotime.index.isin(RBKD_over_ptime.index)])
@@ -1146,7 +1144,7 @@ def trx_to_gene_exp_table(expression_table, gene_trx_dic):
     return(gene_exp)
 
 def return_subset_correlation(subset_index, feature):
-  # IPython.embed()
+  # 
   subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
   transcripts = exp.columns.copy()
   subsetc = exp.loc[subset_index]
@@ -1217,7 +1215,7 @@ def get_correlation_with_pseudotime(pseudotime, exp, annotation, gene_trx_dic, c
     return spearman
     
 
-def plot_3d_pca_colored_by_clustering(PC_expression, annotation, pca, settings):
+def plot_3d_pca_colored_by_clustering(PC_expression, annotation, settings):
     
     link_color = {}
     def link_color_func(node):
@@ -1362,7 +1360,7 @@ def plot_heatmap(expression_table, annotation, cell_dendro):
     #~ heat_data = heat_data[dendro_leaves,:]
     #~ heat_data = heat_data[:,dendro_leaves]
 
-    # IPython.embed()
+    # 
 
     heatmap = Data([
         Heatmap(
@@ -1373,7 +1371,7 @@ def plot_heatmap(expression_table, annotation, cell_dendro):
         )
     ])
     
-    # IPython.embed()
+    # 
     
     heatmap[0]['x'] = figure['layout']['xaxis']['tickvals']
     #~ heatmap[0]['y'] = dendro_side['layout']['yaxis']['tickvals']
@@ -1531,7 +1529,192 @@ def read_in_diffex(cluster_dir):
         #~ value.to_csv(key) 
     return diffex_csvs
 
+def assign_clusters_using_hierarch(subset_annotation, subset_PC_expression, sett, colnm=None, colval=None):
+    pc_set = "Which PCs would you like to use for clustering? [type comma separated list, list can also include ranges 1-5,8] "
+    scipy_linkage_methods = [ "complete", "average", "single", "centroid", "median", "ward"]
+    cluster_on_pcs = list_from_ranges(input(pc_set))
+    number_of_clusters = int(input("How many clusters would you like to generate? "))
+    sett.num_clusters = number_of_clusters
+    method = input("Which clustering would you like to use: "+", ".join(scipy_linkage_methods)+": ")
+    if method not in scipy_linkage_methods:
+        print("clustering method not supported (spelling error?)")
+        return
+    if '' not in colval:
+        linkage = sc.cluster.hierarchy.linkage(subset_PC_expression[cluster_on_pcs], method=method)
+        clusters_without_time = get_cluster_labels(linkage, number_of_clusters, subset_PC_expression.index)
+        cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+        print("Now plotting clusters")
+        # breakpoint
+        # 
+        subset_annotation = change_annotation_colors_to_clusters(clusters_without_time, subset_annotation, cluster_colors)
+        clusters = []
+        sett.pcs = cluster_on_pcs[:3]
+        # IPython.embed()
+        plot_3d_pca(subset_PC_expression, subset_annotation, sett)
+        for i in range(0,number_of_clusters):
+            time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
+            clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
+        clusters.sort(key=lambda by_first: by_first[0])
+        dendro = plot_hierarchical_clustering(subset_PC_expression[cluster_on_pcs], subset_annotation, method=method, sett=sett)
+    else:
+        linkage = sc.cluster.hierarchy.linkage(PC_expression[cluster_on_pcs], method=method)
+        clusters_without_time = get_cluster_labels(linkage, number_of_clusters, PC_expression.index)
+        cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+        print("Now plotting clusters")
+        subset_annotation = change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
+        clusters = []
+        sett.pcs = cluster_on_pcs[:3]
+        # IPython.embed()
+        plot_3d_pca(PC_expression, subset_annotation, sett)
+        for i in range(0,number_of_clusters):
+            time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
+            clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
+        clusters.sort(key=lambda by_first: by_first[0])
+        dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], subset_annotation, method=method, sett=sett)
+    sett.subset = 'cluster'
+    return clusters, dendro
+    
+def assign_clusters_using_file(cluster_file):
+    sett.append("cluster", cluster_file)
+    sett.n_clusters = len(sett.sets['cluster'])
+    cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+    clusters = {}
+    number_of_clusters = sett.n_clusters
+    for i in range(number_of_clusters):
+        clusters[i] = set(sett.cell_sets[sett.sets['cluster'][i]])
+    subset_annotation, subset_PC_expression = subset_pc_by_clusters(PC_expression, clusters)
+    subset_annotation = change_annotation_colors_to_clusters(clusters, subset_annotation, cluster_colors)
+    clusters = []
+    plot_3d_pca(subset_PC_expression, subset_annotation, sett)
+    for i in range(0,number_of_clusters):
+        time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
+        clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
+    clusters.sort(key=lambda by_first: by_first[0])
+    # remove empty clusters before proceeding
+    filt_clusters = []
+    for i in clusters:
+        if(len(i[1]) > 0):
+            filt_clusters.append(i)
+    # set subset flag
+    sett.subset = 'cluster'
+    return subset_annotation, subset_PC_expression, filt_clusters
 
+def print_clusters(clusters):
+    if(clusters == None):
+        print("Clusters were not identified yet!")
+        return
+    print("Follows list of clusters: (first column is the time assigned to the cluster)")
+    for cl in clusters:
+        print(str(cl[0])+"\t"+"\t".join(cl[1]))
+    # alternative cluster_print method
+    #~ clusters_df = pd.DataFrame()
+    #~ for i, (a, b) in enumerate(clusters):
+        #~ enum_df = pd.DataFrame(clusters[i][1])
+        #~ enum_df.columns = [str(a)]
+        #~ clusters_df = pd.concat([clusters_df, enum_df], axis=1)
+        
+def print_dendro(dendros, method):
+    oldd = dict(zip(dendros[method]['ivl'], dendros[method]['color_list']))  
+
+    newd = {}
+    for i,d in oldd.items():
+        newd.setdefault(d,[]).append(i)
+    print(newd)
+    return(newd)
+
+def retrieve_subset_param(sett):
+    colnm = input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
+    colval = input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
+    if colval != "":
+      sett.subset = "param"
+    return colnm, colval
+
+def subset_pc_by_param(pc_expression, colnm, colval, annotation):
+    if not all(colval):
+        # ~ clusters_without_time = get_cluster_labels(linkage, number_of_clusters, subset_PC_expression.index)
+        # ~ cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
+        # ~ change_annotation_colors_to_clusters(clusters_without_time, subset_annotation, cluster_colors)
+        return annotation, pc_expression
+    else:
+        if colnm not in annotation.columns:
+            print("metadat not recognized (spelling error?)")
+            colnm, colval = retrieve_subset_param(sett)
+        subset_annotation = annotation[annotation[colnm].isin(colval)]
+        # add day0 cells to all subset_annotations if not removed in plot_settings
+        day0_annotation = annotation[annotation["day"]==0.0]
+        excluded_day0 = day0_annotation[-day0_annotation.isin(subset_annotation)].dropna()
+        if (not day0_annotation.empty):
+            subset_annotation = subset_annotation.append(excluded_day0)
+        subset_PC_expression = pc_expression.loc[subset_annotation.index.values]
+        return subset_annotation, subset_PC_expression
+        
+def subset_pc_by_clusters(pc_expression, clusters):
+    cluster_cells = set.union(*clusters.values())
+    subset_annotation = annotation[annotation.index.isin(cluster_cells)]   
+    # add day0 cells to all subset_annotations if not removed in plot_settings
+    day0_annotation = annotation[annotation["day"]==0.0]
+    excluded_day0 = day0_annotation[-day0_annotation.isin(subset_annotation)].dropna()
+    if (not day0_annotation.empty):
+        subset_annotation = subset_annotation.append(excluded_day0)
+    subset_PC_expression = PC_expression.loc[subset_annotation.index.values]
+    return subset_annotation, subset_PC_expression
+
+def find_discrim_pcs(subset_pc_expression, annotation):
+    
+    shRBKD_cells = annotation.loc[annotation['treatment'] != "shCtrl"].index
+    vals_shRBKD = PC_expression.loc[shRBKD_cells,:]
+    
+    shCtrl_cells = annotation.loc[annotation['treatment'] == "shCtrl"].index
+    vals_shCtrl = PC_expression.loc[shCtrl_cells,:]
+    
+    for i in range(1, 20):
+        test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
+        print(test)
+
+def normalize_centroids(subset_pc_expression):
+    print("provide control group: ")
+    ctrl_colnm, ctrl_colval = retrieve_subset_param()
+    pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+    sett.pcs = pcs
+    
+    ctrl_annotation, ctrl_pc_expression = subset_pc_by_param(PC_expression, colnm, colval)
+    ctrl_clusters = time_clusters_from_annotations(ctrl_annotation)
+    ctrl_cntrds = get_cluster_centroids(ctrl_pc_expression, ctrl_clusters)
+    try:
+        subset_PC_expression
+    except:
+        print("error")
+    else:
+        fig = plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
+        trace = fig["data"][-1]
+        sub_ctrl_cntrds = ctrl_cntrds.iloc[sett.pcs,:]
+        cntrds = pd.DataFrame([])
+        coords = ["x", "y", "z"]
+        for i,j in zip(coords, sub_ctrl_cntrds.index):
+            trace[i] = trace[i] - (sub_ctrl_cntrds.loc[j,] - sub_ctrl_cntrds.loc[j,0])
+        fig["data"][-1] = trace
+    return(fig)
+    #~ trace = record_centroids(clusters, comb, settings)
+    #~ centroids = pd.DataFrame([])
+    #~ coords = ["x", "y", "z"]
+    #~ for i in coords:
+        #~ centroids = pd.append([trace[i])
+
+## save genes correlated with a PC to file
+def get_isoforms_correlated_with_pc(pc, n):
+    pc = int(pc)
+    df = pd.Series(pca.components_[pc], index=expression_table.columns)
+    # ~ df = pd.DataFrame(pca.components_[pc], pc, index=expression_table.columns)
+    df = df.reindex(df.abs().sort_values(inplace=False, ascending=False).index).iloc[0:n]
+    return df
+    
+def get_isoforms_correlated_pc_set(pca, expression_table, pcs, n, filename):
+    data = [get_isoforms_correlated_with_pc(i, n) for i in pcs]
+    data = pd.concat(data)
+    csv_filename = filename+"_pcs_"+"_".join(map(str, pcs))+".csv"
+    data.to_csv(csv_filename, sep=",")
+    return data
+    
 
 
 # 
