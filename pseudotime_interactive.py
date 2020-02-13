@@ -27,7 +27,7 @@ parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="resou
 parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="resources/2020-02-11-SHL/New_cells_sets_3_5.csv", help="cell sets", metavar="CELL_SETS")
 parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="resources/2020-02-11-SHL/New_plot_settings_2d.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=False)
-
+parser.add_argument("-s", "--shortcut", dest = "shortcut", help="pickle file from which to load command line arguments", required = False)
 
 try:
   options = parser.parse_args()
@@ -35,24 +35,34 @@ except SystemExit as err:
   if err.code == 2: 
     parser.print_help()
     sys.exit(0)
- 
-# ~ load datasets
-expression_file = os.path.expanduser(options.expr_mat)
-cellset_file    = os.path.expanduser(options.cell_sets)
-settings_file   = os.path.expanduser(options.plot_settings)
-n_pca = 20
-# read settings and cell_set files
-sett = settings(settings_file, cellset_file)
-# read expression table
-expression_table, annotation = read_expression(expression_file, sett)
-# calculate PCA
 
-PC_expression,pca = run_PCA(expression_table, annotation, n_pca)
-
+if options.shortcut is None:
+  # ~ load datasets
+  expression_file = os.path.expanduser(options.expr_mat)
+  cellset_file    = os.path.expanduser(options.cell_sets)
+  settings_file   = os.path.expanduser(options.plot_settings)
+  n_pca = 20
+  # read settings and cell_set files
+  sett = settings(settings_file, cellset_file)
+  # read expression table
+  expression_table, annotation = read_expression(expression_file, sett)
+  # calculate PCA
+  
+  PC_expression,pca = run_PCA(expression_table, annotation, n_pca)
+else:
+  # IPython.embed()
+  f = open(options.shortcut, 'rb')   # 'rb' for reading; can be omitted
+  shortcut_dict = pickle.load(f)         # load file content as mydict
+  f.close()     
+  globals().update(**shortcut_dict)
+  
 clusters = None
 annotation["name"] = "day "+annotation["day"].astype(str)
 
-
+# set subset obj to default
+subset_annotation = annotation
+subset_PC_expression = PC_expression
+subset_clusters = clusters
 
 # main loop / choosing action
 while True:
@@ -92,34 +102,34 @@ while True:
       else:
         dendros = plot_all_hierarchical_clusterings(PC_expression, subset_annotation, color_scheme, sett)
     elif(action == "P"):
-      if (sett.subset == 'None'):        
-        sett.pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
-        print("plotting...\n the plot will open in your web browser shortly")
+      colnm, colval = retrieve_subset_param(sett)
+      sett.pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
+      print("plotting...\n the plot will open in your web browser shortly")
+      if colval != "":
+        sett.subset = "param"
+      if (sett.subset == 'None'): 
         fig = plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
       elif (sett.subset == 'param'):
-        # 
-        colnm, colvalp = retrieve_subset_param(sett)
-        sett.pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
-        
-        subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colvalp, subset_annotation)
+        # IPython.embed()
+        subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colval, subset_annotation)
         plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
         del subset_annotation, subset_PC_expression
         sett.subset = 'None'
         # elif (sett.subset == 'param'):
         #   
-        #     if (colvalp == colval):
+        #     if (colval == colval):
         #         plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
-        #     elif set(colvalp).issubset(colval):
+        #     elif set(colval).issubset(colval):
         #         #~ 
         #         old_colors = subset_annotation["color"]
         #         
-        #         subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colvalp)
+        #         subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colval)
         #         subset_annotation.loc[:,"color"] = old_colors[old_colors.index.isin(subset_annotation.index)]
         #         new_clusters = [(i, c[c.isin(subset_annotation.index)]) for i,c in subset_clusters]
         #         plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = new_clusters)
         #         del subset_annotation, subset_PC_expression
         #     else:
-        #         subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colvalp)
+        #         subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval)
         #         plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters)
         #         del subset_annotation, subset_PC_expression
             

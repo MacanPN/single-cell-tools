@@ -569,37 +569,38 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
         comb["name"] = comb["color"]+"_"+comb["shape"]
     traces = comb["name"].unique()
     # allow coloring cells by quantile expression of supplied features
-    if (feat_type == "gene"):
+    if (feat_type == "g"):
         if (features is not None):
-            markers = list(annotation["shape"].unique())
-            mg = mygene.MyGeneInfo()
-            # ~ for i in enumerate(features): 
-            gene_info = mg.querymany(features, scopes='symbol', fields='ensembl.transcript')[0]
-            if len(gene_info['ensembl']) > 1:
-                trx = gene_info['ensembl'][0]['transcript']
-            else:
-                trx = gene_info['ensembl']['transcript']
-            if not (set(trx) & set(expression_table.columns.values)):
-                if set(settings.removed_features) & set(trx):
-                    min_expression = 0.1
-                    min_cells = 10
-                    print(features+" removed by minimium filtering threshold of "+str(min_expression)+" in "+str(min_cells)+" cells.")
-                    return
-            else:
-                if type(trx) == list:
-                    sum_trx = expression_table.loc[:,trx].sum(axis=1)
-                    # catch pandas omission of missing list values in loc; incompatible between pandas versions
-                    #~ sub_trx = expression_table.reindex(trx, axis = 1)
-                    #~ sum_trx = sub_trx.loc[:,trx].sum(axis=1)
-                else:
-                    sum_trx = expression_table.loc[:,trx]
-                
-                # color by quantile
-                trx_df = sum_trx.to_frame('trx_count')
-                # comb, traces = color_by_quantile(trx_df, comb, bin_col_dict)
-                comb, traces = color_by_value(trx_df, comb)
+          # ipdb.set_trace()
+          markers = list(annotation["shape"].unique())
+          mg = mygene.MyGeneInfo()
+          # ~ for i in enumerate(features): 
+          gene_info = mg.querymany(features, scopes='symbol', fields='ensembl.transcript')[0]
+          if len(gene_info['ensembl']) > 1:
+              trx = gene_info['ensembl'][0]['transcript']
+          else:
+              trx = gene_info['ensembl']['transcript']
+          if not (set(trx) & set(expression_table.columns.values)):
+              if set(settings.removed_features) & set(trx):
+                  min_expression = 0.1
+                  min_cells = 10
+                  print(features+" removed by minimium filtering threshold of "+str(min_expression)+" in "+str(min_cells)+" cells.")
+                  return
+          else:
+              if type(trx) == list:
+                  sum_trx = expression_table.loc[:,trx].sum(axis=1)
+                  # catch pandas omission of missing list values in loc; incompatible between pandas versions
+                  #~ sub_trx = expression_table.reindex(trx, axis = 1)
+                  #~ sum_trx = sub_trx.loc[:,trx].sum(axis=1)
+              else:
+                  sum_trx = expression_table.loc[:,trx]
+              
+              # color by quantile
+              trx_df = sum_trx.to_frame('trx_count')
+              # comb, traces = color_by_quantile(trx_df, comb, bin_col_dict)
+              comb, traces = color_by_value(trx_df, comb)
             
-    if (feat_type == "transcript"):
+    if (feat_type == "t"):
         
         # ~ 
         if (features is not None):
@@ -711,10 +712,12 @@ def get_cluster_labels(linkage, n_clusters, labels):
 #  colors are the colors to assign
 def change_annotation_colors_to_clusters(clusters, annotation, colors):
   # breakpoint
-  # 
+  # IPython.embed()
   for i,c in enumerate(clusters.values()):
       annotation.loc[annotation.index.isin(c), "color"] = colors[i]
   print(colors)
+  print("here")
+  # IPython.embed()
   return(annotation)
 
 ## plot hierarchical clustering for all methods of linkage
@@ -1149,7 +1152,7 @@ def return_subset_correlation(subset_index, feature):
   transcripts = exp.columns.copy()
   subsetc = exp.loc[subset_index]
   subsetc["pseudotime"] = pseudotime[subset_index]
-  if feature == "gene":
+  if feature == "g":
       spearman = pd.DataFrame(0, index=gene_trx_dic.keys(), columns=["corr"])
       # correlation by gene
       for i,gene in enumerate(gene_trx_dic):
@@ -1165,7 +1168,7 @@ def return_subset_correlation(subset_index, feature):
           if corr != corr: # if NaN (no data to calculate on)
               corr = 0 # then correlation is zero
           spearman.loc[gene,"corr"] = corr
-  elif feature == "transcript":
+  elif feature == "t":
       spearman = pd.DataFrame(0, index=transcripts, columns=["corr"])
       # correlation by transcript
       for i,transcript in enumerate(transcripts):
@@ -1562,6 +1565,7 @@ def assign_clusters_using_hierarch(subset_annotation, subset_PC_expression, sett
         clusters_without_time = get_cluster_labels(linkage, number_of_clusters, PC_expression.index)
         cluster_colors = ["blue", "red", "orange", "purple", "green", "brown", "black", "gray", "lawngreen", "magenta", "lightpink", "indigo", "lightblue", "lightgoldenrod1", "mediumpurple2"]
         print("Now plotting clusters")
+        # # IPython.embed()
         subset_annotation = change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
         clusters = []
         sett.pcs = cluster_on_pcs[:3]
@@ -1571,7 +1575,15 @@ def assign_clusters_using_hierarch(subset_annotation, subset_PC_expression, sett
             time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
             clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
         clusters.sort(key=lambda by_first: by_first[0])
+        # IPython.embed()
         dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], subset_annotation, method=method, sett=sett)
+        
+        cluster_dict = {}
+        for a,b in subset_clusters:
+          for c in b:
+            new_dict[c] = a
+        subset_annotation["name"] = pd.Series(cluster_dict)
+        
     # sett.subset = 'cluster'
     return clusters, dendro, subset_annotation
     
@@ -1626,8 +1638,8 @@ def print_dendro(dendros, method):
 def retrieve_subset_param(sett):
     colnm = input("What metadata should be used to subset the data? (ex. treatment, age, etc.) ")
     colval = input("What values should be used to subset the data? (ex. shCtrl, sh842,). Providing no value will prevent subsetting ").split(",")
-    if colval != "":
-      sett.subset = "param"
+    # if colval != "":
+    #   sett.subset = "param"
     return colnm, colval
 
 def subset_pc_by_param(pc_expression, colnm, colval, annotation):
