@@ -520,7 +520,7 @@ def color_by_value(trx_df, comb):
 # - annotation pd.DataFrame
 # - settings object
 def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, bin_col_dict=None, height = 1080, width = 1600, features=None, feat_type="gene", DEBUG=False):
-
+    
     # ~ annotation["name"] = "day "+annotation["day"].astype(str)
     used_pcs = transformed_expression[ list(settings.pcs)]
     max_range = (used_pcs.max() - used_pcs.min()).max()
@@ -562,7 +562,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
             aspectmode = 'manual'
         ),
     )
-    # IPython.embed()
+    # 
     comb = pd.concat([transformed_expression, annotation], axis=1)
     #comb["name"] = comb["shape"]
     if "name" not in comb.columns:
@@ -1268,6 +1268,7 @@ def time_clusters_from_annotations(annotation):
 #  and returns centroid for each cluster
 def get_cluster_centroids(PC_expression, clusters):
     centroids = []
+    
     for cl in clusters:
         centroids.append(PC_expression.loc[cl[1],:].mean())
     # append "first cell" and "last cell" to centroids to 
@@ -1549,7 +1550,7 @@ def assign_clusters_using_hierarch(subset_annotation, subset_PC_expression, sett
         subset_annotation = change_annotation_colors_to_clusters(clusters_without_time, subset_annotation, cluster_colors)
         clusters = []
         sett.pcs = cluster_on_pcs[:3]
-        # IPython.embed()
+        # 
         plot_3d_pca(subset_PC_expression, subset_annotation, sett)
         for i in range(0,number_of_clusters):
             time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
@@ -1564,15 +1565,15 @@ def assign_clusters_using_hierarch(subset_annotation, subset_PC_expression, sett
         subset_annotation = change_annotation_colors_to_clusters(clusters_without_time, annotation, cluster_colors)
         clusters = []
         sett.pcs = cluster_on_pcs[:3]
-        # IPython.embed()
+        # 
         plot_3d_pca(PC_expression, subset_annotation, sett)
         for i in range(0,number_of_clusters):
             time = float(input("Assign time for cluster shown in "+cluster_colors[i]+": "))
             clusters.append( (time,subset_annotation.loc[subset_annotation["color"]==cluster_colors[i]].index) )
         clusters.sort(key=lambda by_first: by_first[0])
         dendro = plot_hierarchical_clustering(PC_expression[cluster_on_pcs], subset_annotation, method=method, sett=sett)
-    sett.subset = 'cluster'
-    return clusters, dendro
+    # sett.subset = 'cluster'
+    return clusters, dendro, subset_annotation
     
 def assign_clusters_using_file(cluster_file):
     sett.append("cluster", cluster_file)

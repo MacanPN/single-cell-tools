@@ -97,9 +97,10 @@ while True:
         print("plotting...\n the plot will open in your web browser shortly")
         fig = plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
       elif (sett.subset == 'param'):
-        # IPython.embed()
+        # 
         colnm, colvalp = retrieve_subset_param(sett)
         sett.pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
+        
         subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colvalp, subset_annotation)
         plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
         del subset_annotation, subset_PC_expression
@@ -139,12 +140,12 @@ while True:
     elif(action == "C"):
       colnm, colval = retrieve_subset_param(sett)
       subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
-      subset_clusters, dendro = assign_clusters_using_hierarch(subset_annotation, subset_PC_expression, sett, colnm, colval)
+      subset_clusters, dendro, subset_annotation = assign_clusters_using_hierarch(subset_annotation, subset_PC_expression, sett, colnm, colval)
       print("Time clusters were assigned according to hierarchical clustering")
       # sett.subset = "cluster"
       filename = input("Enter file name you'd like to save clustering plot as (preferably ending with .pdf) ")
       plt.savefig(filename)
-      plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
+      # plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
  
     elif(action == "U"):
       cluster_file = input("Provide path to file with cluster info (in cell_settings format) ")
