@@ -80,6 +80,7 @@ while True:
     [F]    Save generated pseudotime to file
     [M]    Save features correlated with pc to file
     [T]    Run tSNE
+    [K]    Save Settings to File
     [X]    Exit
     """
     action = input(question).upper()
@@ -323,6 +324,20 @@ while True:
       cluster_dir = input("Enter location of diffex csvs ")
       diffex_csvs = read_in_diffex(cluster_dir)
       plot_heatmap(expression_table, annotation, dendro)
+    
+    elif(action=="K"):
+      pickle_file = input("save settings to file: ")+'.pkl'
+      f = open(pickle_file, 'wb')
+      settings_dict = {
+        'sett': sett,
+        'PC_expression': PC_expression,
+        'pca': pca,
+        'expression_table': expression_table, 
+        'annotation': annotation
+        }
+      pickle.dump(settings_dict, f)
+      print("settings saved to " + pickle_file)
+      f.close()     
         
     elif(action == "I"):
       IPython.embed()
