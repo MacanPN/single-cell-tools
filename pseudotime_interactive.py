@@ -30,11 +30,11 @@ parser.add_argument("-n", "--session-name", dest="session_name", help="a name to
 
 
 try:
-    options = parser.parse_args()
+  options = parser.parse_args()
 except SystemExit as err: 
-    if err.code == 2: 
-        parser.print_help()
-        sys.exit(0)
+  if err.code == 2: 
+    parser.print_help()
+    sys.exit(0)
  
 # ~ load datasets
 expression_file = os.path.expanduser(options.expr_mat)
@@ -74,39 +74,36 @@ while True:
     """
     action = input(question).upper()
     if(action == "X"):
-        break
-        #~ exit()
+      break
+      #~ exit()
     elif(action == "H"):
-        
-        color_scheme = input("How would you like to color dendrogram? ('retain' to keep current pca plot colors, 'overwrite' to use new colors) ")
-        if color_scheme == "overwrite":
-          number_of_clusters = int(input("How many clusters would you like to generate? "))
-        else:
-          number_of_clusters = 3
-        sett.num_clusters = number_of_clusters
-        print("plotting...\n dendrogram will be saved as a .pdf shortly")
-        try:
-            subset_annotation
-        except:
-            dendros = plot_all_hierarchical_clusterings(PC_expression, annotation, color_scheme, sett)
-        else:
-            dendros = plot_all_hierarchical_clusterings(PC_expression, subset_annotation, color_scheme, sett)
+      
+      color_scheme = input("How would you like to color dendrogram? ('retain' to keep current pca plot colors, 'overwrite' to use new colors) ")
+      if color_scheme == "overwrite":
+        number_of_clusters = int(input("How many clusters would you like to generate? "))
+      else:
+        number_of_clusters = 3
+      sett.num_clusters = number_of_clusters
+      print("plotting...\n dendrogram will be saved as a .pdf shortly")
+      try:
+        subset_annotation
+      except:
+        dendros = plot_all_hierarchical_clusterings(PC_expression, annotation, color_scheme, sett)
+      else:
+        dendros = plot_all_hierarchical_clusterings(PC_expression, subset_annotation, color_scheme, sett)
     elif(action == "P"):
-        colnm, colvalp = retrieve_subset_param(sett)
-        pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
-        
-        sett.pcs = pcs
+      if (sett.subset == 'None'):        
+        sett.pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
         print("plotting...\n the plot will open in your web browser shortly")
+        fig = plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
+      elif (sett.subset == 'param'):
         # IPython.embed()
-        # If using settings as specified in initial settings files
-        if (sett.subset == 'None'):        
-        # ~ if not all(colvalp):
-            fig = plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
-        elif (sett.subset == 'param'):
-            subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colvalp, annotation)
-            IPython.embed()
-            plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
-            del subset_annotation, subset_PC_expression
+        colnm, colvalp = retrieve_subset_param(sett)
+        sett.pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
+        subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colvalp, subset_annotation)
+        plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
+        del subset_annotation, subset_PC_expression
+        sett.subset = 'None'
         # elif (sett.subset == 'param'):
         #   
         #     if (colvalp == colval):
@@ -126,109 +123,109 @@ while True:
         #         del subset_annotation, subset_PC_expression
             
     elif(action == "L"):
-        colnm, colval = retrieve_subset_param(sett)
-        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
-        subset_clusters = time_clusters_from_annotations(subset_annotation)
-        pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
-        print("Time clusters were assigned according to labels")
+      colnm, colval = retrieve_subset_param(sett)
+      subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
+      subset_clusters = time_clusters_from_annotations(subset_annotation)
+      pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
+      print("Time clusters were assigned according to labels")
     
     elif(action == "D"):
-        colnm, colval = retrieve_subset_param(sett)
-        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
-        # ~ pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
-        find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
-        print("Showing PCS most correlated with time")
+      colnm, colval = retrieve_subset_param(sett)
+      subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
+      # ~ pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+      find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
+      print("Showing PCS most correlated with time")
         
     elif(action == "C"):
-        colnm, colval = retrieve_subset_param(sett)
-        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
-        subset_clusters, dendro = assign_clusters_using_hierarch(subset_annotation, subset_PC_expression, sett, colnm, colval)
-        print("Time clusters were assigned according to hierarchical clustering")
-        sett.subset = "cluster"
-        filename = input("Enter file name you'd like to save clustering plot as (preferably ending with .pdf) ")
-        plt.savefig(filename)
-        plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
+      colnm, colval = retrieve_subset_param(sett)
+      subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
+      subset_clusters, dendro = assign_clusters_using_hierarch(subset_annotation, subset_PC_expression, sett, colnm, colval)
+      print("Time clusters were assigned according to hierarchical clustering")
+      # sett.subset = "cluster"
+      filename = input("Enter file name you'd like to save clustering plot as (preferably ending with .pdf) ")
+      plt.savefig(filename)
+      plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
  
     elif(action == "U"):
-        cluster_file = input("Provide path to file with cluster info (in cell_settings format) ")
-        # ~ cluster_file = "runtime_settings.csv"
-        subset_annotation, subset_PC_expression, subset_clusters = assign_clusters_using_file(cluster_file)
-        print("Time clusters were assigned according to specified file ")
+      cluster_file = input("Provide path to file with cluster info (in cell_settings format) ")
+      # ~ cluster_file = "runtime_settings.csv"
+      subset_annotation, subset_PC_expression, subset_clusters = assign_clusters_using_file(cluster_file)
+      print("Time clusters were assigned according to specified file ")
     
     elif(action == "N"):
-        test = normalize_centroids(subset_pc_expression)
-        url = plotly.offline.plot(test, filename="resources/normalize_centroids.html", validate=False, auto_open=False)
-        print(url)
+      test = normalize_centroids(subset_pc_expression)
+      url = plotly.offline.plot(test, filename="resources/normalize_centroids.html", validate=False, auto_open=False)
+      print(url)
         
     elif(action == "S"):
-        colnm, colval = retrieve_subset_param(sett)
-        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
-        pseudotime, centroids = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, subset_clusters, sett)
-        
+      colnm, colval = retrieve_subset_param(sett)
+      subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
+      pseudotime, centroids = calculate_pseudotime_using_cluster_times(subset_PC_expression, subset_annotation, subset_clusters, sett)
+      
     elif(action == "O"):
-        cluster_source = input("retrieve clusters from 3d or all dimension clustering (3d, all)? ")
-        if cluster_source == "3d":
-            print_clusters(subset_clusters)
-        elif cluster_source == "all":
-            cluster_method = input("which hierarch. clustering alg. (complete, average, ward, etc.)? ")
-            print_dendro(dendros, cluster_method)
+      cluster_source = input("retrieve clusters from 3d or all dimension clustering (3d, all)? ")
+      if cluster_source == "3d":
+          print_clusters(subset_clusters)
+      elif cluster_source == "all":
+          cluster_method = input("which hierarch. clustering alg. (complete, average, ward, etc.)? ")
+          print_dendro(dendros, cluster_method)
     
     elif(action == "G"):
-        colnm, colval = retrieve_subset_param(sett)
-        subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
-        pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
-        sett.pcs = pcs
-        # bins = int(input("How many bins would you like to quantile? "))
-        bins = 5
-        sett.bins = bins
-        features = input("Which genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
-        feat_type = input("Plot by gene (g) or by transcript (t)? ")
-        
-        #palette_size = bins
-        #pal = sns.color_palette("coolwarm", palette_size+1)
-        #pal = [(int(i[0]*256),int(i[1]*256),int(i[2]*256)) for i in pal]
-        bin_colors = ["grey", "blue", "#21f2e4", "orange", "red", "#51040a"]
-        bin_col_dict = dict(zip(range(0,bins), bin_colors))
+      colnm, colval = retrieve_subset_param(sett)
+      subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
+      pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
+      sett.pcs = pcs
+      # bins = int(input("How many bins would you like to quantile? "))
+      bins = 5
+      sett.bins = bins
+      features = input("Which genes would you like to plot (type comma separated list, such as RB1,RXRG,ARR3) ").split(",")
+      feat_type = input("Plot by gene (g) or by transcript (t)? ")
+      
+      #palette_size = bins
+      #pal = sns.color_palette("coolwarm", palette_size+1)
+      #pal = [(int(i[0]*256),int(i[1]*256),int(i[2]*256)) for i in pal]
+      bin_colors = ["grey", "blue", "#21f2e4", "orange", "red", "#51040a"]
+      bin_col_dict = dict(zip(range(0,bins), bin_colors))
 	#bin_colors = cl.to_rgb(pal)
         #bin_col_dict = dict(zip(range(0,bins), bin_colors))
-        if feat_type == "g":
-            for i in features:
-                plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, features=i, bin_col_dict=bin_col_dict, expression_table=expression_table, feat_type = feat_type)
-        elif feat_type == "t":
-            for i in features:
-                sett.result_filename = sett.result_filename+"_"+i
-                markers = list(annotation["shape"].unique())
-                mg = mygene.MyGeneInfo()
-                # ~ for i in enumerate(features): 
-                gene_info = mg.querymany(i, scopes='symbol', fields='ensembl.transcript')[0]
-                if len(gene_info['ensembl']) > 1:
-                    trx = gene_info['ensembl'][0]['transcript']
-                else:
-                    trx = gene_info['ensembl']['transcript']
-                for j in trx:
-                    if j in expression_table.columns:
-                        plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, features=j, bin_col_dict=bin_col_dict, expression_table=expression_table, feat_type = feat_type)
-        # ~ plot_marker_gene_quantile(expression_table, subset_PC_expression, subset_annotation, pcs, sett, marker_genes)
-        
-        
+      if feat_type == "g":
+        for i in features:
+          plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, features=i, bin_col_dict=bin_col_dict, expression_table=expression_table, feat_type = feat_type)
+      elif feat_type == "t":
+        for i in features:
+          sett.result_filename = sett.result_filename+"_"+i
+          markers = list(annotation["shape"].unique())
+          mg = mygene.MyGeneInfo()
+          # ~ for i in enumerate(features): 
+          gene_info = mg.querymany(i, scopes='symbol', fields='ensembl.transcript')[0]
+          if len(gene_info['ensembl']) > 1:
+            trx = gene_info['ensembl'][0]['transcript']
+          else:
+            trx = gene_info['ensembl']['transcript']
+          for j in trx:
+            if j in expression_table.columns:
+              plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = clusters, features=j, bin_col_dict=bin_col_dict, expression_table=expression_table, feat_type = feat_type)
+  # ~ plot_marker_gene_quantile(expression_table, subset_PC_expression, subset_annotation, pcs, sett, marker_genes)
+    
+    
     elif(action == "M"):
-        filename = input("Enter file name you'd like to save correlated features to: ")
-        top_n = input("How many genes from each pc would you like to save?; if blank will use "+sett.parameters['number_of_genes']+" (from plot_settings) ")
-        if top_n == "":
-            top_n = int(sett.parameters['number_of_genes'])
-        else:
-            top_n = int(top_n)
-        pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
-        pc_corr_trs = get_isoforms_correlated_pc_set(pca, expression_table, pcs, top_n, filename)
-        csv_filename = filename+"_pcs_"+"_".join(map(str, pcs))+".csv"
-        print("saving as "+csv_filename)
+      filename = input("Enter file name you'd like to save correlated features to: ")
+      top_n = input("How many genes from each pc would you like to save?; if blank will use "+sett.parameters['number_of_genes']+" (from plot_settings) ")
+      if top_n == "":
+          top_n = int(sett.parameters['number_of_genes'])
+      else:
+          top_n = int(top_n)
+      pcs = [int(i) for i in input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(",")]
+      pc_corr_trs = get_isoforms_correlated_pc_set(pca, expression_table, pcs, top_n, filename)
+      csv_filename = filename+"_pcs_"+"_".join(map(str, pcs))+".csv"
+      print("saving as "+csv_filename)
         
     elif(action=="F"):
-        if("pseudotime" not in globals()):
-            print("Pseudotime was not yet generated!")
-            continue
-        filename = input("Enter file name you'd like to save pseudotime as (preferably ending with .csv) ")
-        pseudotime.to_csv(filename, sep="\t")
+      if("pseudotime" not in globals()):
+          print("Pseudotime was not yet generated!")
+          continue
+      filename = input("Enter file name you'd like to save pseudotime as (preferably ending with .csv) ")
+      pseudotime.to_csv(filename, sep="\t")
     elif(action=="T"):
         
         # ~ for learning_rate in [10,50,100,200,400,1000]:
@@ -249,79 +246,76 @@ while True:
                 # ~ plt.savefig(fn)
                 # ~ plt.close()
 
-        tsne3d = sklearn.manifold.TSNE(n_components=3, learning_rate=20, n_iter=10000, n_iter_without_progress=1000, perplexity = 10)
-        tsne_transformed_expression_3d = pd.DataFrame(tsne3d.fit_transform(PC_expression.values), index=PC_expression.index, columns=["x","y","z"])
-        comb = pd.concat([tsne_transformed_expression_3d, annotation], axis=1)
-        # plotly 3d plot
-        def plot_using_plotly(transformed_expression):
-            import plotly.plotly as py
-            import plotly.graph_objs as go
-            layout = dict(
-            width=1600,
-            height=1080,
-            autosize=False,
-            #title='Test',
-            scene=dict(
-                xaxis=dict(
-                    gridcolor='rgb(0, 0, 0)',
-                    zerolinecolor='rgb(255, 0, 0)',
-                    showbackground=True,
-                    backgroundcolor='#bababa'
-                ),
-                yaxis=dict(
-                    gridcolor='rgb(0, 0, 0)',
-                    zerolinecolor='rgb(255, 0, 0)',
-                    showbackground=True,
-                    backgroundcolor='#bababa'
-                ),
-                zaxis=dict(
-                    #title="PC "+str(pc[2]+1),
-                    gridcolor='rgb(0, 0, 0)',
-                    zerolinecolor='rgb(255, 0, 0)',
-                    showbackground=True,
-                    backgroundcolor='#bababa'
-                ),
-                #aspectratio = dict( x=1, y=1, z=0.7 ),
-                aspectmode = 'manual'        
-                ),
-            )
-            data = []
-            traces = comb["name"].unique()
-            for t in traces:
-              
-                trace = dict(
-                    text = transformed_expression.index, #+ "\n" + transformed_expression["branch"],
-                    x = transformed_expression["x"],
-                    y = transformed_expression["y"],
-                    z = transformed_expression["z"],
-                    type = "scatter3d",    
-                    mode = 'markers',
-                    opacity = 0.80,
-                    marker = dict(
-                    size=comb.loc[comb["name"]==t,"size"].values,
-                    # ~ color=trx_df.color,
-                    color=comb.loc[comb["name"]==t,"color"].values,
-                    symbol=comb.loc[comb["name"]==t,"shape"].apply(shape_matplotlib2plotly).values,
-                    line=dict(width=1) )
-                )
-                
-                data.append(trace)
-            fig = dict(data=data, layout=layout)
-            url = plotly.offline.plot(fig, filename='resources/single_cell-3d-tSNE', validate=False, auto_open=False)
+      tsne3d = sklearn.manifold.TSNE(n_components=3, learning_rate=20, n_iter=10000, n_iter_without_progress=1000, perplexity = 10)
+      tsne_transformed_expression_3d = pd.DataFrame(tsne3d.fit_transform(PC_expression.values), index=PC_expression.index, columns=["x","y","z"])
+      comb = pd.concat([tsne_transformed_expression_3d, annotation], axis=1)
+      # plotly 3d plot
+      def plot_using_plotly(transformed_expression):
+          import plotly.plotly as py
+          import plotly.graph_objs as go
+          layout = dict(
+          width=1600,
+          height=1080,
+          autosize=False,
+          #title='Test',
+          scene=dict(
+              xaxis=dict(
+                  gridcolor='rgb(0, 0, 0)',
+                  zerolinecolor='rgb(255, 0, 0)',
+                  showbackground=True,
+                  backgroundcolor='#bababa'
+              ),
+              yaxis=dict(
+                  gridcolor='rgb(0, 0, 0)',
+                  zerolinecolor='rgb(255, 0, 0)',
+                  showbackground=True,
+                  backgroundcolor='#bababa'
+              ),
+              zaxis=dict(
+                  #title="PC "+str(pc[2]+1),
+                  gridcolor='rgb(0, 0, 0)',
+                  zerolinecolor='rgb(255, 0, 0)',
+                  showbackground=True,
+                  backgroundcolor='#bababa'
+              ),
+              #aspectratio = dict( x=1, y=1, z=0.7 ),
+              aspectmode = 'manual'        
+              ),
+          )
+          data = []
+          traces = comb["name"].unique()
+          for t in traces:
             
-            plot_using_plotly(tsne_transformed_expression_3d)
-        
+              trace = dict(
+                  text = transformed_expression.index, #+ "\n" + transformed_expression["branch"],
+                  x = transformed_expression["x"],
+                  y = transformed_expression["y"],
+                  z = transformed_expression["z"],
+                  type = "scatter3d",    
+                  mode = 'markers',
+                  opacity = 0.80,
+                  marker = dict(
+                  size=comb.loc[comb["name"]==t,"size"].values,
+                  # ~ color=trx_df.color,
+                  color=comb.loc[comb["name"]==t,"color"].values,
+                  symbol=comb.loc[comb["name"]==t,"shape"].apply(shape_matplotlib2plotly).values,
+                  line=dict(width=1) )
+              )
+              
+              data.append(trace)
+          fig = dict(data=data, layout=layout)
+          url = plotly.offline.plot(fig, filename='resources/single_cell-3d-tSNE', validate=False, auto_open=False)
+          
+          plot_using_plotly(tsne_transformed_expression_3d)
+      
     elif(action=="Q"):
-        cluster_dir = input("Enter location of diffex csvs ")
-        diffex_csvs = read_in_diffex(cluster_dir)
-        plot_heatmap(expression_table, annotation, dendro)
+      cluster_dir = input("Enter location of diffex csvs ")
+      diffex_csvs = read_in_diffex(cluster_dir)
+      plot_heatmap(expression_table, annotation, dendro)
         
     elif(action == "I"):
-        IPython.embed()
+      IPython.embed()
     
-
-
-
 
 #HTML_pal = ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']
 #
