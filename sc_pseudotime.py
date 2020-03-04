@@ -899,13 +899,15 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
     greenplot = (ggplot(mydistance, aes('pc', 'distance'))
     + geom_col(fill = "green")
     + labs(x = "PC component", y = "", title = "distance between RBKD and Ctrl")
-    + scale_x_continuous(breaks=range(0, 21)))
+    + scale_x_continuous(breaks=range(0, 21))
+    + theme_minimal())
     greenplot.save('distance.pdf', height=6, width=8)
     # red
     redplot = (ggplot(var_explained, aes('pc', 'var_expl'))
     + geom_col(fill = "red")
     + labs(x = "PC component", y = "", title = "% variance explained")
-    + scale_x_continuous(breaks=range(0, 21)))
+    + scale_x_continuous(breaks=range(0, 21))
+    + theme_minimal())
     redplot.save('var_expl.pdf', height=6, width=8)
     #~ 
     if user_pcs:
