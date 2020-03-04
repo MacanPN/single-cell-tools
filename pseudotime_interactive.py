@@ -27,7 +27,7 @@ parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="resou
 parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="resources/2020-02-11-SHL/New_cells_sets_3_5.csv", help="cell sets", metavar="CELL_SETS")
 parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="resources/2020-02-11-SHL/New_plot_settings_2d.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=False)
-parser.add_argument("-s", "--shortcut", dest = "shortcut", help="pickle file from which to load command line arguments", required = False)
+parser.add_argument("-s", "--shortcut", dest = "shortcut", help="pickle file from which to load command line arguments", required = False) # default = "script_shortcut.pkl"
 
 try:
   options = parser.parse_args()
@@ -145,7 +145,8 @@ while True:
       colnm, colval = retrieve_subset_param(sett)
       subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
       # ~ pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
-      find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
+      find_pseudotime_plotnine(subset_PC_expression, subset_annotation, pca, sett)
+      # find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
       print("Showing PCS most correlated with time")
         
     elif(action == "C"):

@@ -6,6 +6,7 @@
 
 import pandas as pd
 import matplotlib.pyplot as plt
+from plotnine import *
 import sys
 import numpy as np
 import scipy as sc
@@ -925,6 +926,111 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
     pt = (pt-pt.min())/(pt.max()-pt.min())
     print("printing correlation plot to "+spearman_filename+".png")
     return pt
+    
+## function 
+# - finds pair of 2 PCs that are most correlated with time labels (as defined by "day" column in annotation table) using spearman correlation
+# - finds rotation of this PCs so X axis has best correlation with time
+# 
+# returns: pseudotime for each cell, defined as linear combination of PCs, having best time correlation
+# 
+# arguments are:
+# - pd.DataFrame with PCA transformed gene expression 
+# - annotation pd.DataFrame
+# - pca sklearn.decomposition object
+# - settings object
+def find_pseudotime_plotnine(transformed_expression, annotation, pca, settings, user_pcs=None):
+    #~ 
+    n_pca = len(transformed_expression.columns)
+    transformed_expression["day"] = annotation["day"]
+    transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
+    print( "Finding best rotation for Spearman correlation. Shape of used table:",transformed_expression_without_superimposed.shape)
+    spearman = transformed_expression_without_superimposed.corr(method="spearman").loc["day",range(1,n_pca+1)].abs().sort_values(ascending=False)
+    #plot_spearman correlations and explained variation
+    spearman_filename = settings.result_filename.replace(".png", "_spearman.png")
+    width=0.2
+    
+    # plot difference between shRBKD and shCtrl cells if both present
+    # calculate distance between RBKD and Ctrl cells
+    shCtrl_cells = annotation.loc[annotation['treatment'].str.contains("shCtrl")].index
+    vals_shCtrl = transformed_expression.loc[shCtrl_cells,:]
+
+    if len(shCtrl_cells) > 0:
+        shRBKD_cells = annotation.drop(shCtrl_cells).index
+        vals_shRBKD = transformed_expression.loc[shRBKD_cells,:]
+        t_val = []
+        for i in transformed_expression.iloc[:, :-1]:
+            test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
+            t_val.append(test) 
+        
+    #   corr to days (blue) ------------------------------
+    spearman_df = transformed_expression_without_superimposed.corr(method="spearman").loc["day",range(1,n_pca+1)].abs().sort_values(ascending=False)
+    spearman_df = spearman_df.to_frame()
+    spearman_df = spearman_df.reset_index()
+    spearman_df.columns = ['pc', 'correlation']
+    #   distance (green) ------------------------------
+    mydistance = {
+      'distance' : t_val,
+      'pc' : range(1,n_pca+1)
+    }
+    mydistance = pd.DataFrame(mydistance)
+      #   % var exp (red) ------------------------------
+    var_explained = {
+      'var_expl' : pca.explained_variance_ratio_,
+      'pc' : range(1,n_pca+1) 
+    }
+    var_explained = pd.DataFrame(var_explained)
+    #   plots ------------------------------
+    # blue
+    blueplot = (ggplot(spearman_df, aes('pc', 'correlation'))
+    + geom_col(fill = "blue")
+    + labs(x = "PC component", y = "", title = "spearman correlation to days")
+    + scale_x_continuous(breaks=range(0, 21))
+    + theme_minimal())
+    blueplot.save('correlation.pdf', height=6, width=8)
+    # green
+    greenplot = (ggplot(mydistance, aes('pc', 'distance'))
+    + geom_col(fill = "green")
+    + labs(x = "PC component", y = "", title = "distance between RBKD and Ctrl")
+    + scale_x_continuous(breaks=range(0, 21)))
+    greenplot.save('distance.pdf', height=6, width=8)
+    # red
+    redplot = (ggplot(var_explained, aes('pc', 'var_expl'))
+    + geom_col(fill = "red")
+    + labs(x = "PC component", y = "", title = "% variance explained")
+    + scale_x_continuous(breaks=range(0, 21)))
+    redplot.save('var_expl.pdf', height=6, width=8)
+    #~ 
+    if user_pcs:
+        settings.pcs = user_pcs
+    else:
+        settings.pcs = spearman.iloc[0:2].index
+    
+    # find best rotation
+    best_angle = 0
+    best_spearman = 0
+    for a in range(0,360):
+        te = rotate_expression(transformed_expression_without_superimposed, settings.pcs[0], settings.pcs[1], a)
+        spearman = te.corr(method="spearman").loc["day",int(settings.pcs[0])]
+        #print "Trying angle: ",a," spearman: ",spearman
+        if(spearman > best_spearman):
+            best_angle = a
+            best_spearman = spearman
+        
+    del(transformed_expression["day"])
+    print (settings.pcs)
+    print ("Best rotation: ",best_angle)
+    
+    rotated_expression = rotate_expression(transformed_expression, int(settings.pcs[0]), int(settings.pcs[1]), best_angle)
+    # plot original PC plot
+    plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, filename = settings.result_filename+"-original")
+    # plot rotated PC plot
+    plot_2d_pca_single_plot(rotated_expression, annotation, pca, settings, filename = settings.result_filename+"-rotated")
+    pt = rotated_expression[int(settings.pcs[0])]
+    pt.name = "pseudotime"
+    # normalize to <0;1>
+    pt = (pt-pt.min())/(pt.max()-pt.min())
+    print("printing correlation plot to "+spearman_filename+".png")
+    return pt    
 
 ## function reads list of integers and/or ranges
 #  and converts it to list of integers
