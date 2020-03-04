@@ -145,8 +145,7 @@ while True:
       colnm, colval = retrieve_subset_param(sett)
       subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
       # ~ pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
-      find_pseudotime_plotnine(subset_PC_expression, subset_annotation, pca, sett)
-      # find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
+      find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
       print("Showing PCS most correlated with time")
         
     elif(action == "C"):
