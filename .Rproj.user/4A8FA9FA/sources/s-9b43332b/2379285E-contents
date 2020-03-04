@@ -1,0 +1,1123 @@
+#!/usr/local/bin/Rscript
+
+#load required libraries and functions
+#=====================================
+library(optparse)
+
+# os exosome --------------------------------------------------------------
+# default_cell_info = "~/os_exosome_pipeline/data/Phase1_OS_controls_CHL_HLOH_sent_SBI.csv"
+# default_feature = "gene"
+# default_groupfile = "~/os_exosome_pipeline/bin/diffex_group_comparison.txt"
+# #after filtering
+# # default_infile = "~/os_exosome_pipeline/output/gene_count_matrix.csv"
+# # before duplicate filtering
+# default_infile = "~/os_exosome_pipeline/output/maverix_bams/all_normal_vs_os_bams/gene_count_matrix.csv"
+# default_out = "~/os_exosome_pipeline/output/"
+# # raw gene counts
+# input_rda <- "~/os_exosome_pipeline/output/os_exosome_before_duplicate_filtering_gene_differential_expression_input.rda"
+# # raw transcript counts
+# # input_rda <- "~/os_exosome_pipeline/output/os_exosome_transcript_differential_expression_input.rda"
+
+
+# SHL 20170407 ------------------------------------------------------------
+# default_cell_info = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/DESEQ2/cell_info.csv"
+# default_feature = "transcript"
+# default_groupfile = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/DESEQ2/shl_deseq2_comparison_file.csv"
+# default_infile = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/transcript_count_matrix.csv"
+# # default_infile = "/home/skevin/tmp/FACS_20170407_sunlee_census_matrix_mod.csv" # census
+# # default_infile = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/gene_count_matrix.csv"
+# default_out = "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/"
+# # raw transcript counts
+# input_rda <- "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_differential_expression_input.rda"
+# # census transcript counts
+# # input_rda <- "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_census_differential_expression_input.rda"
+# # raw gene counts
+# # input_rda <- "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_genes_differential_expression_input.rda"
+
+# DS 20181001------------------------------------------------------------
+# default_cell_info = "~/single_cell_projects/sc_cone_devel/sc_cone_devel_organoid/FACS_20181001_dshayler_Organoid_proj/10_2018_Seq_3_all_cell_metadata.csv"
+# default_feature = "transcript"
+# default_groupfile = "~/single_cell_projects/quicklinks/FACS_20181001_dshayler_Organoid_proj/output/differential_expression/diffex_groups_20181017.csv"
+# default_infile = "~/single_cell_projects/sc_cone_devel/sc_cone_devel_organoid/FACS_20181001_dshayler_Organoid_proj/output/transcript_count_matrix.csv"
+# # default_infile = "~/single_cell_projects/sc_cone_devel/sc_cone_devel_organoid/FACS_20181001_dshayler_Organoid_proj/output/gene_count_matrix.csv"
+# default_out = "~/single_cell_projects/sc_cone_devel/sc_cone_devel_organoid/FACS_20181001_dshayler_Organoid_proj/output/differential_expression"
+# default_cell_settings <- "~/single_cell_tools/dshayler_input/2_seq_3dformat_050418.csv"
+# default_plot_settings <- "~/single_cell_tools/dshayler_input/072018_3d_PCA_No_Bad_Reads_NoVSX_Color_by_Seq.txt"
+
+
+# DS 3seq -----------------------------------------------------------------
+
+#default_infile =  "~/single_cell_projects/sc_cone_devel/sc_cone_devel_H_sapiens/FACS_20170407_20171031_20181001_dshayler_H_sapiens_merge_proj/output/All_cells_stringtie_transcripts_raw_counts_merged.csv"
+#default_cell_info = "~/single_cell_projects/quicklinks/3_seq_dshayler_proj/3_seq_all_cells_metadata.csv"
+#default_groupfile = "~/single_cell_tools/dshayler_input/org_FR/diff_expr/101718_differential_expression_rod_cone_FR_org_clusters.txt"
+#default_out = "~/single_cell_tools/dshayler_input/org_FR/diff_expr/101818_rod_cone_all_cluster_DE"
+#default_cell_settings <- "~/single_cell_tools/dshayler_input/2_seq_3dformat_050418.csv"
+#default_plot_settings <- "~/single_cell_tools/dshayler_input/072018_3d_PCA_No_Bad_Reads_NoVSX_Color_by_Seq.txt"
+
+# SHL 20171031-----------------------------------------------------------------
+		
+default_infile =  "~/single_cell_projects/quicklinks/FACS_20171031_sunlee_H_sapiens_proj/output/transcript_count_matrix.csv"
+default_cell_info = "~/single_cell_projects/quicklinks/FACS_20171031_sunlee_H_sapiens_proj/output/FACS_20171031_sunlee_sample_sheet.csv"
+default_groupfile = "~/single_cell_projects/quicklinks/FACS_20171031_sunlee_H_sapiens_proj/output/edger/FACS_1031_sunlee_diffex_groups_20181023_latePT_edgeR.txt"
+default_out = "~/single_cell_projects/quicklinks/FACS_20171031_sunlee_H_sapiens_proj/output/edger"
+#default_cell_settings <- "~/single_cell_tools/dshayler_input/2_seq_3dformat_050418.csv"
+#default_plot_settings <- "~/single_cell_tools/dshayler_input/072018_3d_PCA_No_Bad_Reads_NoVSX_Color_by_Seq.txt"
+
+# # raw transcript counts
+# input_rda <- "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_differential_expression_input.rda"
+# # census transcript counts
+# # input_rda <- "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_census_differential_expression_input.rda"
+# # raw gene counts
+# # input_rda <- "~/single_cell_pipeline/output/FACS_20170407_sunlee_H_sapiens_output/shl_0407_genes_differential_expression_input.rda"
+
+
+# DS 2seq ------------------------------------------------------------
+# default_cell_info = "/home/skevin/tmp/2_seq_meta_111517.csv"
+# # default_cell_info = "~/single_cell_pipeline/data/sc_cone_devel/sc_cone_devel_H_sapiens/2_seq_dshayler/2_seq_meta_111517.csv"
+# default_feature = "transcript"
+# default_groupfile = "~/single_cell_pipeline/output/merged_analyses/FACS_20170407_20171031_dshayler_diffex_comparison_file.csv"
+# default_infile = "/home/skevin/tmp/FACS_20170407_20171031_dshayler_transcripts_raw_counts.csv"
+# # default_infile = "~/single_cell_pipeline/output/merged_analyses/FACS_20170407_20171031_dshayler_transcripts_raw_counts.csv"
+# default_out = "~/single_cell_pipeline/output/merged_analyses/"
+# # # raw transcript counts
+# input_rda <- "~/single_cell_pipeline/output/merged_analyses/FACS_20170407_20171031_dshayler_differential_expression_input.rda"
+
+
+# default input files -----------------------------------------------------
+
+#'  section for parsing command line options when calling script
+  #'  ###################################
+option_list = list(
+  make_option(c("-i", "--infile"), type="character", default=default_infile,
+              help="gene expression input filename [default= %default]", metavar="character"),
+  make_option(c("-c", "--cell_info"), type="character", default=default_cell_info,
+              help="metadata about cells in input file [default= %default]", metavar="character"),
+  make_option(c("-g", "--groupfile"), type="character", default=default_groupfile,
+              help="file that defines comparison groups [default= %default]", metavar="character"),
+  make_option(c("-o", "--out"), type="character", default=default_out,
+              help="output file name [default= %default]", metavar="character"),
+  #make_option(c("-s", "--cellset"), type="character", default=default_cell_settings,
+  						#help="tab delimited cell settings file [default= %default]", metavar="character"),
+  #make_option(c("-p", "--plot_settings"), type="character", default=default_plot_settings,
+  						#help="tab delimited plot settings file [default= %default]", metavar="character"),
+  make_option(c("-f", "--feature"), type="character", default=NA, 
+              help="the feature (gene or transcript) under analysis", metavar="character")
+);
+
+
+opt_parser = OptionParser(option_list=option_list);
+opt = parse_args(opt_parser, print_help_and_exit = TRUE);
+
+if (any(sapply(opt, is.na))){
+  print_help(opt_parser)
+  missing_args <- paste(names(which(sapply(opt, is.na))), collapse = " ")
+  stop(paste0("Please provide all necessary arguments. Missing: ", missing_args), call.=FALSE)
+}
+
+
+# load required libraries -------------------------------------------------
+print("loading required libraries")
+suppressMessages(library(BiocParallel))
+suppressMessages(library(tidyverse))
+suppressMessages(library(gtools))
+suppressMessages(library(cataract))
+suppressMessages(library(data.table))
+suppressMessages(library(EnsDb.Hsapiens.v86))
+suppressMessages(library(gplots))
+suppressMessages(library(tictoc))
+suppressMessages(library(DESeq2))
+suppressMessages(library(edgeR))
+suppressMessages(library(limma))
+suppressMessages(library(scran))
+suppressMessages(library(scater))
+suppressMessages(library(Matrix))
+# suppressMessages(library(sva))
+edb <- EnsDb.Hsapiens.v86
+suppressMessages(library(zinbwave))
+
+
+# load functions -------------------------------------------------
+
+sumexp_from_tibbles <- function(counts, colData, metadata){
+ 
+	featuredata <- data.frame(counts[,1])
+	rownames(featuredata) <- featuredata[,1]
+	
+	counts <- data.frame(counts)
+	rownames(counts) <- counts[,1]
+	counts[,1] <- NULL
+	counts <- as.matrix(counts)
+	
+	colData <- data.frame(colData)
+	rownames(colData) <- colData[,1]
+	colData <- colData[colnames(counts),]
+	
+	sumexp <- SummarizedExperiment(assays=list(counts=counts), colData=colData, rowData=featuredata, metadata=metadata)	
+	return(sumexp)
+}
+
+prep_counts_and_sample_sheet <- function (diffex_settings, counts, sample_sheet) {
+	
+	sumexp <- sumexp_from_tibbles(counts, sample_sheet, diffex_settings)
+	
+	subset_param <- diffex_settings$subset_param
+	subset_vals <- unlist(strsplit(diffex_settings$subset_param_values, ","))
+	
+	sumexp <- sumexp[sumexp[[subset_param]] %in% subset_vals,]
+	return(sumexp)
+
+}
+
+# run_DESeq_LRT <- function(counts, sample_sheet, analysis_id, full_model, reduced_model, pair_comp, subset_parameter, subset_param_values, cells, feature){
+#   
+#   subset_paramater = subset_parameter.
+#   subset_param_values = subset_param_values
+#   
+#   dds <- DESeqDataSetFromMatrix(countData = counts,
+#                                 colData = sample_sheet,
+#                                 design = as.formula(full_model))
+#   
+#   
+#   cat(paste0("running deseq2 with LRT test using full model: ", full_model, " and reduced model: ", reduced_model, "\n"))
+#   
+#   dds <- DESeqDataSetFromMatrix(countData = counts, colData = sample_sheet, design = as.formula(full_model))
+#   
+#   minimal filtering to remove outlier genes present in few cells 
+#   dds <- dds[cataract::meetsCondition(counts(dds), gtet=10, nCells=10),]
+#   
+#   
+#   dds <- DESeq(dds, reduced=as.formula(reduced_model), parallel = TRUE, BPPARAM = MulticoreParam(), betaPrior = FALSE, test="LRT")
+#   ddsRDS <- paste0(opt$out, "/DESEQ2/", analysis_id, "_dds.rds")
+#   saveRDS(dds, ddsRDS)
+#   res <- get_deseq2_res(dds, feature = feature)
+#   
+#   rescsv <- paste0(opt$out, "/DESEQ2/", analysis_id, "_deseq2_lrt.csv")
+#   print(paste("saving output csv to", rescsv))
+#   write.csv(res, rescsv)
+#   
+#   return(list(dds, res))
+# }
+
+
+plot_heatmap <- function(filt_vsd, heatmap_path, file_tag){
+  heatmap_path <- paste0(heatmap_path, file_tag, "_heatmap.html")
+  heatmaply(filt_vsd, scale = "row", seriate = "none", dendrogram = "both", 
+            hclust_method = "ward", file = heatmap_path, 
+            colors = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255) )
+  
+}
+
+
+find_top_var_genes <- function(vsd_obj, top_n){
+  vsd <- head( order( rowVars( assay(vsd_obj) ), decreasing=TRUE ), top_n )
+  vsd <- assay(vsd_obj)[vsd,]
+  syms <- lookup_genes(rownames(vsd))
+  rownames(vsd) <- paste0(syms, "\n", rownames(vsd))
+  return(vsd)
+} 
+
+find_top_sig_genes <- function(vsd_obj, res, top_n){
+  vsp <- rownames(head(res[order(res$padj),], top_n))
+  vsp <- assay(vsd_obj)[vsp,]
+  syms <- lookup_genes(rownames(vsp))
+  rownames(vsp) <- paste0(syms, "\n", rownames(vsp))
+  return(vsp)
+} 
+
+find_user_supplied_features <- function(vsd_obj, in_features, top_n){
+  in_features <- readr::read_csv(in_features, header = FALSE)
+  vsp <- in_features[[1]]
+  vsp <- assay(vsd_obj)[vsp,]
+  syms <- lookup_genes(rownames(vsp))
+  rownames(vsp) <- paste0(syms, "\n", rownames(vsp))
+  return(vsp)
+} 
+
+
+run_combat <- function(summarized_exp, full_model, min.count, min.total.count, feature = "transcript"){
+
+	full_model <- gsub("~", "", full_model)
+	dgelist <- DGEList(counts=summarized_exp$counts, group=summarized_exp$sample_sheet[[full_model]])
+	
+	design <- model.matrix(~group, data=dgelist$samples)
+	colnames(design) <- levels(dgelist$samples$group)
+	
+	keep <- filterByExpr(dgelist, design, min.count = min.count, min.total.count = min.total.count)
+	dgelist <- dgelist[keep,keep.lib.sizes=FALSE]
+	
+	dgelist <- calcNormFactors(dgelist)
+	
+	v <- voom(dgelist, design, plot=TRUE)
+	
+	batch = summarized_exp$sample_sheet$Seq_Number
+	
+	modcombat = model.matrix(~Fetal_Age, data=summarized_exp$sample_sheet)
+	
+	combat_edata = ComBat(dat=as.matrix(v$E), batch=batch, mod=modcombat, par.prior=TRUE, prior.plots=FALSE)
+
+	return(combat_edata)	
+}
+
+#### Transform count data for linear modeling 
+
+run_limma_voom <- function(summarized_exp, full_model, min.count, min.total.count, feature = "transcript"){
+
+	full_model <- gsub("~", "", full_model)
+	dgelist <- DGEList(counts=summarized_exp$counts, group=summarized_exp$sample_sheet[[full_model]])
+	
+	design <- model.matrix(~group, data=dgelist$samples)
+	colnames(design) <- levels(dgelist$samples$group)
+	
+	keep <- filterByExpr(dgelist, design, min.count = min.count, min.total.count = min.total.count)
+	dgelist <- dgelist[keep,keep.lib.sizes=FALSE]
+	
+	dgelist <- calcNormFactors(dgelist)
+	
+	v <- voom(dgelist, design, plot=TRUE)
+	
+	fit <- lmFit(v, design)
+	fit <- eBayes(fit)
+	# topTable(fit, coef=ncol(design))
+	top_table <- topTable(fit, coef=2:ncol(design), number=10000, p.value = 0.01, sort.by = "F")
+	if (feature == "transcript"){
+		symbols <- data.frame(row.names = rownames(top_table), "gene_symbol" = lookup_symbols_from_transcripts(rownames(top_table)))
+		top_table <- merge(symbols, top_table, by = 0)
+	} else if (feature == "gene"){
+		genes <- data.frame(row.names = rownames(top_table), "gene_symbol" = lookup_symbols_from_genes(rownames(top_table)))
+		top_table <- merge(genes, top_table, by = 0)
+	}
+	
+	return(top_table)
+}
+
+map_DESeq <- function(deseq_args, feature){
+
+  deseq_args <- c(deseq_args, "feature" = feature)
+  ddsl <- purrr::invoke(run_DESeq_LRT, deseq_args)
+  
+}
+
+lookup_symbols_from_genes <- function(geneid){
+
+	geneid_filt <- str_replace(geneid, "\\.\\d+.*", "")
+	syms <- genes(edb, filter = GeneIdFilter(geneid_filt), columns = c("symbol"))
+	syms <- as.data.frame(syms)
+	syms <- data.frame(row.names = syms[["gene_id"]], "symbol" = syms[["symbol"]])
+	
+	return(syms)
+}
+
+lookup_symbols_from_transcripts <- function(txid){
+
+	txid <- str_replace(txid, "\\.\\d+.*", "")
+	syms <- transcripts(edb, filter = TxIdFilter(txid), columns = c("symbol"))
+	syms <- as.data.frame(syms)
+	syms <- data.frame(row.names = syms[["tx_id"]], "symbol" = syms[["symbol"]])
+	
+	return(syms)
+}
+
+take_input <- function(prompt = question, interactive = F){
+  if(interactive){
+    param <- readline(prompt=question)
+  } else {
+    param <- readLines("stdin", n=1)
+  }
+  return(param)
+}
+
+
+run_edger_pair_vanilla <- function(sumexp, min.count = 1, min.total.count = 2, feature = "transcript"){
+	
+	#### GLM approach
+	
+	group = gsub("~", "", metadata(sumexp)$full_model)
+	
+	group_fac <- colData(sumexp)[[group]]
+
+	dgelist <- DGEList(counts = assay(sumexp), group = group_fac)
+	
+	design <- model.matrix(~0+group, data=dgelist$samples) #constructs a design matrix for the treatment conditions
+	colnames(design) <- levels(dgelist$samples$group)
+	
+	#### Filtering out genes and Normalization
+	
+	keep <- rowSums(edgeR::cpm(dgelist)>min.count) >= min.total.count
+
+	dgelist <- dgelist[keep,keep.lib.sizes=FALSE]
+	
+	dgelist <- calcNormFactors(dgelist)
+	
+	#### Estimating dispersion
+	
+	dgelist <- estimateDisp(dgelist, design, robust=TRUE)
+	plotBCV(dgelist)
+	
+	
+	#### Calculating differential expression
+
+	
+	fit <- glmQLFit(dgelist, design, robust=TRUE)
+	
+	qlf <- glmQLFTest(fit, contrast=null_contrast) 
+	
+	top <- topTags(qlf, n = Inf)
+	
+	plotSmear(qlf)
+
+	# go_in <- unique(lookup_entrez_from_ensembl_geneid(top)[,"entrezid"])
+	
+	# new_top <- merge(go_in, top, by = 0)
+	# new_top <- new_top[!duplicated(new_top$entrezid),]
+	# rownames(new_top) <- new_tfop$entrezid
+	# new_top <- new_top[,c("logFC", "logCPM", "F", "PValue", "FDR")]
+	# go_out <- goana(qlf, species = "Hs", geneid=lookup_entrez_from_ensembl_geneid(qlf))
+	# topgobp <- topGO(go_out, ont="BP", n=50)
+
+	dgelist_cpm <- edgeR::cpm(dgelist[,keep_samples])[rownames(top),]
+	baseMeanPerLvl <- sapply(levels(factor(pair_comp)), function(lvl) rowMeans( dgelist_cpm[,rownames(dgelist$samples[dgelist$samples$group == lvl,])] ) )
+	baseSTDPerLvl <- sapply(levels(factor(pair_comp)), function(lvl) rowSds( dgelist_cpm[,rownames(dgelist$samples[dgelist$samples$group == lvl,])] ) )
+	colnames(baseMeanPerLvl) <- paste0("CPM_", colnames(baseMeanPerLvl))
+	colnames(baseSTDPerLvl) <- paste0("stdev_", colnames(baseSTDPerLvl))
+	
+	baseStatsPerLvl <- zipFastener(baseMeanPerLvl, baseSTDPerLvl, along = 2)
+	
+	top$table <- merge(baseStatsPerLvl, top$table, by = 0)
+	rownames(top$table) <- top$table[,1]
+	top$table <- top$table[,-1]
+
+	if (feature == "transcript"){
+		symbols <- lookup_symbols_from_transcripts(rownames(top$table))
+		rownames(top$table) <- str_replace(rownames(top$table), "\\.\\d+.*", "")
+		top$table <- merge(symbols, top$table, by = 0)
+	} else if (feature == "gene"){
+		genes <- lookup_symbols_from_genes(rownames(top$table))["symbol"]
+		rownames(top$table) <- str_replace(rownames(top$table), "\\.\\d+.*", "")
+		top$table <- merge(genes, top$table, by = 0)
+	}
+
+	FDR_thresh <- 1.0
+	top$table <- top$table[top$table$FDR <= FDR_thresh,]
+	print(paste0("FDR cutoff equals ", FDR_thresh))
+	
+	return(top$table)
+
+}
+
+run_edger_pair_zinb <- function(summarized_exp, model_comparison = NULL, min.count = 1, min.total.count = 2, feature = "transcript"){
+	# implements normalization as recommended in https://www.nature.com/articles/s41467-017-02554-5
+	# print(paste0("fitting model for comparison ", full_model))
+	
+	
+	full_model = model_comparison[1]
+	full_model <- gsub("~", "", full_model)
+	pair_comp = model_comparison[2]
+	
+	group_levels = unique(summarized_exp$sample_sheet[[full_model]])
+	
+	# question = paste0("choose pairwise comparison; separated by commas (ex. 1,2): ", paste(group_levels, collapse = " "))
+	# cat(question)
+	# pair_comp <- take_input(prompt=question)
+	print(pair_comp)
+	pair_comp = unlist(strsplit(pair_comp, ","))
+	
+	pair_indices = match(pair_comp, levels(group_levels))
+	null_contrast = rep(0, length(group_levels))
+	null_contrast[pair_indices[1]] = 1
+	null_contrast[pair_indices[2]] = -1
+	
+	keep_samples <- summarized_exp$sample_sheet[[full_model]] %in% pair_comp
+	
+	
+	# u <- summarized_exp$counts
+	# v <- log2(summarized_exp$counts)
+	# se <- SummarizedExperiment(assays=list(counts=u, logcounts=v))
+	# sce <- as(se, "SingleCellExperiment")
+	
+	counts <- as.matrix(summarized_exp$counts)
+	
+	sexp <- SummarizedExperiment(assays=list(counts = counts), colData=summarized_exp$sample_sheet)
+	filter <- rowSums(assay(sexp)>min.count)>min.total.count
+	sexp <- sexp[filter,]
+	
+	# sce <- SingleCellExperiment(assays=list(counts=assay(sexp)))
+	# 
+	# # qclust<-quickCluster(sce)
+	# sce <- scran::computeSumFactors(sce)
+	# # sce <- scran::computeSumFactors(sce, clusters=factor(summarized_exp$sample_sheet[[full_model]]))
+	# sce <- normalize(sce)
+	# 
+	# dgelist <- scran::convertTo(sce, type = "edgeR")
+	# 
+	# dgelist$samples$group <- factor(summarized_exp$sample_sheet[[full_model]])
+	
+	dgelist <- DGEList(counts=summarized_exp$counts, group=summarized_exp$sample_sheet[[full_model]])
+	
+	# dgelist <- dgelist[,keep_samples]
+	
+	design <- model.matrix(~0+group, data=dgelist$samples)
+	colnames(design) <- levels(dgelist$samples$group)
+	
+	keep <- rowSums(edgeR::cpm(dgelist)>min.count) >= min.total.count
+	# keep <- filterByExpr(dgelist, design, min.count = min.count, min.total.count = min.total.count)
+
+	dgelist <- dgelist[keep,keep.lib.sizes=FALSE]
+	
+	
+	dgelist <- calcNormFactors(dgelist)
+
+	zinb_dge <- zinbwave(sexp)
+	weights <- assay(zinb_dge, "weights")
+	dgelist <- dgelist[rownames(weights),]
+	dgelist$weights <- weights[rownames(dgelist$counts),]
+	
+	dgelist <- estimateDisp(dgelist, design, robust=TRUE)
+	
+	# et <- exactTest(dgelist, pair=pair_comp)
+	# top <- topTags(et)
+	
+	fit <- glmFit(dgelist, design, robust = TRUE)
+	lrt <- zinbwave::glmWeightedF(fit, contrast = null_contrast)
+	
+	fit <- glmQLFit(dgelist, design, robust=TRUE)
+	
+	qlf <- glmQLFTest(fit, contrast=null_contrast)
+	
+	
+	plotSmear(qlf)
+	plotBCV(dgelist)
+	
+	top <- topTags(qlf, n = Inf)
+
+	# go_in <- unique(lookup_entrez_from_ensembl_geneid(top)[,"entrezid"])
+	
+	# new_top <- merge(go_in, top, by = 0)
+	# new_top <- new_top[!duplicated(new_top$entrezid),]
+	# rownames(new_top) <- new_tfop$entrezid
+	# new_top <- new_top[,c("logFC", "logCPM", "F", "PValue", "FDR")]
+	# go_out <- goana(qlf, species = "Hs", geneid=lookup_entrez_from_ensembl_geneid(qlf))
+	# topgobp <- topGO(go_out, ont="BP", n=50)
+
+	# dgelist_cpm <- edgeR::cpm(dgelist[,keep_samples])[rownames(top),]
+	counts_table <- counts[,keep_samples][rownames(top),]
+	baseMeanPerLvl <- sapply(levels(factor(pair_comp)), function(lvl) rowMeans( counts_table[,rownames(dgelist$samples[dgelist$samples$group == lvl,])] ) )
+	baseSTDPerLvl <- sapply(levels(factor(pair_comp)), function(lvl) rowSds( counts_table[,rownames(dgelist$samples[dgelist$samples$group == lvl,])] ) )
+	colnames(baseMeanPerLvl) <- paste0("counts_", colnames(baseMeanPerLvl))
+	colnames(baseSTDPerLvl) <- paste0("stdev_", colnames(baseSTDPerLvl))
+	
+	baseStatsPerLvl <- zipFastener(baseMeanPerLvl, baseSTDPerLvl, along = 2)
+	
+	top$table <- merge(baseStatsPerLvl, top$table, by = 0)
+	rownames(top$table) <- top$table[,1]
+	top$table <- top$table[,-1]
+	if (feature == "transcript"){
+		symbols <- lookup_symbols_from_transcripts(rownames(top$table))
+		rownames(top$table) <- str_replace(rownames(top$table), "\\.\\d+.*", "")
+		top$table <- merge(symbols, top$table, by = 0)
+	} else if (feature == "gene"){
+		genes <- lookup_symbols_from_genes(rownames(top$table))["symbol"]
+		rownames(top$table) <- str_replace(rownames(top$table), "\\.\\d+.*", "")
+		top$table <- merge(genes, top$table, by = 0)
+	}
+	
+	FDR_thresh <- 1.0
+	top$table <- top$table[top$table$FDR <= FDR_thresh,]
+	print(paste0("FDR cutoff equals ", FDR_thresh))
+	
+	
+	return(top$table)
+	#convert a design matrix to a factor
+	# factor(mat%*%(1:5), labels = colnames(mat)
+}
+
+run_edger_pair_comparison <- function(summarized_exp, model_comparison = NULL, min.count = 1, min.total.count = 2, feature = "transcript"){
+
+  # print(paste0("fitting model for comparison ", full_model))
+  
+  
+  full_model = model_comparison[1]
+  full_model <- gsub("~", "", full_model)
+  pair_comp = model_comparison[2]
+  
+  group_levels = unique(summarized_exp$sample_sheet[[full_model]])
+  
+  # question = paste0("choose pairwise comparison; separated by commas (ex. 1,2): ", paste(group_levels, collapse = " "))
+  # cat(question)
+  # pair_comp <- take_input(prompt=question)
+  print(pair_comp)
+  pair_comp = unlist(strsplit(pair_comp, ","))
+  
+  pair_indices = match(pair_comp, levels(group_levels))
+  null_contrast = rep(0, length(group_levels))
+  null_contrast[pair_indices[1]] = 1
+  null_contrast[pair_indices[2]] = -1
+  
+  keep_samples <- summarized_exp$sample_sheet[[full_model]] %in% pair_comp
+
+  
+  # u <- summarized_exp$counts
+  # v <- log2(summarized_exp$counts)
+  # se <- SummarizedExperiment(assays=list(counts=u, logcounts=v))
+  # sce <- as(se, "SingleCellExperiment")
+  
+  counts <- as.matrix(summarized_exp$counts)
+  
+  sexp <- SummarizedExperiment(assays=list(counts = counts), colData=summarized_exp$sample_sheet)
+  filter <- rowSums(assay(sexp)>min.count)>min.total.count
+  sexp <- sexp[filter,]
+  
+  sce <- SingleCellExperiment(assays=list(counts=assay(sexp)))
+  
+  # qclust<-quickCluster(sce)
+  sce <- scran::computeSumFactors(sce)
+  # sce <- scran::computeSumFactors(sce, clusters=factor(summarized_exp$sample_sheet[[full_model]]))
+  sce <- normalize(sce)
+  
+  dgelist <- scran::convertTo(sce, type = "edgeR")
+  
+  dgelist$samples$group <- factor(summarized_exp$sample_sheet[[full_model]])
+  
+  # dgelist <- DGEList(counts=summarized_exp$counts, group=summarized_exp$sample_sheet[[full_model]])
+  
+  # dgelist <- dgelist[,keep_samples]
+  
+  design <- model.matrix(~0+group, data=dgelist$samples)
+  colnames(design) <- levels(dgelist$samples$group)
+
+  keep <- rowSums(edgeR::cpm(dgelist)>min.count) >= min.total.count
+  # keep <- filterByExpr(dgelist, design, min.count = min.count, min.total.count = min.total.count)
+
+  dgelist <- dgelist[keep,keep.lib.sizes=FALSE]
+
+  
+  # dgelist <- calcNormFactors(dgelist)
+  
+  zinb_dge <- zinbwave(sexp)
+  weights <- assay(zinb_dge, "weights")
+  dgelist$weights <- weights[rownames(dgelist$counts),]
+  
+  dgelist <- estimateDisp(dgelist, design, robust=TRUE)
+
+  # et <- exactTest(dgelist, pair=pair_comp)
+  # top <- topTags(et)
+  
+  fit <- glmFit(dgelist, design, robust = TRUE)
+  lrt <- zinbwave::glmWeightedF(fit, contrast = null_contrast)
+  
+  fit <- glmQLFit(dgelist, design, robust=TRUE)
+
+  qlf <- glmQLFTest(fit, contrast=null_contrast)
+  
+
+  plotSmear(qlf)
+  plotBCV(dgelist)
+  
+  top <- topTags(qlf, n = Inf)
+
+  # go_in <- unique(lookup_entrez_from_ensembl_geneid(top)[,"entrezid"])
+  
+  # new_top <- merge(go_in, top, by = 0)
+  # new_top <- new_top[!duplicated(new_top$entrezid),]
+  # rownames(new_top) <- new_tfop$entrezid
+  # new_top <- new_top[,c("logFC", "logCPM", "F", "PValue", "FDR")]
+  # go_out <- goana(qlf, species = "Hs", geneid=lookup_entrez_from_ensembl_geneid(qlf))
+  # topgobp <- topGO(go_out, ont="BP", n=50)
+  
+  dgelist_cpm <- edgeR::cpm(dgelist[,keep_samples])[rownames(top),]
+  baseMeanPerLvl <- sapply(levels(factor(pair_comp)), function(lvl) rowMeans( dgelist_cpm[,rownames(dgelist$samples[dgelist$samples$group == lvl,])] ) )
+  baseSTDPerLvl <- sapply(levels(factor(pair_comp)), function(lvl) rowSds( dgelist_cpm[,rownames(dgelist$samples[dgelist$samples$group == lvl,])] ) )
+  colnames(baseMeanPerLvl) <- paste0("CPM_", colnames(baseMeanPerLvl))
+  colnames(baseSTDPerLvl) <- paste0("stdev_", colnames(baseSTDPerLvl))
+
+  baseStatsPerLvl <- zipFastener(baseMeanPerLvl, baseSTDPerLvl, along = 2)
+  
+  top$table <- merge(baseStatsPerLvl, top$table, by = 0)
+  rownames(top$table) <- top$table[,1]
+  top$table <- top$table[,-1]
+  if (feature == "transcript"){
+    symbols <- lookup_symbols_from_transcripts(rownames(top$table))
+    top$table <- merge(symbols, top$table, by = 0)
+  } else if (feature == "gene"){
+    genes <- lookup_symbols_from_genes(rownames(top$table))["symbol"]
+    top$table <- merge(genes, top$table, by = 0)
+  }
+  
+  FDR_thresh <- 1.0
+  top$table <- top$table[top$table$FDR <= FDR_thresh,]
+  print(paste0("FDR cutoff equals ", FDR_thresh))
+  
+  
+  return(top$table)
+  #convert a design matrix to a factor
+  # factor(mat%*%(1:5), labels = colnames(mat)
+}
+
+run_edger_qlf <- function(summarized_exp, full_model, min.count = 1, min.total.count = 2, feature = "transcript"){
+  full_model <- gsub("~", "", full_model)
+  print(paste0("fitting model for comparison ", full_model))
+  dgelist <- DGEList(counts=summarized_exp$counts, group=summarized_exp$sample_sheet[[full_model]])
+  
+  design <- model.matrix(~group, data=dgelist$samples)
+  colnames(design) <- levels(dgelist$samples$group)
+
+  # keep <- rowSums(edgeR::cpm(dgelist)>min.count) >= min.total.count
+  # keep <- filterByExpr(dgelist, design, min.count = min.count, min.total.count = min.total.count)
+  # dgelist <- dgelist[keep,keep.lib.sizes=FALSE]
+  
+  counts <- as.matrix(summarized_exp$counts)
+  
+  sexp <- SummarizedExperiment(assays=list(counts = counts), colData=summarized_exp$sample_sheet)
+  filter <- rowSums(assay(sexp)>min.count)>min.total.count
+  sexp <- sexp[filter,]
+  
+  sce <- SingleCellExperiment(assays=list(counts=counts))
+  
+  # qclust<-quickCluster(sce)
+  sce <- scran::computeSumFactors(sce)
+  # sce <- scran::computeSumFactors(sce, clusters=factor(summarized_exp$sample_sheet[[full_model]]))
+  sce <- normalize(sce)
+  
+  dgelist <- scran::convertTo(sce, type = "edgeR")
+  dgelist$samples$group <- factor(summarized_exp$sample_sheet[[full_model]])
+  dgelist <- calcNormFactors(dgelist)
+  
+  zinb_dge <- zinbwave(sexp)
+  weights <- assay(zinb_dge, "weights")
+
+  dgelist <- dgelist[rownames(weights),]
+  dgelist$weights <- weights[rownames(dgelist$counts),]
+    
+  dgelist <- estimateDisp(dgelist, design, robust=TRUE)
+
+  fit <- glmFit(dgelist, design, robust=TRUE)
+  lrt <- glmWeightedF(fit, coef=2:ncol(design))
+    
+  fit <- glmQLFit(dgelist, design, robust=TRUE)
+  qlf <- glmQLFTest(fit, coef=2:ncol(design))
+  
+  plotBCV(dgelist)
+  
+  top <- topTags(qlf, n=Inf, adjust.method="BH")
+  top <- topTags(lrt, n=Inf, adjust.method="BH")
+  
+  test <- edgeR::cpm(dgelist)[rownames(top),]
+  
+  baseMeanPerLvl <- sapply( levels(dgelist$samples$group), function(lvl) rowMeans( test[,rownames(dgelist$samples[dgelist$samples$group == lvl,])] ) )
+  baseSTDPerLvl <- sapply( levels(dgelist$samples$group), function(lvl) rowSds( test[,rownames(dgelist$samples[dgelist$samples$group == lvl,])] ) )
+  colnames(baseMeanPerLvl) <- paste0("CPM_", colnames(baseMeanPerLvl))
+  colnames(baseSTDPerLvl) <- paste0("stdev_", colnames(baseSTDPerLvl))
+  
+  baseStatsPerLvl <- zipFastener(baseMeanPerLvl, baseSTDPerLvl, along = 2)
+  
+  num_groups <- length(levels(dgelist$samples$group))
+  
+  top$table <- merge(baseStatsPerLvl, top$table[-c(1:(num_groups-1))], by = 0)
+  rownames(top$table) <- top$table[,1]
+  top$table <- top$table[,-1]
+  if (feature == "transcript"){
+    symbols <- lookup_symbols_from_transcripts(rownames(top$table))
+    top$table <- merge(symbols, top$table, by = 0)
+  } else if (feature == "gene"){
+    genes <- lookup_symbols_from_genes(rownames(top$table))["symbol"]
+    top$table <- merge(genes, top$table, by = 0)
+  }
+  
+  FDR_thresh <- 1.0
+  top$table <- top$table[top$table$FDR < FDR_thresh,]
+  print(paste0("FDR cutoff equals ", FDR_thresh))
+  
+  #convert a design matrix to a factor
+  # factor(mat%*%(1:5), labels = colnames(mat)
+  
+  return(top)
+  
+}
+
+
+
+# load data ---------------------------------------------------
+suppressWarnings(dir.create(opt$out))
+
+diffex_settings <- readr::read_tsv(opt$groupfile)
+# convert dataframe into lists
+
+diffex_settings <- purrr::transpose(diffex_settings)
+
+
+counts <- readr::read_csv(opt$infile)
+
+sample_sheet <- readr::read_csv(opt$cell_info)
+
+# trace("prep_counts_and_sample_sheet", quote(browser(skipCalls = 4)),
+# 	exit = quote(browser(skipCalls = 4)))
+
+diffex_in <- purrr::map(diffex_settings, prep_counts_and_sample_sheet, counts, sample_sheet)
+
+# continue with deseq2 analysis -------------------------------------------
+
+# full_list <- list()
+# for (row in 1:nrow(user_groups)){
+#     group_list <- as.list(user_groups[row,])
+#     names(group_list) <- names(user_groups)
+#     print(row)
+#     full_list[[row]] <- group_list
+#   }  
+
+full_model_params <- gsub("^[[:punct:]]", "", user_groups$full_model)
+reduced_model_params <- gsub("^[[:punct:]]", "", user_groups$reduced_model) 
+
+
+# factorize all model parameters ------------------------------------------
+summarized_exp <- purrr::map2(summarized_exp, full_model_params, function(x,y){ x[["sample_sheet"]][[y]] <- as.factor(x[["sample_sheet"]][[y]]); return(x)})
+
+#specify model design
+#=============================
+
+# trace("run_edger_qlf", quote(browser(skipCalls = 4)),
+#       exit = quote(browser(skipCalls = 4)))
+# 
+# trace("lookup_symbols_from_genes", quote(browser(skipCalls = 4)),
+#       exit = quote(browser(skipCalls = 4)))
+
+
+
+while (TRUE) {
+  question = "Choose from following:\n
+            [DLRT] Run DESEQ2 Likelihood Ratio Test\n
+            [DC] Run DESEQ2 Pair Comparison\n
+            [EC] Run EdgeR Pair Comparison\n
+						[ECZ] Run EdgeR Pair comparison with ZINB correction\n
+            [EQLF] Run EdgeR Quasi-Likelihood F Test\n
+            [LTF] Run limma trend F test\n
+            [LVF] Run limma voom F test\n
+            [HM] Create Heatmaps\n
+            [X] Exit\n "
+  # if (ctr < 3){
+  #   print(question)
+  # }
+  
+  cat(question)
+  action <- toupper(take_input(prompt=question))
+  # action <- readline(prompt=question)
+  
+  if(action == "X"){
+    break
+  } else if (action == "DLRT"){
+    tic("finished LRT test with")
+    # cat(paste0("running deseq2 with LRT test using full model: ", full_model_params, " and reduced model: ", reduced_model_params, "\n"))
+    # 
+    # ddsl <- purrr::map2(summarized_exp, function(x,y){dds <- DESeqDataSetFromMatrix(countData = y$counts,
+    #                                                                                                         colData = y$sample_sheet,
+    #                                                                                                         design = as.formula(x)); return(dds)})
+    # 
+    # 
+    # names(ddsl) <- user_groups$analysis_id
+    # 
+    #     # minimal filtering to remove outlier genes present in few cells ----------
+    # ddsl <- lapply(ddsl, function(x) x[cataract::meetsCondition(counts(x), gtet=10, nCells=10),])
+    
+    deseq_args <- lapply(split(user_groups, row.names(user_groups)), unlist)
+    
+    deseq_args <- purrr::map2(summarized_exp, deseq_args, c)
+    
+    
+    ddsl <- purrr::map(deseq_args, map_DESeq, feature = opt$feature)
+    
+    toc()
+    
+    
+  } else if (action == "DC"){
+      
+      check_file_exist <- function(destfile){
+  
+        if(file.exists(destfile)){
+          dds <- readRDS(destfile)
+        } else {
+          cat("preparing deseq2 input\n")
+      	}
+      }
+      
+      outdir <- paste0(opt$out, "/DESEQ2/", opt$feature, "/")
+      dir.create(outdir,showWarnings = FALSE)
+      
+      ddsRDS <- paste0(outdir, user_groups$analysis_id, "_dds.rds")
+  
+      ddsl <- lapply(ddsRDS, check_file_exist)
+  
+
+      if(any(sapply(ddsl, is.null))){
+        cat("running deseq2 for between group comparison")
+        ddsl <- purrr::map2(user_groups$full_model, summarized_exp, function(x,y){dds <- DESeqDataSetFromMatrix(countData = y$counts,
+                                                                                                                colData = y$sample_sheet,
+                                                                                                                design = as.formula(x)); return(dds)})
+        
+        names(ddsl) <- user_groups$analysis_id
+        
+        # minimal filtering to remove outlier genes present in few cells ----------
+        ddsl <- lapply(ddsl, function(x) x[cataract::meetsCondition(counts(x), gtet=10, nCells=10),])
+        
+        run_DESeq <- function(dds_obj){
+          dds <- DESeq(dds_obj, parallel = TRUE, BPPARAM = MulticoreParam(), betaPrior = FALSE)
+          return(dds)
+        }
+        
+        ddsl <- purrr::map(ddsl, run_DESeq)
+        outdir <- paste0(opt$out, "/DESEQ2/", opt$feature, "/")
+        dir.create(outdir,showWarnings = FALSE)
+        ddsRDS <- paste0(outdir, user_groups$analysis_id, "_dds.rds")
+        purrr::map2(ddsl, ddsRDS, saveRDS)
+        ddsl <- lapply(ddsRDS, readRDS)
+        
+      }
+  
+      cell_info <- cataract::safe_read(opt$cell_info, row.names = 1)
+  
+      results_models <- gsub("~", "", user_groups$full_model)
+      results_models <- mapply(c, "full_model" = results_models, "analysis_id" = user_groups$analysis_id, SIMPLIFY = FALSE)
+      
+      diffex_comps <- purrr::map2(ddsl, results_models, cataract::make_all_deseq2_comparisons, cell_info, opt$feature) 
+            
+  } else if (action == "ECZ"){
+
+    question = "prefiltering minimum count per gene (leave blank for default: 1) "
+    cat(question)
+    min.count <- take_input(prompt=question)
+    if(min.count == ""){
+      min.count = 1
+    } else {
+      min.count = as.numeric(min.count)
+    }
+    
+    question = "prefiltering number of cells with minimum count (leave blank for default: 2) "
+    cat(question)
+    min.total.count <- take_input(prompt=question)
+    if(min.total.count == ""){
+      min.total.count = 2
+    } else {
+      min.total.count = as.numeric(min.total.count)
+    }
+    
+    tic("finished EdgeR pairwise comparison test with")
+    # cat(paste0("running EdgeR LRT test using full model: ", full_model_params, " and reduced model: ", reduced_model_params, "\n"))
+    
+    model_comparison <- purrr::map2(user_groups$full_model, user_groups$pair_comp, c)
+    
+    # qlfl <- purrr::map2(summarized_exp, model_comparison, run_edger_pair_comparison, 
+    #                     min.count, min.total.count, feature = opt$feature)
+    
+    qlfl <- purrr::map2(summarized_exp, model_comparison, run_edger_pair_zinb, 
+    										min.count, min.total.count, feature = opt$feature)
+    
+    
+    pair_comp_str <- purrr::map(user_groups$pair_comp, function(x) paste(unlist(strsplit(x, ",")), collapse = "_vs_"))
+    
+    outdir <- paste0(opt$out, "/EDGER/", opt$feature, "/")
+    dir.create(outdir,showWarnings = FALSE)
+    
+    qlfcsv <- paste0(outdir, user_groups$analysis_id, "_edger_", pair_comp_str, ".csv")
+    print(paste("saving output csvs to", qlfcsv))
+    
+    purrr::map2(qlfl, qlfcsv, function(x,y) write.csv(x, y))
+    toc()
+      
+      
+  } else if (action == "EC"){
+  	
+  	question = "prefiltering minimum count per gene (leave blank for default: 1) "
+  	cat(question)
+  	min.count <- take_input(prompt=question)
+  	if(min.count == ""){
+  		min.count = 1
+  	} else {
+  		min.count = as.numeric(min.count)
+  	}
+  	
+  	question = "prefiltering number of cells with minimum count (leave blank for default: 2) "
+  	cat(question)
+  	min.total.count <- take_input(prompt=question)
+  	if(min.total.count == ""){
+  		min.total.count = 2
+  	} else {
+  		min.total.count = as.numeric(min.total.count)
+  	}
+  	
+  	tic("finished EdgeR pairwise comparison test with")
+  	# cat(paste0("running EdgeR LRT test using full model: ", full_model_params, " and reduced model: ", reduced_model_params, "\n"))
+  	
+  	model_comparison <- purrr::map2(user_groups$full_model, user_groups$pair_comp, c)
+  	
+  	# qlfl <- purrr::map2(summarized_exp, model_comparison, run_edger_pair_comparison, 
+  	#                     min.count, min.total.count, feature = opt$feature)
+  	
+  	
+  	qlfl <- purrr::map(diffex_in, run_edger_pair_vanilla, 
+  											min.count, min.total.count, feature = opt$feature)
+  	
+  	
+  	pair_comp_str <- purrr::map(user_groups$pair_comp, function(x) paste(unlist(strsplit(x, ",")), collapse = "_vs_"))
+  	
+  	outdir <- paste0(opt$out, "/EDGER/", opt$feature, "/")
+  	dir.create(outdir,showWarnings = FALSE)
+  	
+  	qlfcsv <- paste0(outdir, user_groups$analysis_id, "_edger_", pair_comp_str, ".csv")
+  	print(paste("saving output csvs to", qlfcsv))
+  	
+  	purrr::map2(qlfl, qlfcsv, function(x,y) write.csv(x, y))
+  	toc()
+  	
+  	
+  } else if (action == "EQLF"){
+      question = "prefiltering minimum count per gene (leave blank for default: 1) "
+      cat(question)
+      min.count <- take_input(prompt=question)
+      if(min.count == ""){
+        min.count = 1
+      } else {
+        min.count = as.numeric(min.count)
+      }
+      
+      question = "prefiltering number of cells with minimum count (leave blank for default: 2) "
+      cat(question)
+      min.total.count <- take_input(prompt=question)
+      if(min.total.count == ""){
+        min.total.count = 2
+      } else {
+        min.total.count = as.numeric(min.total.count)
+      }
+      
+      tic("finished EdgeR LRT test with")
+      # cat(paste0("running EdgeR LRT test using full model: ", full_model_params, " and reduced model: ", reduced_model_params, "\n"))
+      
+      qlfl <- purrr::map2(summarized_exp, user_groups$full_model, run_edger_qlf, 
+                          min.count, min.total.count, feature = opt$feature)
+      
+      outdir <- paste0(opt$out, "/EDGER/", opt$feature, "/")
+      dir.create(outdir,showWarnings = FALSE)
+      
+      qlfcsv <- paste0(outdir, user_groups$analysis_id, "_edger_qlf.csv")
+      print(paste("saving output csvs to", qlfcsv))
+      
+      purrr::map2(qlfl, qlfcsv, function(x,y) write.csv(x, y))
+      toc()
+    
+  } else if (action == "LTF"){
+    
+    question = "prefiltering minimum count per gene for at least some samples (leave blank for default: 10) "
+    cat(question)
+    min.count <- take_input(prompt=question)
+    if(min.count == ""){
+      min.count = 1
+    } else {
+      min.count = as.numeric(min.count)
+    }
+    
+    question = "prefiltering minimum count per gene for sum of all samples (leave blank for default: 15) "
+    cat(question)
+    min.total.count <- take_input(prompt=question)
+    if(min.total.count == ""){
+      min.total.count = 2
+    } else {
+      min.total.count = as.numeric(min.total.count)
+    }
+    
+    tic("finished limma F-test with")
+    # cat(paste0("running EdgeR LRT test using full model: ", full_model_params, " and reduced model: ", reduced_model_params, "\n"))
+    
+    tops <- purrr::map2(summarized_exp, user_groups$full_model, run_limma_trend, min.count, min.total.count, feature = opt$feature)
+    
+    outdir <- paste0(opt$out, "/LIMMA/", opt$feature, "/")
+    dir.create(outdir,showWarnings = FALSE)
+    
+    topcsv <- paste0(outdir, user_groups$analysis_id, "_limma_trend_f_test.csv")
+    print(paste("saving output csvs to", topcsv))
+    
+    purrr::map2(tops, topcsv, function(x,y) write.csv(x, y))
+    toc()
+    
+  } else if (action == "LVF"){
+    
+  	min.count.default = 30
+  	
+    question = paste0("prefiltering minimum count per gene for at least some samples (leave blank for default: ", min.count.default, ")")
+    cat(question)
+    min.count <- take_input(prompt=question)
+    if(min.count == ""){
+      min.count = min.count.default
+    } else {
+      min.count = as.numeric(min.count)
+    }
+    
+    min.total.count.default = 45
+    
+    question = paste0("prefiltering minimum count per gene for sum of all samples (leave blank for default: ", min.total.count.default, ")")
+    cat(question)
+    min.total.count <- take_input(prompt=question)
+    if(min.total.count == ""){
+      min.total.count = min.total.count.default
+    } else {
+      min.total.count = as.numeric(min.total.count)
+    }
+    
+    tic("finished limma F-test with")
+    # cat(paste0("running EdgeR LRT test using full model: ", full_model_params, " and reduced model: ", reduced_model_params, "\n"))
+    
+    tops <- purrr::map2(summarized_exp, user_groups$full_model, run_limma_voom, min.count, min.total.count, feature = opt$feature)
+
+    doutdir <- paste0(opt$out, "/LIMMA/", opt$feature, "/")
+    dir.create(outdir,showWarnings = FALSE)
+    
+    topcsv <- paste0(outdir, user_groups$analysis_id, "_limma_voom_f_test.csv")
+    print(paste("saving output csvs to", topcsv))
+    
+    purrr::map2(tops, topcsv, function(x,y) write.csv(x, y))
+    toc()
+    
+  } else if (action == "HM"){
+    
+    question = "Select method of filtering genes: variance (var), signficance (sig), user-supplied (user) "
+    cat(question)
+    filter_method <- take_input(prompt=question)
+    if(filter_method == "user"){
+      filter_method == "var"
+    } 
+    
+    question = "select differential expression method: deseq2, edgeR, limma-trend, limma-voom "
+    cat(question)
+    diffex_method <- take_input(prompt=question)
+
+    vsdl <- lapply(ddsl, vst, blind = F)
+
+    heatmap_paths <- paste0(opt$out, user_groups$analysis_id)
+        
+    if (filter_method == "var"){
+      topVarGenes <- lapply(vsdl, find_top_var_genes, 500)
+      names(topVarGenes) <- gsub("_res.rds", "_top_var", basename(resRDS))
+      purrr::map2(topVarGenes, heatmap_paths, plot_heatmap, "_top_var_genes")
+    } else if (filter_method == "sig"){
+      topSigGenes <- purrr::map2(vsdl, resl, find_top_sig_genes, 500)
+      names(topVarGenes) <- gsub("_res.rds", "_top_sig", basename(resRDS))
+      purrr::map2(topSigGenes, heatmap_paths, plot_heatmap, "_top_sig_genes")
+    } else if (filter_method == "user"){
+      user_genes <- "~/single_cell_tools/test_pcs_4_6_7.csv"
+      topUserGenes <- purrr::map(vsdl, find_user_supplied_features, user_genes, 500)
+      names(topUserGenes) <- gsub("_res.rds", "_top_user", basename(resRDS)) 
+      purrr::map2(topUserGenes, heatmap_paths, plot_heatmap, "_top_user_genes")
+    }
+  } else if (action == "I"){
+  browser()
+  print(a)
+  }
+}
+
+# trace("run_limma_voom", quote(browser(skipCalls = 4)),
+# 			exit = quote(browser(skipCalls = 4)))
+# 
+# trace("make_all_deseq2_comparisons", quote(browser(skipCalls = 4)),
+# exit = quote(browser(skipCalls = 4)))
+# 
+# trace("run_DESeq_LRT", quote(browser(skipCalls = 4)),
+#       exit = quote(browser(skipCalls = 4)))
+# # #
+# trace("output_deseq2_results", quote(browser(skipCalls = 4)),
+# exit = quote(browser(skipCalls = 4)))
+# 

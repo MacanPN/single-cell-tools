@@ -1,0 +1,514 @@
+---
+title: "reticulate_gene_correlation.Rmd"
+author: "Kevin Stachelek"
+date: "12/10/2018"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE, echo = F}
+knitr::opts_chunk$set(echo = F)
+```
+
+```{r}
+library(reticulate)
+library(shiny)
+library(tidyverse)
+library(here)
+library(annotables)
+```
+
+```{r, eval = F}
+use_python("/home/skevin/miniconda3/bin/python3", required = T)
+
+py_config()
+```
+
+```{r}
+selectInput("experiment", "Experiment:",
+						c("DS 1st experiment" = "ds20170407",
+						"DS 2nd experiment" = "ds20171031",
+						"DS 3rd exeriment" = "ds20181001",
+						"SHL 1st experiment" = "shl20170407",
+						"SHL 2nd experiment" = "shl20171031"), selected = "shl20170407" )
+
+```
+
+```{r}
+actionButton("loadButton", "Load Dataset")
+```
+
+
+```{r}
+
+ sce <- eventReactive(input$loadButton, { 
+		sce <- readRDS(paste0(here(), "/", input$experiment, ".rds"))
+    # sce <- sces0[[input$experiment]]
+    sce
+    })
+
+```
+
+```{r}
+
+fileInput("cell_sets", "cell sets as tsv or txt", multiple = F)
+
+radioButtons("corr_method", "method of correlation (spearman or pearson)", choices = c("spearman", "pearson"), selected = "spearman")
+
+radioButtons("feature", "feature of interest; either 'gene' or 'transcript' depending on desired output", choices = c("gene", "transcript"), selected = "transcript")
+
+textInput("outfile", "a descriptive name for the output file", value = "gene_corr_with_ptime")
+
+fileInput("pseudotime", "experimental cells. a list of pseudotime values.", multiple = T)
+
+fileInput("ctrl_pseudotime", "control cells. a list of pseudotime values. Can accept multiple values", multiple = T)
+
+
+```
+
+```{r}
+output_dir <-  "output/gene_corr_with_ptime/"
+```
+
+
+
+```{r, eval = T}
+source_python("genes_correlated_with_pseudotime2.py")
+
+```
+
+```{python, echo = F}
+from genes_correlated_with_pseudotime2 import *
+```
+
+
+```{python, echo = F}
+
+cellset_file = "resources/input/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv"
+settings_file = "resources/input/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
+```
+
+
+```{python, echo = F}
+sett = settings(settings_file, cellset_file)
+expression_file = "resources/input/FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv"
+expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
+```
+
+```{r}
+pseudotime_files = "resources/input/FACS_0407_2017_SHL_input_files/733_PC4-5"
+
+ctrl_pseudotime_files = "resources/input/FACS_0407_2017_SHL_input_files/737_PC1-4"
+
+```
+
+
+```{r}
+get_gene_transcripts <- function(expression_table){
+  print("a")
+}
+
+trx_to_gene_exp_table <- function(expression_table, gene_trx){
+  print("a")
+}
+```
+
+
+```{r, eval = T}
+
+gene_expression_file = paste0(output_dir, "gene_expression.tsv")
+if  (!file.exists(gene_expression_file)){
+  print("creating gene expression table; saving as "+gene_expression_file)
+	gene_trx_list = get_gene_transcripts(expression_table)
+	gene_expression_table =  trx_to_gene_exp_table(expression_table, gene_trx_list)
+	write_tsv(gene_expression_table, gene_expression_file)
+	saveRDS(gene_trx_list, paste0(output_dir, "gene_trx_list.rds"))
+} else{
+	gene_expression_table = read_tsv(gene_expression_file)
+	gene_trx_list = readRDS(paste0(output_dir, "gene_trx_list.rds"))  
+}
+
+```
+
+```{r, eval = F}
+read_pseudotime_from_file <- function(filename){
+    ptime <- read_tsv(filename, col_names = c("Sample_ID", "ptime"))
+}
+
+return_subset_correlation <- function(subset_index, feature){
+  browser()
+  subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
+  transcripts = exp.columns.copy()
+  subsetc = exp.loc[subset_index]
+  subsetc["pseudotime"] = pseudotime[subset_index]
+  if feature == "gene":
+      spearman = pd.DataFrame(0, index=gene_trx_dic.keys(), columns=["corr"])
+      # correlation by gene
+      for i,gene in enumerate(gene_trx_dic):
+      #~ for i,gene in enumerate(gene_trx_dic):
+          if i%1000 == 0:
+              #~ print gene
+              print ("Genes processed:",i)
+          gene_col = subsetc.loc[:, gene_trx_dic[gene]].sum(axis=1)
+          gene_col.columns = [gene]
+          corr = pd.concat([gene_col, subsetc.loc[:,"pseudotime"]], axis=1)
+          corr.columns = [gene, 'pseudotime']
+          corr = corr.loc[ : , [gene,"pseudotime"]].corr(method=method).iloc[0,1]
+          if corr != corr: # if NaN (no data to calculate on)
+              corr = 0 # then correlation is zero
+          spearman.loc[gene,"corr"] = corr
+  elif feature == "transcript":
+      spearman = pd.DataFrame(0, index=transcripts, columns=["corr"])
+      # correlation by transcript
+      for i,transcript in enumerate(transcripts):
+          if i%1000 == 0:
+              print ("Transcripts processed:",i)
+          corr = subsetc.loc[ : , [transcript,"pseudotime"]].corr(method=method).iloc[0,1]
+          if corr != corr: # if NaN (no data to calculate on)
+              corr = 0 # then correlation is zero
+          spearman.loc[transcript,"corr"] = corr
+  return(spearman)  
+}
+
+
+get_correlation_with_pseudotime <- function(pseudotime, exp, annotation, gene_trx_dic, cell_set_flag=None, feature = "gene", correlation_threshold = 0, method = "spearman"){
+  
+    if cell_set_flag == "ctrl":
+        spearman = return_subset_correlation(pseudotime.index, feature)
+
+    elif cell_set_flag == "exp":
+        spearman = return_subset_correlation(pseudotime.index, feature)
+
+    else:
+        exp_index = annotation.loc[annotation["treatment"]!="shCtrl"].index
+        shctrl_index = annotation.loc[annotation["treatment"]=="shCtrl"].index
+        # ~ print(cell_set_flag)
+        # ~ print(shctrl_index)
+        if shctrl_index.empty:
+            subset_indices = [exp_index]
+            cell_set_flags = ["exp"]
+            # check if map is returning spearman correlation and gene_expression_table
+            spearman = [return_subset_correlation(x, feature) for x in subset_indices]
+            #~ spearman = map(return_subset_correlation, subset_indices, feature)
+            spearman = pd.concat(spearman, axis=1)
+            spearman.columns = cell_set_flags
+        else:
+            subset_indices = [exp_index, shctrl_index]
+            cell_set_flags = ["RBKD", "shCtrl"]
+            # check if map is returning spearman correlation and gene_expression_table
+            spearman = [return_subset_correlation(x, feature) for x in subset_indices]
+            #~ spearman = map(return_subset_correlation, subset_indices, feature)
+            spearman = pd.concat(spearman, axis=1)
+            spearman.columns = cell_set_flags
+
+    return spearman
+}
+
+
+
+pseudotime <- read_pseudotime_from_file(pseudotime_files)
+
+expression_table <- read_csv()
+
+get_correlation_with_pseudotime <- function(expression_table, pseudotime){
+    
+}
+  
+
+
+set_pts <- function(pseudotime_files, cell_set_flag, expression_table){
+  browser()
+	pt = purrr::map(pseudotime_files, py$read_pseudotime_from_file)
+	corr = purrr::map_dfc(pt, py$get_correlation_with_pseudotime, expression_table, py$annotation, gene_trx_list, cell_set_flag, feature = "gene", method="spearman")
+	ptime_titles = gsub(".csv", "", pseudotime_files)
+	names(pt) = ptime_titles
+	return (list(corr, pt))
+}
+
+
+
+
+
+```
+
+
+```{r}
+test <- set_pts(pseudotime_files, cell_set_flag="exp", gene_expression_table)
+
+```
+
+```{r}
+
+# #load experimental pseudotime objects (required)
+# 
+# # read in pseudotime files
+# pt = map(read_pseudotime_from_file, pseudotime_files)
+# ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in pseudotime_files]
+# pt = dict(zip(ptime_titles, pt))
+# 
+# if options.feature == "transcript":
+# 	correlation_file = "_".join(ptime_titles)+"_"+correlation_method+"_transcript_correlation.csv"
+# elif options.feature == "gene":
+# 	correlation_file = "_".join(ptime_titles)+"_"+correlation_method+"_symbol_correlation.csv"
+# 
+# gene_exp_file = "_".join(ptime_titles)+"_"+correlation_method+"_gene_expression.csv"
+# 
+# print(correlation_file)
+# 
+# 
+# if os.path.isfile(gene_exp_file):
+# 	exp = pd.read_csv(gene_exp_file, sep = "\t", index_col=0)
+# 
+# 
+# # read correlation files from similarly named files
+# if os.path.exists(correlation_file):
+# 	corr = pd.read_csv(correlation_file, sep="\t", index_col=0)
+# 
+# corr_columns = []
+# for i in sorted(pt.keys()):
+# 	corr_columns += [i+"_exp_corr"]
+# 	corr_columns += [i+"_ctrl_corr"]
+# 
+# # check if experimental correlation files have already been read in
+# try:
+# 	corr
+# except:
+# 	if cpt == "none":
+# 		corr, pt = set_pts(pseudotime_files, cell_set_flag="exp")
+# 		corr_columns = []
+# 		for i in sorted(pt.keys()):
+# 			corr_columns += [i+"_exp_corr"]
+# 		corr.columns = corr_columns
+# 		corr.to_csv(correlation_file, sep="\t")
+# 	else:
+# 		corr, pt = set_pts(pseudotime_files, cell_set_flag="mix")
+# 		corr_columns = []
+# 		for i in sorted(pt.keys()):
+# 			corr_columns += [i+"_exp_corr"]
+# 			corr_columns += [i+"_ctrl_corr"]
+# 		corr.columns = corr_columns
+# 		corr.to_csv(correlation_file, sep="\t")
+# else:
+# 	if corr_columns == list(corr.columns):
+# 		pass
+# 	else:
+# 		print("column names do not match!")
+
+
+# #load ctrl pseudotime objects if control files supplied
+
+# try:
+# 	ctrl_pseudotime_files
+# except:
+# 	print("no ctrl pseudotime files supplied!")
+# 	ctrl_user_ptimes = "none"
+# 	cpt = "none"
+# else:
+# 	# read in control pseudotime files
+# 	cpt = map(read_pseudotime_from_file, ctrl_pseudotime_files)
+# 	cptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ctrl_pseudotime_files]
+# 	cpt = dict(zip(cptime_titles, cpt))
+# 	if (options.feature == "transcript" or options.feature == "transcripts"):
+# 		ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_transcript_correlation.csv"
+# 	elif (options.feature == "gene" or options.feature == "genes"):
+# 		ctrl_correlation_file = "_".join(cptime_titles)+"_"+correlation_method+"_symbol_correlation.csv"
+# 
+# 	#~ gene_exp_file = "_".join(cptime_titles)+"_"+correlation_method+"_gene_expression.csv"
+# 	
+# 	# read correlation files from similarly named files
+# 	if os.path.exists(ctrl_correlation_file):
+# 		print(ctrl_correlation_file)
+# 		ctrl_corr = pd.read_csv(ctrl_correlation_file, sep="\t", index_col=0)
+# 	
+# 	# check if control correlation files have already been read in
+# 	try:
+# 		ctrl_corr
+# 	except:
+# 		ctrl_corr, pt = set_pts(ctrl_pseudotime_files, cell_set_flag="ctrl")
+# 		ctrl_corr.columns = sorted(cpt.keys())
+# 		#~ exp.to_csv(gene_exp_file, sep="\t")
+# 		ctrl_corr.to_csv(ctrl_correlation_file, sep="\t")
+# 	else:
+# 		if sorted(cpt.keys()) == list(ctrl_corr.columns):
+# 			pass
+# 		else:
+# 			print("column names do not match!")
+# 			
+# 	ctrl_user_ptimes = ' '.join(cpt.keys())
+
+
+
+# user_ptimes = ' '.join(pt.keys())
+```
+
+
+```{r, eval = F}
+plot_features <- function(genes_of_interest){
+  
+  qplot(ptime, expression, data=genes_of_interest, geom=c("point", "smooth"), method="loess")
+
+}
+
+if(input$analysis == "user"){
+  plot_features()
+}
+
+
+```
+
+
+```{r}
+
+radioButtons("analysis", "Analysis Scheme", choiceNames = c("Plot User-Supplied Genes", "Plot Top N Features (Genes or Transcripts) with highest correlation"), choiceValues =  c("user", "top_n"), selected = "user")
+
+conditionalPanel(
+  condition = "input.analysis == 'user'",
+  fileInput("user_genes", "file of gene symbols, one per line", multiple = F)
+)
+
+conditionalPanel(
+  condition = "input.analysis == 'top_n'",
+  sliderInput("top_n", "Number of genes to plot, ordered by correlation:",
+              min = 0, max = 100, value = 5)
+)
+
+
+```
+
+```{r, eval = F}
+
+
+cell_settings <- reactive({
+	if(is.null(input$cell_settings)){
+		return(NULL) 
+	}
+	cell_settings <- read_cell_settings(input$cell_settings)
+	cell_settings
+})
+
+output$cell_sets <- renderUI({
+	if (is.null(cell_settings())) return()
+  cell_sets <- names(cell_settings())
+	checkboxGroupInput(inputId = "cell_sets", label = "filter out cells except", choices = cell_sets)
+})
+
+uiOutput("cell_sets")
+
+```
+
+
+
+
+```{r}
+
+# #~ default_output_dir = "genes_corr_w_ptime"
+# if not os.path.exists(output_dir):
+# 	os.makedirs(output_dir)
+# 
+# if options.feature == "gene":
+# 	expression_table = gene_expression_table
+
+
+
+# 	question = """Choose from following:
+# 	[C]	Create Correlation file from New Pseudotime Files
+# 	[D]	Plot User-Supplied Genes
+# 	[T]	Plot Top N Features (Genes or Transcripts) with highest correlation
+# 	[X]	Exit
+
+
+
+# 	elif(action == "C"):
+# 		ptime_paths = input("provide path(s) to new pseudotime files ").split(",")
+# 		corr_out = input("provide filename for new correlation files ")
+# 		## block of code to calculate correlations
+# 		pt = map(read_pseudotime_from_file, ptime_paths)
+# 		corr = [get_correlation_with_pseudotime(x, expression_table, gene_trx_dic, method=correlation_method) for x in pt]
+# 		corr.to_csv(corr_out+"_"+correlation_method+"_correlation.csv", sep="\t")
+# 		ptime_titles = [i.replace(".csv", "").rsplit("/")[-1] for i in ptime_paths]
+# 		ptimes = dict(zip(ptime_titles, ptime_paths))
+# 		user_ptimes = ' '.join(ptime_titles)
+# 		corr.columns = ptime_titles
+# 		
+# 	elif(action == "D"):
+# 		ptime = input("Which pseudotime would you like correlate with? ("+user_ptimes+ ") ")
+# 		ctrl_ptime = input("Which ctrl pseudotime would you like to correlate with? ("+ctrl_user_ptimes+ ") ")
+# 		DEGS = pd.read_csv(DEG_path, index_col=0, header=None)
+# 		if options.feature == "gene":
+# 			DEGS = symbols_from_geneids(DEGS)
+# 		elif options.feature == "transcript":
+# 			DEGS = DEGS.index
+# 		corr["order"] = corr[ptime+"_exp_corr"].abs()
+# 
+# 		DEGS = corr[corr.index.isin(DEGS)].index
+# 		out_filename = output_dir+correlation_method+"_"+ptime+"_DEGS.pdf"
+# 		IPython.embed()
+# 		if ctrl_ptime == '':
+# 			if len(pt) == 1:
+# 			  IPython.embed()
+# 			  plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
+#         # plot transcripts of interest
+# 				#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
+# 				
+# 			else:
+# 				plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt)
+# 				# plot transcripts of interest
+# 				#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt)
+# 		else:
+# 			plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
+# 			# plot transcripts of interest
+# 			#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
+# 		
+# 	elif(action == "T"):
+# 		top_n = int(input("How many genes would you like to plot? "))
+# 		ptime = input("Which pseudotime would you like to order by? ("+user_ptimes+ ") ")
+# 		ctrl_ptime = input("Which ctrl pseudotime would you like to correlate with? Leave blank if no control present. ("+ctrl_user_ptimes+ ") ")
+# 
+# 		ht = input("set upper threshold (def. 0.3) ")
+# 		if not ht == '':
+# 		  ht = float(ht)
+# 		else:
+# 		  ht = 0.3
+# 		lt = float(input("set lower threshold (def. 0.2) Leave blank if no control present. ") or 0)
+# 		threshold_set = input("retain genes above upper threshold in ("+user_ptimes+ ") (split with , for mult.) ").split(",")
+# 		corr["order"] = (corr[ptime+"_exp_corr"]).abs()
+# 		# ~ corr["order"] = (corr[ptime]).abs()
+# 	
+# 		if len(threshold_set) > 1:
+# 
+# 			corrs = map(genes_within_threshold, threshold_set, corr)
+# 			genes_of_interest = corr.loc[pd.concat(corrs, axis=1, join='inner').index]
+# 
+# 		else:
+# 			genes_of_interest = genes_within_threshold(threshold_set[0], corr)
+# 		IPython.embed()
+# 		if top_n > len(genes_of_interest):
+# 			print("error! number of genes requested exceeds number of genes matching filtering criteria ("+str(len(genes_of_interest))+")")
+# 			pass
+# 		elif ctrl_ptime == '':
+# 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
+# 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
+# 			if len(pt) == 1:
+# 				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
+# 				
+# 				# plot transcripts of interest
+# 				#~ plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
+# 
+# 			else:
+# 				plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt)
+# 				# plot transcripts of interest
+# 				#~ plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt)
+# 		else:
+# 			genes_of_interest = genes_of_interest.sort_values(by="order", ascending=False).index[:top_n]
+# 			out_filename = output_dir+correlation_method+"_"+ptime+"_top_"+str(top_n)+"_genes.pdf"
+# 			plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
+# 			# plot transcripts of interest
+# 			#~ plot_genes_of_interest(genes_of_interest, out_filename, expression_table, annotation, ptime, pt, cpt[ctrl_ptime])
+# 	elif(action == "I"):
+# 		IPython.embed()
+```
+
+
+
+
+
