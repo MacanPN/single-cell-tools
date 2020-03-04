@@ -845,7 +845,7 @@ def rotate_expression(transformed_expression,x,y,angle):
 # - pd.DataFrame with PCA transformed gene expression 
 # - annotation pd.DataFrame
 # - pca sklearn.decomposition object
-# - settings object
+# - settings object  
 def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=None):
     #~ 
     n_pca = len(transformed_expression.columns)
@@ -869,47 +869,50 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
         for i in transformed_expression.iloc[:, :-1]:
             test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
             t_val.append(test) 
-        
+    
+    #   distance (green) ------------------------------
+    if len(shCtrl_cells) > 0:
+      mydistance = {
+        'distance' : t_val,
+        'pc' : range(1,n_pca+1)
+      }
+      mydistance = pd.DataFrame(mydistance)
+      
+      greenplot = (ggplot(mydistance, aes('pc', 'distance'))
+      + geom_col(fill = "green")
+      + labs(x = "PC component", y = "", title = "distance between RBKD and Ctrl")
+      + scale_x_continuous(breaks=range(0, 21))
+      + theme_minimal())
+      greenplot.save('distance.pdf', height=6, width=8)
+    
     #   corr to days (blue) ------------------------------
     spearman_df = transformed_expression_without_superimposed.corr(method="spearman").loc["day",range(1,n_pca+1)].abs().sort_values(ascending=False)
     spearman_df = spearman_df.to_frame()
     spearman_df = spearman_df.reset_index()
     spearman_df.columns = ['pc', 'correlation']
-    #   distance (green) ------------------------------
-    mydistance = {
-      'distance' : t_val,
-      'pc' : range(1,n_pca+1)
-    }
-    mydistance = pd.DataFrame(mydistance)
-      #   % var exp (red) ------------------------------
-    var_explained = {
-      'var_expl' : pca.explained_variance_ratio_,
-      'pc' : range(1,n_pca+1) 
-    }
-    var_explained = pd.DataFrame(var_explained)
-    #   plots ------------------------------
-    # blue
+    
     blueplot = (ggplot(spearman_df, aes('pc', 'correlation'))
     + geom_col(fill = "blue")
     + labs(x = "PC component", y = "", title = "spearman correlation to days")
     + scale_x_continuous(breaks=range(0, 21))
     + theme_minimal())
+    
     blueplot.save('correlation.pdf', height=6, width=8)
-    # green
-    greenplot = (ggplot(mydistance, aes('pc', 'distance'))
-    + geom_col(fill = "green")
-    + labs(x = "PC component", y = "", title = "distance between RBKD and Ctrl")
-    + scale_x_continuous(breaks=range(0, 21))
-    + theme_minimal())
-    greenplot.save('distance.pdf', height=6, width=8)
-    # red
+    
+    #   % var exp (red) ------------------------------
+    var_explained = {
+      'var_expl' : pca.explained_variance_ratio_,
+      'pc' : range(1,n_pca+1) 
+    }
+    var_explained = pd.DataFrame(var_explained)
+    
     redplot = (ggplot(var_explained, aes('pc', 'var_expl'))
     + geom_col(fill = "red")
     + labs(x = "PC component", y = "", title = "% variance explained")
     + scale_x_continuous(breaks=range(0, 21))
     + theme_minimal())
     redplot.save('var_expl.pdf', height=6, width=8)
-    #~ 
+    
     if user_pcs:
         settings.pcs = user_pcs
     else:
