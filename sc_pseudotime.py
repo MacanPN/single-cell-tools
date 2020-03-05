@@ -521,7 +521,6 @@ def color_by_value(trx_df, comb):
 # - annotation pd.DataFrame
 # - settings object
 def plot_3d_pca(transformed_expression, annotation, settings, expression_table=None, clusters=None, centroids=None, bin_col_dict=None, height = 1080, width = 1600, features=None, feat_type="gene", DEBUG=False):
-    
     # ~ annotation["name"] = "day "+annotation["day"].astype(str)
     used_pcs = transformed_expression[ list(settings.pcs)]
     max_range = (used_pcs.max() - used_pcs.min()).max()
@@ -575,12 +574,13 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
           # ipdb.set_trace()
           markers = list(annotation["shape"].unique())
           mg = mygene.MyGeneInfo()
+          # ipdb.set_trace()
           # ~ for i in enumerate(features): 
           gene_info = mg.querymany(features, scopes='symbol', fields='ensembl.transcript')[0]
           if len(gene_info['ensembl']) > 1:
               trx = gene_info['ensembl'][0]['transcript']
           else:
-              trx = gene_info['ensembl']['transcript']
+              trx = [gene_info['ensembl']['transcript']]
           if not (set(trx) & set(expression_table.columns.values)):
               if set(settings.removed_features) & set(trx):
                   min_expression = 0.1
