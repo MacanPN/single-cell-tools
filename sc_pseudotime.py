@@ -834,7 +834,100 @@ def rotate_expression(transformed_expression,x,y,angle):
     ret[x] = transformed_expression[x]*math.cos(theta) - transformed_expression[y]*math.sin(theta)
     ret[y] = transformed_expression[x]*math.sin(theta) + transformed_expression[y]*math.cos(theta)
     return ret
-    
+
+
+## function 
+# - finds pair of 2 PCs that are most correlated with time labels (as defined by "day" column in annotation table) using spearman correlation
+# - finds rotation of this PCs so X axis has best correlation with time
+# 
+# returns: pseudotime for each cell, defined as linear combination of PCs, having best time correlation
+# 
+# arguments are:
+# - pd.DataFrame with PCA transformed gene expression 
+# - annotation pd.DataFrame
+# - pca sklearn.decomposition object
+# - settings object
+def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=None):
+    #~ 
+    n_pca = len(transformed_expression.columns)
+    transformed_expression["day"] = annotation["day"]
+    transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
+    print( "Finding best rotation for Spearman correlation. Shape of used table:",transformed_expression_without_superimposed.shape)
+    spearman = transformed_expression_without_superimposed.corr(method="spearman").loc["day",range(1,n_pca+1)].abs().sort_values(ascending=False)
+    #plot_spearman correlations and explained variation
+    spearman_filename = settings.result_filename.replace(".png", "_spearman.png")
+    width=0.2
+
+    fig,ax = plt.subplots(figsize=(8,5))
+
+    ax2= ax.twinx()
+
+    spearman.plot.bar(ax=ax, width=width, position=1, color="blue")
+    pd.Series(pca.explained_variance_ratio_, index=range(1,n_pca+1)).loc[spearman.index].plot.bar(ax=ax2, width=width, position=0, color="red")
+
+    ax.set_xlabel("PC component")
+    ax.set_ylabel("Spearman correlation\nto days [blue]")
+    ax2.set_ylabel("% variance explained [red]")
+
+
+    # plot difference between shRBKD and shCtrl cells if both present
+    # calculate distance between RBKD and Ctrl cells
+    shCtrl_cells = annotation.loc[annotation['treatment'].str.contains("shCtrl")].index
+    vals_shCtrl = transformed_expression.loc[shCtrl_cells,:]
+
+    if len(shCtrl_cells) > 0:
+        shRBKD_cells = annotation.drop(shCtrl_cells).index
+        vals_shRBKD = transformed_expression.loc[shRBKD_cells,:]
+        t_val = []
+        for i in transformed_expression.iloc[:, :-1]:
+            test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
+            t_val.append(test) 
+
+        #~ # define axis 3
+        ax3= ax.twinx()
+        #~ # assign location for axis 3
+        ax3.spines['right'].set_position(('outward', 60))
+        #~ # plot axis 3 green bars
+        pd.Series(t_val, index=range(1,n_pca+1)).loc[spearman.index].plot.bar(ax=ax3, width=width, position=2, color="green")
+        #~ # assign label for axis 3
+        ax3.set_ylabel("distance between RBKD and Ctrl [green]")
+    plt.tight_layout()
+    low,high = plt.xlim()
+    plt.xlim(low-0.5, high+0.5)
+    plt.savefig(spearman_filename, dpi=200)
+    #~ 
+    if user_pcs:
+        settings.pcs = user_pcs
+    else:
+        settings.pcs = spearman.iloc[0:2].index
+
+    # find best rotation
+    best_angle = 0
+    best_spearman = 0
+    for a in range(0,360):
+        te = rotate_expression(transformed_expression_without_superimposed, settings.pcs[0], settings.pcs[1], a)
+        spearman = te.corr(method="spearman").loc["day",int(settings.pcs[0])]
+        #print "Trying angle: ",a," spearman: ",spearman
+        if(spearman > best_spearman):
+            best_angle = a
+            best_spearman = spearman
+
+    del(transformed_expression["day"])
+    print (settings.pcs)
+    print ("Best rotation: ",best_angle)
+
+    rotated_expression = rotate_expression(transformed_expression, int(settings.pcs[0]), int(settings.pcs[1]), best_angle)
+    # plot original PC plot
+    plot_2d_pca_single_plot(transformed_expression, annotation, pca, settings, filename = settings.result_filename+"-original")
+    # plot rotated PC plot
+    plot_2d_pca_single_plot(rotated_expression, annotation, pca, settings, filename = settings.result_filename+"-rotated")
+    pt = rotated_expression[int(settings.pcs[0])]
+    pt.name = "pseudotime"
+    # normalize to <0;1>
+    pt = (pt-pt.min())/(pt.max()-pt.min())
+    print("printing correlation plot to "+spearman_filename+".png")
+    return pt
+ 
 ## function 
 # - finds pair of 2 PCs that are most correlated with time labels (as defined by "day" column in annotation table) using spearman correlation
 # - finds rotation of this PCs so X axis has best correlation with time
@@ -846,7 +939,7 @@ def rotate_expression(transformed_expression,x,y,angle):
 # - annotation pd.DataFrame
 # - pca sklearn.decomposition object
 # - settings object  
-def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=None):
+def find_pseudotime_plotnine(transformed_expression, annotation, pca, settings, user_pcs=None):
     #~ 
     n_pca = len(transformed_expression.columns)
     transformed_expression["day"] = annotation["day"]
@@ -890,7 +983,6 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
     spearman_df = spearman_df.to_frame()
     spearman_df = spearman_df.reset_index()
     spearman_df.columns = ['pc', 'correlation']
-    
     blueplot = (ggplot(spearman_df, aes('pc', 'correlation'))
     + geom_col(fill = "blue")
     + labs(x = "PC component", y = "", title = "spearman correlation to days")

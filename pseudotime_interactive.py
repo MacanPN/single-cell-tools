@@ -72,7 +72,8 @@ while True:
     [L]    Assign clusters according to time Labels (like day_4 ... )
     [C]    Assign clusters using hierarchical clustering
     [U]    Assign clusters using file
-    [D]    Find Most Correlated and Most Discriminating (treat v ctrl) PCs
+    [D]    Find Most Correlated and Most Discriminating (treat v ctrl) PCs (old)
+    [D]    Find Most Correlated and Most Discriminating (treat v ctrl) PCs (new)
     [N]    Normalize centroids
     [G]    Plot PCA Colored by Expression of Marker Genes
     [S]    Calculate pseudotime for cells using times assigned to clusters
@@ -146,6 +147,13 @@ while True:
       subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
       # ~ pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
       find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
+      print("Showing PCS most correlated with time")
+      
+    elif(action == "F"):
+      colnm, colval = retrieve_subset_param(sett)
+      subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
+      # ~ pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
+      find_pseudotime_plotnine(subset_PC_expression, subset_annotation, pca, sett)
       print("Showing PCS most correlated with time")
         
     elif(action == "C"):
