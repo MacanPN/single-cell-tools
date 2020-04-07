@@ -1,0 +1,35 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, echo = F}
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+```
+
+```{r load-packages}
+library(glue)
+library(fs)
+library(rprojroot)
+library(tidyverse)
+library(reticulate)
+use_python("/opt/miniconda3/bin/python3", required = T)
+proj_dir = rprojroot::find_root(criterion = has_file_pattern("*.Rproj"))
+py_config()
+```
+
+```{python}
+from sc_pseudotime import *
+```
+
+```{python, echo = F}
+cellset_file = "resources/input/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv"
+settings_file = "resources/input/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv"
+```
+
+
+```{python, echo = F}
+sett = sc_pseudotime.settings(settings_file, cellset_file)
+expression_file = "resources/input/FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv"
+expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
+```
