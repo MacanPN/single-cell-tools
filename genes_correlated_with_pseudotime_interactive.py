@@ -48,16 +48,19 @@ settings_file   = os.path.expanduser(options.plot_settings)
 correlation_method = options.corr_method
 output_dir      = options.outdir+"/"
 
-pseudotime_files = []
-pseudotime_files.append(options.pseudotime)
+if not os.path.exists(output_dir):
+  print(output_dir+"doesn't exist yet. Creating "+output_dir+" first")
+  os.mkdir(output_dir)
 
-
-# pseudotime_files = sorted(options.pseudotime)
+# pseudotime_files = []
+# pseudotime_files.append(options.pseudotime)
+pseudotime_files = sorted(options.pseudotime)
 print(pseudotime_files)
+
 if options.ctrl_pseudotime:
-  ctrl_pseudotime_files = []
-  ctrl_pseudotime_files.append(options.ctrl_pseudotime)
-	# ctrl_pseudotime_files = sorted(options.ctrl_pseudotime) 
+  # ctrl_pseudotime_files = []
+  # ctrl_pseudotime_files.append(options.ctrl_pseudotime)
+	ctrl_pseudotime_files = sorted(options.ctrl_pseudotime)
 sett = settings(settings_file, cellset_file)
 expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
 #~ expression_table = trx_expression_table.copy()
@@ -298,13 +301,10 @@ while True:
   		if len(pt) == 1:
   		  # 
   		  plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
-        # plot transcripts of interest
-  			#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, squeeze=False)
   			
   		else:
   			plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt)
-  			# plot transcripts of interest
-  			#~ plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt)
+
   	else:
   		plot_genes_of_interest(DEGS, out_filename, expression_table, annotation, ptime, pt, cpt)
   		# plot transcripts of interest

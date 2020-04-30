@@ -73,7 +73,7 @@ while True:
     [C]    Assign clusters using hierarchical clustering
     [U]    Assign clusters using file
     [D]    Find Most Correlated and Most Discriminating (treat v ctrl) PCs (old)
-    [F]    Find Most Correlated and Most Discriminating (treat v ctrl) PCs (new)
+    [A]    Find Most Correlated and Most Discriminating (treat v ctrl) PCs (new)
     [N]    Normalize centroids
     [G]    Plot PCA Colored by Expression of Marker Genes
     [S]    Calculate pseudotime for cells using times assigned to clusters
