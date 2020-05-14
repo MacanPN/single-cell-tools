@@ -23,15 +23,17 @@ from inspect import currentframe, getframeinfo
 
 import argparse
 
+"~/python_packages/single-cell-tools/resources/input/FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv"
+
 parser = argparse.ArgumentParser(description="runs genes_correlated_with_pseudotime")
-parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="~/python_packages/single-cell-tools/resources/input/FACS_0407_2017_SHL_input_files/sunhye_census_matrix_20170407-comma_delimited.csv", help="gene by cell matrix of expression values", metavar="EXPR")
-parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="~/python_packages/single-cell-tools/resources/input/FACS_0407_2017_SHL_input_files/cell_sets_0407_SHL_20180523.csv", help="cell sets", metavar="CELL_SETS")
-parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="~/python_packages/single-cell-tools/resources/input/FACS_0407_2017_SHL_input_files/plot_setting_0407_SHL_20180212.csv", help="plot settings", metavar="PLOT_SETTINGS")
+parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="/home/skevin/single_cell_projects/sc_RB_devel/20170407-SHL-FACS-Hs_proj/results/sunhye_census_matrix_20170407.csv", help="gene by cell matrix of expression values", metavar="EXPR")
+parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="/home/skevin/python_packages/single-cell-tools/resources/sunlee_input/New_cells_sets_3_6.csv", help="cell sets", metavar="CELL_SETS")
+parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="/home/skevin/python_packages/single-cell-tools/resources/sunlee_input/New_plot_settings_2d.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-r", "--corr-method", dest="corr_method", default="spearman", help="method of correlation (spearman or pearson)", metavar="CORR_METHOD")
 parser.add_argument("-f", "--feature", dest="feature", default = "g", help="feature of interest; either 'gene' or 'transcript' depending on desired output", metavar="FEATURE", required=False)
-parser.add_argument("-o", "--outdir", dest="outdir", default="output/gene_corr_with_ptime", help="a name to give to the output file", metavar="OUTDIR")
-parser.add_argument("-pt", "--pseudotime", dest="pseudotime", default = "resources/example_input_files/PT1_shCtrl.csv", help="experimental cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=False)
-parser.add_argument("-cpt", "--control-pseudotime", dest="ctrl_pseudotime", default = "resources/example_input_files/shCtrl_PT.csv", help="control cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+')
+parser.add_argument("-o", "--outdir", dest="outdir", default="../output/sunlee_corr_with_ptime", help="a name to give to the output file", metavar="OUTDIR")
+parser.add_argument("-pt", "--pseudotime", dest="pseudotime", default = "../resources/example_input_files/PT1_shCtrl.csv", help="experimental cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+', required=False)
+parser.add_argument("-cpt", "--control-pseudotime", dest="ctrl_pseudotime", help="control cells. a list of pseudotime values. Can accept multiple values", metavar="PTIME", nargs='+') # default = "../resources/example_input_files/shCtrl_PT.csv"
 
 # default = "resources/example_input_files/shCtrl_PT.csv"
 
@@ -65,10 +67,6 @@ sett = settings(settings_file, cellset_file)
 expression_table, annotation = read_expression(expression_file, sett, min_expression = 0.1, min_cells = 5)
 #~ expression_table = trx_expression_table.copy()
 
-def save_obj(output_dir, obj, name):
-    with open(output_dir+'/'+ name + '.pkl', 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
 def symbols_from_geneids(geneids):
 	mg = mygene.MyGeneInfo()
 	# ~ for i in enumerate(genes): 
@@ -76,10 +74,6 @@ def symbols_from_geneids(geneids):
 	gene_info[:] = [d for d in gene_info if d.get('notfound') != True]
 	symbols = [d['symbol'] for d in gene_info]
 	return(symbols)
-
-def load_obj(output_dir, name ):
-    with open(output_dir+ name + '.pkl', 'rb') as f:
-        return pickle.load(f)
 
 gene_expression_file = output_dir+"gene_expression.csv"
 if not os.path.isfile(gene_expression_file):
@@ -94,7 +88,7 @@ else:
 	
 # 
 
-	
+# @functools.lru_cache(maxsize=None)
 def set_pts(pseudotime_files, cell_set_flag):
   pt = [read_pseudotime_from_file(i) for i in pseudotime_files]
   corr = [get_correlation_with_pseudotime(x, expression_table, annotation, gene_trx_dic, cell_set_flag, feature = options.feature, method=correlation_method) for x in pt]
@@ -322,7 +316,7 @@ while True:
     lt = float(input("set lower threshold (def. 0.2) Leave blank if no control present. ") or 0)
     corr["exp"] = (corr[ptime+"_exp_corr"]).abs()
     
-    IPython.embed()
+    # IPython.embed()
     if ctrl_ptime != '':
       corr["ctrl"] = ctrl_corr[ctrl_ptime].abs()
       genes_of_interest = genes_within_threshold(corr, ht, lt)

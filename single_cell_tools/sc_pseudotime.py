@@ -1808,6 +1808,15 @@ def get_isoforms_correlated_pc_set(pca, expression_table, pcs, n, filename):
     data.to_csv(csv_filename, sep=",")
     return data
     
+def save_obj(output_dir, obj, name):
+    with open(output_dir+'/'+ name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+def load_obj(output_dir, name ):
+    with open(output_dir+ name + '.pkl', 'rb') as f:
+        return pickle.load(f)
+    
 
 
 # 
