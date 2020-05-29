@@ -21,13 +21,13 @@ import plotly.express as px
 #~ import ipdb
 
 from sc_pseudotime import *
-
+# ../script_shortcut.pkl
 parser = argparse.ArgumentParser(description="runs pseudotime_interactive")
 parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="../resources/2020-02-11-SHL/sunhye_census_matrix.csv", help="gene by cell matrix of expression values", metavar="EXPR")
 parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="../resources/2020-02-11-SHL/New_cells_sets_3_5.csv", help="cell sets", metavar="CELL_SETS")
 parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="../resources/2020-02-11-SHL/New_plot_settings_2d.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=False)
-parser.add_argument("-s", "--shortcut", dest = "shortcut", default = "../script_shortcut.pkl", help="pickle file from which to load command line arguments", required = False) # default = "script_shortcut.pkl"
+parser.add_argument("-s", "--shortcut", dest = "shortcut", help="pickle file from which to load command line arguments", required = False) # default = "script_shortcut.pkl"
 
 try:
   options = parser.parse_args()
@@ -82,6 +82,7 @@ while True:
     [M]    Save features correlated with pc to file
     [T]    Run tSNE
     [K]    Save Settings to File
+    [V]    Plot Velocyto
     [X]    Exit
     """
     action = input(question).upper()
@@ -332,6 +333,9 @@ while True:
       cluster_dir = input("Enter location of diffex csvs ")
       diffex_csvs = read_in_diffex(cluster_dir)
       plot_heatmap(expression_table, annotation, dendro)
+      
+    elif(action=="V"):
+      print("plot velocyto")
     
     elif(action=="K"):
       pickle_file = input("save settings to file: ")+'.pkl'
