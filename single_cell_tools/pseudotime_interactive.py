@@ -337,7 +337,6 @@ while True:
       pickle_file = input("save settings to file: ")+'.pkl'
       f = open(pickle_file, 'wb')
       settings_dict = {
-        'sett': sett,
         'PC_expression': PC_expression,
         'pca': pca,
         'expression_table': expression_table, 

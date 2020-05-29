@@ -1,8 +1,31 @@
+#!/usr/bin/Rscript 
+
+library("optparse")
+
+option_list <- list(
+  make_option(c("-v", "--verbose"), action="store_true", default=TRUE,
+              help="Print extra output [default]"),
+  make_option(c("-q", "--quietly"), action="store_false",
+              dest="verbose", help="Print little output"),
+  make_option(c("-p", "--pyout"), type="character",
+              default = NA,
+              help=".pkl file output from pseudotime_interactive.py",
+              metavar="pyout")
+)
+
+opt = parse_args(OptionParser(option_list=option_list))
+if (!is.na(opt$pyout)) {
+  mypickle <- opt$pyout
+} else {
+  stop("Please provide .pkl file for analysis! See script usage (--help)")
+}
+
 library(reticulate)
 # library(seuratTools)
 library(seuratTools, lib.loc = "~/rpkgs/devel_install/")
 
-test0 <- reticulate::py_load_object("output/script_shortcut.pkl")
+# test0 <- reticulate::py_load_object("single_cell_tools/for_seurat.pkl")
+test0 <- reticulate::py_load_object(mypickle)
 
 data <- py_to_r(test0$expression_table) %>% 
   t()
@@ -59,6 +82,8 @@ cell.colors <- tibble::as_tibble(test2$cluster, rownames = "cellid") %>%
 
 levels(cell.colors) <- scales::hue_pal()(length(levels(cell.colors)))
 
-pdf("output/sunlee_corr_with_ptime/pc_plots_20170407.pdf")
-velocyto.R::pca.velocity.plot(test2@misc$vel, nPcs = 3, cell.colors = cell.colors, plot.cols = 1, arrow.scale = 0.5)
+plot_path <- "output/sunlee_corr_with_ptime/pc_plots_20170407.pdf"
+message(glue::glue("saving plot to {plot_path}"))
+pdf(plot_path)
+velocyto.R::pca.velocity.plot(test2@misc$vel, nPcs = 6, cell.colors = cell.colors, plot.cols = 1, arrow.scale = 0.5)
 dev.off()
