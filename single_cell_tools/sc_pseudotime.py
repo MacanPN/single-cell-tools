@@ -41,7 +41,7 @@ import functools
 import loompy
 import anndata
 import scvelo as scv
-# scv.settings.set_figure_params('scvelo')  # for beautified visualization
+scv.settings.set_figure_params('scvelo')  # for beautified visualization
 
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
@@ -1838,6 +1838,7 @@ def plot_velocity(expression_table, annotation, PC_expression, adata_loom, xlabe
     
     expression_table.index = rename_shl(expression_table.index)
     annotation.index = rename_shl(annotation.index)
+    expression_table = expression_table[expression_table.index.isin(annotation.index)]
     adata = anndata.AnnData(expression_table, annotation)
 
     retained_cells = list(set(adata_loom.obs.index).intersection(set(adata.obs.index)))
