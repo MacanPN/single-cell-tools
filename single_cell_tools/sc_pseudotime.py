@@ -1865,7 +1865,7 @@ def plot_velocity(expression_table, annotation, PC_expression, adata_loom, xlabe
     xlabel = 'PC '+ xlabel
     ylabel = 'PC '+ylabel
 
-    IPython.embed()
+    # IPython.embed()
     scv.pl.velocity_embedding(adata_loom, basis='pca', components=components, save=True, xlabel=xlabel, ylabel=ylabel, frameon = True, color=color_key)
 
 # 

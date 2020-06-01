@@ -343,10 +343,11 @@ while True:
       
     elif(action=="V"):
       print("plotting scvelo")
+      colnm, colval = retrieve_subset_param(sett)
+      subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
       pcs = [i for i in input("Which two PCs would you like on the plot? (type comma separated list, such as 1,3) ").split(",")]
       
-
-      velocity_plot = plot_velocity(expression_table, annotation, PC_expression, adata_loom, xlabel=pcs[0], ylabel=pcs[1])    
+      velocity_plot = plot_velocity(expression_table, subset_annotation, subset_PC_expression, adata_loom, xlabel=pcs[0], ylabel=pcs[1], color_key='color')    
       plt.savefig("test.png")
       
     elif(action=="K"):
