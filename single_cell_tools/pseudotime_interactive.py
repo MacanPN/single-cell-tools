@@ -18,6 +18,7 @@ import chart_studio.plotly
 import colorsys
 import plotly.express as px
 
+
 #~ import ipdb
 
 from sc_pseudotime import *
@@ -28,6 +29,7 @@ parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="../resources
 parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="../resources/2020-02-11-SHL/New_plot_settings_2d.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=False)
 parser.add_argument("-s", "--shortcut", dest = "shortcut", help="pickle file from which to load command line arguments", required = False) # default = "script_shortcut.pkl"
+parser.add_argument("-l", "--loom_path", dest = "loom_path", default="20170407-SHL-FACS-Hs_proj.loom", help="path to corresponding loom file", required = False) # default = "script_shortcut.pkl"
 
 try:
   options = parser.parse_args()
@@ -35,6 +37,11 @@ except SystemExit as err:
   if err.code == 2: 
     parser.print_help()
     sys.exit(0)
+    
+if not options.loom_path is None:
+  loom_path = os.path.expanduser(options.loom_path)
+  # Crate an analysis object
+  adata_loom = scv.read(loom_path)
 
 if options.shortcut is None:
   # ~ load datasets
@@ -82,7 +89,7 @@ while True:
     [M]    Save features correlated with pc to file
     [T]    Run tSNE
     [K]    Save Settings to File
-    [V]    Plot Velocyto
+    [V]    Plot scvelo
     [X]    Exit
     """
     action = input(question).upper()
@@ -335,8 +342,13 @@ while True:
       plot_heatmap(expression_table, annotation, dendro)
       
     elif(action=="V"):
-      print("plot velocyto")
-    
+      print("plotting scvelo")
+      pcs = [i for i in input("Which two PCs would you like on the plot? (type comma separated list, such as 1,3) ").split(",")]
+      
+
+      velocity_plot = plot_velocity(expression_table, annotation, PC_expression, adata_loom, xlabel=pcs[0], ylabel=pcs[1])    
+      plt.savefig("test.png")
+      
     elif(action=="K"):
       pickle_file = input("save settings to file: ")+'.pkl'
       f = open(pickle_file, 'wb')

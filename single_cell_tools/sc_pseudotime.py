@@ -38,6 +38,10 @@ import os
 import plotly.io
 import plotly
 import functools
+import loompy
+import anndata
+import scvelo as scv
+# scv.settings.set_figure_params('scvelo')  # for beautified visualization
 
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
@@ -1818,6 +1822,51 @@ def load_obj(output_dir, name ):
         return pickle.load(f)
     
 
+def rename_shl(mylist):
+  # IPython.embed()
+  if (re.match('X', mylist[0])):
+    mylist = [i.replace("X", "") for i in mylist]
+    max_nchar = len(max(mylist, key = len))
+    mylist = [i.zfill(max_nchar) for i in mylist]
+    mylist = ["shl20170407-"+i for i in mylist]
+  return mylist
+
+def plot_velocity(expression_table, annotation, PC_expression, adata_loom, xlabel='1', ylabel='2', color_key='color'):
+    
+    # ipdb.set_trace()
+    PC_expression.index = rename_shl(PC_expression.index)
+    
+    expression_table.index = rename_shl(expression_table.index)
+    annotation.index = rename_shl(annotation.index)
+    adata = anndata.AnnData(expression_table, annotation)
+
+    retained_cells = list(set(adata_loom.obs.index).intersection(set(adata.obs.index)))
+    
+    adata_loom = adata_loom[retained_cells,:]
+    adata_loom.obs = adata_loom.obs.join(adata.obs)
+
+    adata_loom.var_names_make_unique()
+
+    # plot proporations spliced/unspliced
+    # scv.pl.proportions(adata_loom)
+
+
+    # #preprocess
+
+    scv.pp.filter_and_normalize(adata_loom, min_shared_counts=20, n_top_genes=2000)
+    scv.pp.moments(adata_loom, n_pcs=30, n_neighbors=30)
+
+    adata_loom.obsm['X_pca'][:,0:20] = PC_expression
+
+    scv.tl.velocity(adata_loom)
+    scv.tl.velocity_graph(adata_loom)
+    
+    components=xlabel+','+ylabel
+    xlabel = 'PC '+ xlabel
+    ylabel = 'PC '+ylabel
+
+    IPython.embed()
+    scv.pl.velocity_embedding(adata_loom, basis='pca', components=components, save=True, xlabel=xlabel, ylabel=ylabel, frameon = True, color=color_key)
 
 # 
 # if __name__ == "__main__":
