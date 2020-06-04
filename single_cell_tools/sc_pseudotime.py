@@ -945,7 +945,7 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
 # - pca sklearn.decomposition object
 # - settings object  
 def find_pseudotime_plotnine(transformed_expression, annotation, pca, settings, user_pcs=None):
-    #~ 
+    # IPython.embed()
     n_pca = len(transformed_expression.columns)
     transformed_expression["day"] = annotation["day"]
     transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
@@ -959,23 +959,22 @@ def find_pseudotime_plotnine(transformed_expression, annotation, pca, settings, 
     # calculate distance between RBKD and Ctrl cells
     shCtrl_cells = annotation.loc[annotation['treatment'].str.contains("shCtrl")].index
     vals_shCtrl = transformed_expression.loc[shCtrl_cells,:]
+    # if not annotation.index.difference(shCtrl_cells).empty
+    shRBKD_cells = annotation.drop(shCtrl_cells).index
+    vals_shRBKD = transformed_expression.loc[shRBKD_cells,:]
 
-    if len(shCtrl_cells) > 0:
-        shRBKD_cells = annotation.drop(shCtrl_cells).index
-        vals_shRBKD = transformed_expression.loc[shRBKD_cells,:]
-        t_val = []
-        for i in transformed_expression.iloc[:, :-1]:
-            test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
-            t_val.append(test) 
-    
+    if len(shCtrl_cells) > 0 and len(shRBKD_cells) > 0:
+      t_val = []
+      for i in transformed_expression.iloc[:, :-1]:
+          test = (abs(vals_shCtrl.loc[:,i].mean()-vals_shRBKD.loc[:,i].mean()))/np.std(vals_shCtrl.loc[:,i].append(vals_shRBKD.loc[:,i]))
+          t_val.append(test) 
+  
     #   distance (green) ------------------------------
-    if len(shCtrl_cells) > 0:
       mydistance = {
         'distance' : t_val,
         'pc' : range(1,n_pca+1)
       }
       mydistance = pd.DataFrame(mydistance)
-      
       greenplot = (ggplot(mydistance, aes('pc', 'distance'))
       + geom_col(fill = "green")
       + labs(x = "PC component", y = "", title = "distance between RBKD and Ctrl")
