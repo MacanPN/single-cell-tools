@@ -579,11 +579,10 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
           # ipdb.set_trace()
           markers = list(annotation["shape"].unique())
           mg = mygene.MyGeneInfo()
-          # ipdb.set_trace()
           # ~ for i in enumerate(features): 
           gene_info = mg.querymany(features, scopes='symbol', fields='ensembl.transcript')[0]
-          if len(gene_info['ensembl']) > 1:
-              trx = gene_info['ensembl'][0]['transcript']
+          if len(gene_info['ensembl']['transcript']) > 1:
+              trx = gene_info['ensembl']['transcript']
           else:
               trx = [gene_info['ensembl']['transcript']]
           if not (set(trx) & set(expression_table.columns.values)):
@@ -594,7 +593,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
                   return
           else:
               if type(trx) == list:
-                  sum_trx = expression_table.loc[:,trx].sum(axis=1)
+                  sum_trx = expression_table.reindex(trx, axis=1).sum(axis=1)
                   # catch pandas omission of missing list values in loc; incompatible between pandas versions
                   #~ sub_trx = expression_table.reindex(trx, axis = 1)
                   #~ sum_trx = sub_trx.loc[:,trx].sum(axis=1)
