@@ -41,7 +41,7 @@ import functools
 import loompy
 import anndata
 import scvelo as scv
-scv.settings.set_figure_params('scvelo')  # for beautified visualization
+# scv.settings.set_figure_params('scvelo')  # for beautified visualization
 
 ## what modes can be script run in
 run_modes = ["2d-pca-multiplot", "2d-pca-single", "3d-pca", "hierarchy", "pseudotime", "3d-pca-colored-by-clustering", "test"]
@@ -576,7 +576,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
     # allow coloring cells by quantile expression of supplied features
     if (feat_type == "g"):
         if (features is not None):
-          # ipdb.set_trace()
+          
           markers = list(annotation["shape"].unique())
           mg = mygene.MyGeneInfo()
           # ~ for i in enumerate(features): 
@@ -642,7 +642,7 @@ def plot_3d_pca(transformed_expression, annotation, settings, expression_table=N
             )
         data.append(trace)
     if(clusters != None):
-        # ipdb.set_trace()
+        
         centroids = get_cluster_centroids(transformed_expression, clusters)
         trace = record_trace(clusters, comb, settings, centroids)
         data.append(trace)
@@ -944,7 +944,6 @@ def find_pseudotime(transformed_expression, annotation, pca, settings, user_pcs=
 # - pca sklearn.decomposition object
 # - settings object  
 def find_pseudotime_plotnine(transformed_expression, annotation, pca, settings, user_pcs=None):
-    # IPython.embed()
     n_pca = len(transformed_expression.columns)
     transformed_expression["day"] = annotation["day"]
     transformed_expression_without_superimposed = transformed_expression.loc[annotation[annotation["superimpose-for-spearman"]==False].index]
@@ -1127,7 +1126,7 @@ def interpolate_gene_over_pseudotime(exp, pseudotime, transcript_id, weights=Non
 # - Ensamble transcript ID
 def plot_gene_with_pseudotime(exp, pt, pt_ids, gene_tuple, annotation, filename=None, ax=None, plot_id=None):
     # 
-    # IPython.embed()
+    
     mypt = copy.deepcopy(pt)
     
      # find expression and pseudotime for:
@@ -1157,7 +1156,7 @@ def plot_gene_with_pseudotime(exp, pt, pt_ids, gene_tuple, annotation, filename=
       rho_values[i] = ' '.join([rho_labels[i], rho_values[i]])
       
     rho_values.insert(0, gene_tuple[0])
-    # IPython.embed()
+    
     
     plot_title = ' '.join(rho_values)
     
@@ -1172,7 +1171,6 @@ def plot_gene_with_pseudotime(exp, pt, pt_ids, gene_tuple, annotation, filename=
     )
     
     return gene_plot
-    
     
 ## read pseudotime from tab delimited csv file
 def read_pseudotime_from_file(filename):
@@ -1226,7 +1224,7 @@ def return_subset_correlation(pseudotime, myexp, subset_index, gene_trx_dic, fea
   # 
   subset_index = pseudotime.index[pseudotime.index.isin(subset_index)]
   transcripts = myexp.columns.copy()
-  # ipdb.set_trace()
+  
   # 
   subsetc = myexp.reindex(subset_index)
   subsetc["pseudotime"] = pseudotime.reindex(subset_index)
@@ -1524,7 +1522,7 @@ def main():
     # calculate PCA
     PC_expression,pca = run_PCA(expression_table, annotation, n_pca)
     #print "Running in mode:",sett.run_mode
-    
+
     if(sett.run_mode=="2d-pca-multiplot"):
         plot_2d_pca_multiplot(PC_expression, annotation, pca, sett)
     elif(sett.run_mode=="2d-pca-single"):
@@ -1539,7 +1537,7 @@ def main():
         time_clusters_from_annotations(annotation) #formerly get_time_clusters_from_annotations
     elif(sett.run_mode == "3d-pca-colored-by-clustering"):
         plot_3d_pca_colored_by_clustering(PC_expression, annotation, pca, sett)
-        
+
     elif(sett.run_mode == "test"):
         palette_size = 10
         clusters = time_clusters_from_annotations(annotation)
@@ -1553,7 +1551,7 @@ def main():
         for i,c in enumerate(centroids):
             sq_distances[i] = ((used_PC_expression-c)**2).sum(axis=1)**0.5
             weights[i] = 1/sq_distances[i]
-        
+
         print(weights[0])
         pseudotime = pd.Series(0, index=used_PC_expression.index)
         for w in weights:
@@ -1574,16 +1572,16 @@ def main():
         annotation["color"] = [RGBToHTMLColor(pal[i]) for i in color_indices]
         #HTML_pal = ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']
         #annotation["color"] = [HTML_pal[i] for i in color_indices]
-        
+
         plot_3d_pca(PC_expression, annotation, sett)
-    
+
         #print pseudotime
-    
+
     #plot_gene_with_pseudotime(expression_table, pseudotime.copy(), "ENST00000611179", annotation)
-    
+
     #for tr in expression_table.columns:
     #    plot_gene_with_pseudotime(expression_table, pseudotime.copy(), tr, annotation, filename="gene_pt_plots_733/"+tr+".png")
-    
+
     #plot_gene_with_pseudotime(expression_table, pseudotime.copy(), "ENST00000611179")
 
 #~ cluster_dir = "/home/skevin/single_cell_pipeline/scde_input/diffex_by_trs_clusters_1_4"
@@ -1814,14 +1812,12 @@ def save_obj(output_dir, obj, name):
     with open(output_dir+'/'+ name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
-
 def load_obj(output_dir, name ):
     with open(output_dir+ name + '.pkl', 'rb') as f:
         return pickle.load(f)
-    
-
+  
 def rename_shl(mylist):
-  # IPython.embed()
+  
   if (re.match('X', mylist[0])):
     mylist = [i.replace("X", "") for i in mylist]
     max_nchar = len(max(mylist, key = len))
@@ -1831,7 +1827,6 @@ def rename_shl(mylist):
 
 def plot_velocity(expression_table, annotation, PC_expression, adata_loom, xlabel='1', ylabel='2', color_key='color'):
     
-    # ipdb.set_trace()
     PC_expression.index = rename_shl(PC_expression.index)
     
     expression_table.index = rename_shl(expression_table.index)
@@ -1863,10 +1858,66 @@ def plot_velocity(expression_table, annotation, PC_expression, adata_loom, xlabe
     components=xlabel+','+ylabel
     xlabel = 'PC '+ xlabel
     ylabel = 'PC '+ylabel
-
-    # IPython.embed()
     scv.pl.velocity_embedding(adata_loom, basis='pca', components=components, save=True, xlabel=xlabel, ylabel=ylabel, frameon = True, color=color_key)
 
-# 
+def plot_using_plotly(transformed_expression):
+          import plotly.plotly as py
+          import plotly.graph_objs as go
+          layout = dict(
+          width=1600,
+          height=1080,
+          autosize=False,
+          #title='Test',
+          scene=dict(
+              xaxis=dict(
+                  gridcolor='rgb(0, 0, 0)',
+                  zerolinecolor='rgb(255, 0, 0)',
+                  showbackground=True,
+                  backgroundcolor='#bababa'
+              ),
+              yaxis=dict(
+                  gridcolor='rgb(0, 0, 0)',
+                  zerolinecolor='rgb(255, 0, 0)',
+                  showbackground=True,
+                  backgroundcolor='#bababa'
+              ),
+              zaxis=dict(
+                  #title="PC "+str(pc[2]+1),
+                  gridcolor='rgb(0, 0, 0)',
+                  zerolinecolor='rgb(255, 0, 0)',
+                  showbackground=True,
+                  backgroundcolor='#bababa'
+              ),
+              #aspectratio = dict( x=1, y=1, z=0.7 ),
+              aspectmode = 'manual'        
+              ),
+          )
+          data = []
+          traces = comb["name"].unique()
+          for t in traces:
+            
+              trace = dict(
+                  text = transformed_expression.index, #+ "\n" + transformed_expression["branch"],
+                  x = transformed_expression["x"],
+                  y = transformed_expression["y"],
+                  z = transformed_expression["z"],
+                  type = "scatter3d",    
+                  mode = 'markers',
+                  opacity = 0.80,
+                  marker = dict(
+                  size=comb.loc[comb["name"]==t,"size"].values,
+                  # ~ color=trx_df.color,
+                  color=comb.loc[comb["name"]==t,"color"].values,
+                  symbol=comb.loc[comb["name"]==t,"shape"].apply(shape_matplotlib2plotly).values,
+                  line=dict(width=1) )
+              )
+              
+              data.append(trace)
+          fig = dict(data=data, layout=layout)
+          url = plotly.offline.plot(fig, filename='resources/single_cell-3d-tSNE', validate=False, auto_open=False)
+          
+          plot_using_plotly(tsne_transformed_expression_3d)
+      
+
 # if __name__ == "__main__":
 #     main()
