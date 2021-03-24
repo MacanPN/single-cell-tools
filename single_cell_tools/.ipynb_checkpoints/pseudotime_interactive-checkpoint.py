@@ -17,17 +17,21 @@ import os
 import chart_studio.plotly
 import colorsys
 import plotly.express as px
-#~ import ipdb
-from sc_pseudotime import *
+import loompy
+import scvelo as scv
+import anndata
 
+#~ import ipdb
+
+from sc_pseudotime import *
 # ../script_shortcut.pkl
 parser = argparse.ArgumentParser(description="runs pseudotime_interactive")
-parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="resources/2020-02-11-SHL/remade_census_matrix.csv", help="gene by cell matrix of expression values", metavar="EXPR")
-parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="resources/2020-02-11-SHL/New_cells_sets_3_6.csv", help="cell sets", metavar="CELL_SETS")
-parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="resources/2020-02-11-SHL/New_plot_settings_2d.csv", help="plot settings", metavar="PLOT_SETTINGS")
+parser.add_argument("-e", "--expression-matrix", dest="expr_mat", default="../resources/2020-02-11-SHL/sunhye_census_matrix.csv", help="gene by cell matrix of expression values", metavar="EXPR")
+parser.add_argument("-c", "--cell-sets", dest="cell_sets", default="../resources/2020-02-11-SHL/New_cells_sets_3_5.csv", help="cell sets", metavar="CELL_SETS")
+parser.add_argument("-p", "--plot-settings", dest="plot_settings", default="../resources/2020-02-11-SHL/New_plot_settings_2d.csv", help="plot settings", metavar="PLOT_SETTINGS")
 parser.add_argument("-n", "--session-name", dest="session_name", help="a name to give to this analysis session for reproducbility", metavar="SESSION_NAME", required=False)
 parser.add_argument("-s", "--shortcut", dest = "shortcut", help="pickle file from which to load command line arguments", required = False) # default = "script_shortcut.pkl"
-parser.add_argument("-l", "--loom_path", dest = "loom_path", help="path to corresponding loom file", required = False) # default = "script_shortcut.pkl" # default="20170407-SHL-FACS-Hs_proj.loom"
+parser.add_argument("-l", "--loom_path", dest = "loom_path", help="path to corresponding loom file", required = False) # default = "script_shortcut.pkl"
 
 try:
   options = parser.parse_args()
@@ -36,10 +40,7 @@ except SystemExit as err:
     parser.print_help()
     sys.exit(0)
     
-if not options.loom_path is None:
-  loom_path = os.path.expanduser(options.loom_path)
-  # Crate an analysis object
-  adata_loom = scv.read(loom_path)
+loom_path = options.loom_path
 
 if options.shortcut is None:
   # ~ load datasets
@@ -55,7 +56,7 @@ if options.shortcut is None:
   
   PC_expression,pca = run_PCA(expression_table, annotation, n_pca)
 else:
-  
+  # IPython.embed()
   f = open(options.shortcut, 'rb')   # 'rb' for reading; can be omitted
   shortcut_dict = pickle.load(f)         # load file content as mydict
   f.close()     
@@ -118,7 +119,7 @@ while True:
       if (sett.subset == 'None'): 
         fig = plot_3d_pca(PC_expression, annotation, sett, clusters = clusters)
       elif (sett.subset == 'param'):
-        
+        # IPython.embed()
         subset_annotation, subset_PC_expression = subset_pc_by_param(subset_PC_expression, colnm, colval, subset_annotation)
         plot_3d_pca(subset_PC_expression, subset_annotation, sett, clusters = subset_clusters)
         del subset_annotation, subset_PC_expression
@@ -155,7 +156,7 @@ while True:
       find_pseudotime(subset_PC_expression, subset_annotation, pca, sett)
       print("Showing PCS most correlated with time")
       
-    elif(action == "A"):
+    elif(action == "F"):
       colnm, colval = retrieve_subset_param(sett)
       subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
       # ~ pcs = map(int,input("Which PCs would you like on the plot? (type comma separated list, such as 1,3,4) ").split(","))
@@ -276,6 +277,63 @@ while True:
       tsne_transformed_expression_3d = pd.DataFrame(tsne3d.fit_transform(PC_expression.values), index=PC_expression.index, columns=["x","y","z"])
       comb = pd.concat([tsne_transformed_expression_3d, annotation], axis=1)
       # plotly 3d plot
+      def plot_using_plotly(transformed_expression):
+          import plotly.plotly as py
+          import plotly.graph_objs as go
+          layout = dict(
+          width=1600,
+          height=1080,
+          autosize=False,
+          #title='Test',
+          scene=dict(
+              xaxis=dict(
+                  gridcolor='rgb(0, 0, 0)',
+                  zerolinecolor='rgb(255, 0, 0)',
+                  showbackground=True,
+                  backgroundcolor='#bababa'
+              ),
+              yaxis=dict(
+                  gridcolor='rgb(0, 0, 0)',
+                  zerolinecolor='rgb(255, 0, 0)',
+                  showbackground=True,
+                  backgroundcolor='#bababa'
+              ),
+              zaxis=dict(
+                  #title="PC "+str(pc[2]+1),
+                  gridcolor='rgb(0, 0, 0)',
+                  zerolinecolor='rgb(255, 0, 0)',
+                  showbackground=True,
+                  backgroundcolor='#bababa'
+              ),
+              #aspectratio = dict( x=1, y=1, z=0.7 ),
+              aspectmode = 'manual'        
+              ),
+          )
+          data = []
+          traces = comb["name"].unique()
+          for t in traces:
+            
+              trace = dict(
+                  text = transformed_expression.index, #+ "\n" + transformed_expression["branch"],
+                  x = transformed_expression["x"],
+                  y = transformed_expression["y"],
+                  z = transformed_expression["z"],
+                  type = "scatter3d",    
+                  mode = 'markers',
+                  opacity = 0.80,
+                  marker = dict(
+                  size=comb.loc[comb["name"]==t,"size"].values,
+                  # ~ color=trx_df.color,
+                  color=comb.loc[comb["name"]==t,"color"].values,
+                  symbol=comb.loc[comb["name"]==t,"shape"].apply(shape_matplotlib2plotly).values,
+                  line=dict(width=1) )
+              )
+              
+              data.append(trace)
+          fig = dict(data=data, layout=layout)
+          url = plotly.offline.plot(fig, filename='resources/single_cell-3d-tSNE', validate=False, auto_open=False)
+          
+          plot_using_plotly(tsne_transformed_expression_3d)
       
     elif(action=="Q"):
       cluster_dir = input("Enter location of diffex csvs ")
@@ -283,15 +341,9 @@ while True:
       plot_heatmap(expression_table, annotation, dendro)
       
     elif(action=="V"):
-      print("plotting scvelo")
-      colnm, colval = retrieve_subset_param(sett)
-      subset_annotation, subset_PC_expression = subset_pc_by_param(PC_expression, colnm, colval, annotation)
-      color_key = input("color by annotation (one of day, treatment, or cluster): ") or "color"
-      pcs = [i for i in input("Which two PCs would you like on the plot? (type comma separated list, such as 1,3) ").split(",")]
-      
-      velocity_plot = plot_velocity(expression_table, subset_annotation, subset_PC_expression, adata_loom, xlabel=pcs[0], ylabel=pcs[1], color_key=color_key)    
-      plt.savefig("test.png")
-      
+      print("plot velocyto")
+      plot_velocity(shortcut_dict, loom_path, components='1,2')    
+    
     elif(action=="K"):
       pickle_file = input("save settings to file: ")+'.pkl'
       f = open(pickle_file, 'wb')
@@ -307,4 +359,8 @@ while True:
         
     elif(action == "I"):
       IPython.embed()
+    
 
+#HTML_pal = ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']
+#
+#annotation["color"] = [HTML_pal[i] for i in color_indices]

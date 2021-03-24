@@ -19,3 +19,7 @@ SHL_supplied_20180221_FACS_20170407_SHL_input_files
 *.rds
 *.pkl
 *.zip
+*.loom
+notebooks
+*.ipynb
+cache
